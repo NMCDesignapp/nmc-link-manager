@@ -330,6 +330,79 @@ export function calculateLuot(
   ).length;
 }
 
+export interface SecondaryConditionOptions {
+  useSecondaryCondition?: boolean;
+  secondaryTotalAFYPMin?: number;
+  secondaryTotalIPMin?: number;
+  secondaryLuotHDMin?: number;
+  secondaryLuotHDCMin?: number;
+  secondaryLuotHDFilter?: string;
+  secondaryLuotHDCFilter?: string;
+  luotHDThreshold?: number;
+  luotHDCTThreshold?: number;
+}
+
+export interface SecondaryConditionResult {
+  passed: boolean;
+  totalAFYP: number;
+  totalIP: number;
+  luotHD: number;
+  luotHDC: number;
+}
+
+/**
+ * Kiểm tra tất cả chỉ tiêu bổ sung trên cùng một đơn vị đối tượng.
+ * Caller chịu trách nhiệm truyền đúng tập HĐ của TVV, Nhóm hoặc NTD đang xét.
+ *
+ * Tổng IP/AFYP luôn cộng toàn bộ HĐ trong tập đó. Bộ lọc TVVm chỉ áp
+ * cho chỉ tiêu lượt; vì vậy TVVm có IP dưới ngưỡng HĐC vẫn được cộng
+ * vào Tổng IP nhưng không tạo lượt HĐC.
+ */
+export function evaluateSecondaryConditions(
+  contracts: Contract[],
+  options: SecondaryConditionOptions,
+  tvvStructList: TVVStructMember[] = []
+): SecondaryConditionResult {
+  const totalAFYP = contracts.reduce((sum, contract) => sum + contract.afyp, 0);
+  const totalIP = contracts.reduce((sum, contract) => sum + contract.pdt10DT, 0);
+  const structureStartDates = buildStructureStartDateMap(tvvStructList);
+
+  const luotHDMode: ConditionType = options.secondaryLuotHDFilter === 'tvvm'
+    ? 'activity_round_tvvm'
+    : 'activity_round';
+  const luotHDCMode: ConditionType = options.secondaryLuotHDCFilter === 'tvvm'
+    ? 'activity_round_standard_tvvm'
+    : 'activity_round_standard';
+  const luotHD = calculateLuot(
+    contracts,
+    options.luotHDThreshold ?? 3_000_000,
+    luotHDMode,
+    undefined,
+    undefined,
+    structureStartDates
+  );
+  const luotHDC = calculateLuot(
+    contracts,
+    options.luotHDCTThreshold ?? 12_000_000,
+    luotHDCMode,
+    undefined,
+    undefined,
+    structureStartDates
+  );
+
+  if (!options.useSecondaryCondition) {
+    return { passed: true, totalAFYP, totalIP, luotHD, luotHDC };
+  }
+
+  const passed =
+    totalAFYP >= (options.secondaryTotalAFYPMin ?? 0) &&
+    totalIP >= (options.secondaryTotalIPMin ?? 0) &&
+    luotHD >= (options.secondaryLuotHDMin ?? 0) &&
+    luotHDC >= (options.secondaryLuotHDCMin ?? 0);
+
+  return { passed, totalAFYP, totalIP, luotHD, luotHDC };
+}
+
 // ===== Unicode normalize (NFC vs NFD Vietnamese) =====
 export function norm(s: string): string {
   return s.normalize('NFC');
@@ -1322,7 +1395,7 @@ export interface TVVPerContractRow {
     phase1Tier: BonusTier | null;
     phase2Tier: BonusTier | null;
   };
-  secondaryCheck: { passed: boolean; totalAFYP: number; totalIP: number };
+  secondaryCheck: SecondaryConditionResult;
   secondaryPassed: boolean;
   effectiveTier: BonusTier | null;
 }
@@ -1340,22 +1413,9 @@ export function computeTVVPerContractRows(
   const bonusTiers2 = config.bonusTiers2;
   const usePhase2 = config.usePhase2 ?? false;
   const phase2StartDate = config.phase2StartDate;
-  const useSecondaryCondition = config.useSecondaryCondition ?? false;
-  const secondaryTotalAFYPMin = config.secondaryTotalAFYPMin ?? 0;
-  const secondaryTotalIPMin = config.secondaryTotalIPMin ?? 0;
 
   const getContractValue = (c: Contract): number =>
     conditionType === 'per_contract_afyp' ? c.afyp : c.pdt10DT;
-
-  const checkSecondaryTotalCondition = (contracts: Contract[]) => {
-    const totalAFYP = contracts.reduce((sum, c) => sum + c.afyp, 0);
-    const totalIP = contracts.reduce((sum, c) => sum + c.pdt10DT, 0);
-    if (!useSecondaryCondition) return { passed: true, totalAFYP, totalIP };
-    let passed = true;
-    if (secondaryTotalAFYPMin > 0 && totalAFYP < secondaryTotalAFYPMin) passed = false;
-    if (secondaryTotalIPMin > 0 && totalIP < secondaryTotalIPMin) passed = false;
-    return { passed, totalAFYP, totalIP };
-  };
 
   const contractsForRows = [...displayContracts];
   if (tvvStructList && tvvStructList.length > 0) {
@@ -1426,13 +1486,9 @@ export function computeTVVPerContractRows(
       const agentContracts = displayContracts.filter(
         (ac) => ac.agentCode === c.agentCode
       );
-      const secondaryCheck = checkSecondaryTotalCondition(agentContracts);
+      const secondaryCheck = evaluateSecondaryConditions(agentContracts, config, tvvStructList);
       const secondaryPassed = secondaryCheck.passed;
-      const effectiveTier = secondaryPassed
-        ? tier
-        : secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0
-        ? null
-        : tier;
+      const effectiveTier = secondaryPassed ? tier : null;
       return {
         contract: c,
         cValue,
@@ -1470,15 +1526,15 @@ export function computeContestStats(
   groupedData: GroupData[],
   tvvTotalRows: TVVTotalRow[],
   tvvPerContractRows: TVVPerContractRow[],
-  config: ContestConfig
+  config: ContestConfig,
+  nydResultRows: NYDResultRow[] = [],
+  tvvStructList: TVVStructMember[] = [],
+  groupValueResolver?: (group: GroupData) => number
 ): ContestStats {
   const conditionType = config.conditionType;
   const targetType = config.targetType;
   const hideNotAchieved = config.hideNotAchieved ?? false;
   const usePhase2 = config.usePhase2 ?? false;
-  const useSecondaryCondition = config.useSecondaryCondition ?? false;
-  const secondaryTotalAFYPMin = config.secondaryTotalAFYPMin ?? 0;
-  const secondaryTotalIPMin = config.secondaryTotalIPMin ?? 0;
 
   const totalFYP = displayContracts.reduce((s, c) => s + c.pdt10DT, 0);
   let achievedCount = 0;
@@ -1490,21 +1546,18 @@ export function computeContestStats(
     const groups = [...groupedData];
     for (const g of groups) {
       let value: number;
-      if (isActivityRoundMode(conditionType)) value = g.activityRounds;
+      if (groupValueResolver) value = groupValueResolver(g);
+      else if (conditionType === 'pass_count_ip_afyp') {
+        value = getGroupTVVPassCountIPAFYP(g, displayContracts, [], config, tvvStructList);
+      }
+      else if (isActivityRoundMode(conditionType)) value = g.activityRounds;
       else if (conditionType === 'total_afyp' || conditionType === 'per_contract_afyp') value = g.totalAFYP;
       else value = g.totalFYP;
       const { tier } = isActivityRoundMode(conditionType)
         ? calculateActivityRoundBonusWithTiers(value, config.bonusTiers)
         : calculateBonusWithTiers(value, config.bonusTiers);
-      // Secondary check
-      const totalAFYP = g.contracts.reduce((s, c) => s + c.afyp, 0);
-      const totalIP = g.contracts.reduce((s, c) => s + c.pdt10DT, 0);
-      let secondaryPassed = true;
-      if (useSecondaryCondition) {
-        if (secondaryTotalAFYPMin > 0 && totalAFYP < secondaryTotalAFYPMin) secondaryPassed = false;
-        if (secondaryTotalIPMin > 0 && totalIP < secondaryTotalIPMin) secondaryPassed = false;
-      }
-      const effectiveTier = secondaryPassed ? tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : tier);
+      const secondaryCheck = evaluateSecondaryConditions(g.contracts, config, tvvStructList);
+      const effectiveTier = secondaryCheck.passed ? tier : null;
       if (hideNotAchieved && !effectiveTier) continue;
       filteredCount++;
       if (effectiveTier) {
@@ -1535,7 +1588,7 @@ export function computeContestStats(
     }
   } else if (isPerContractMode(conditionType) && targetType === 'tvv') {
     for (const row of tvvPerContractRows) {
-      if (hideNotAchieved && !row.tier) continue;
+      if (hideNotAchieved && !row.effectiveTier) continue;
       if (!row.contract.nhom && !row.contract.maNhom) continue;
       filteredCount++;
       if (row.effectiveTier) {
@@ -1552,18 +1605,12 @@ export function computeContestStats(
   } else if (targetType === 'tvv') {
     // total mode
     for (const row of tvvTotalRows) {
-      if (hideNotAchieved && !row.tier) continue;
+      const agentContracts = displayContracts.filter((c) => c.agentCode === row.agent.agentCode);
+      const secondaryCheck = evaluateSecondaryConditions(agentContracts, config, tvvStructList);
+      const effectiveTier = secondaryCheck.passed ? row.tier : null;
+      if (hideNotAchieved && !effectiveTier) continue;
       if (!row.agent.nhom && !row.agent.maNhom) continue;
       filteredCount++;
-      const agentContracts = displayContracts.filter((c) => c.agentCode === row.agent.agentCode);
-      const totalAFYP = agentContracts.reduce((s, c) => s + c.afyp, 0);
-      const totalIP = agentContracts.reduce((s, c) => s + c.pdt10DT, 0);
-      let secondaryPassed = true;
-      if (useSecondaryCondition) {
-        if (secondaryTotalAFYPMin > 0 && totalAFYP < secondaryTotalAFYPMin) secondaryPassed = false;
-        if (secondaryTotalIPMin > 0 && totalIP < secondaryTotalIPMin) secondaryPassed = false;
-      }
-      const effectiveTier = secondaryPassed ? row.tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : row.tier);
       if (effectiveTier) {
         achievedCount++;
         if (usePhase2) {
@@ -1572,6 +1619,48 @@ export function computeContestStats(
           totalBonus += computeBonusFromTier(effectiveTier, row.value);
         }
       } else {
+        notAchievedCount++;
+      }
+    }
+  } else if (targetType === 'nyd') {
+    const structureStartDates = buildStructureStartDateMap(tvvStructList);
+    const phase2Start = usePhase2 && config.phase2StartDate ? new Date(config.phase2StartDate) : null;
+    const phase1Contracts = phase2Start
+      ? displayContracts.filter(contract => new Date(contract.effectiveDate) < phase2Start)
+      : [];
+    const phase2Contracts = phase2Start
+      ? displayContracts.filter(contract => new Date(contract.effectiveDate) >= phase2Start)
+      : [];
+    const threshold = isStandardMode(conditionType) ? config.luotHDCTThreshold : config.luotHDThreshold;
+    for (const row of nydResultRows) {
+      if (phase2Start) {
+        const phase1 = calculateNYDPhaseOutcome(
+          phase1Contracts, row.nyd.nydCode, config.bonusTiers, conditionType,
+          config.includeIndividualNTD ?? false, threshold, config.tvv90MaxMonths,
+          config.tvv90MinIP, structureStartDates,
+        );
+        const phase2 = calculateNYDPhaseOutcome(
+          phase2Contracts, row.nyd.nydCode, config.bonusTiers2, conditionType,
+          config.includeIndividualNTD ?? false, threshold, config.tvv90MaxMonths,
+          config.tvv90MinIP, structureStartDates,
+        );
+        const phaseAchieved = row.secondaryPassed && Boolean(phase1.tier || phase2.tier);
+        if (hideNotAchieved && !phaseAchieved) continue;
+        filteredCount++;
+        if (phaseAchieved) achievedCount++;
+        else notAchievedCount++;
+        if (row.secondaryPassed) totalBonus += phase1.bonus + phase2.bonus;
+      } else if (row.effectiveTier) {
+        filteredCount++;
+        achievedCount++;
+        totalBonus += computeBonusFromTier(
+          row.effectiveTier,
+          row.value,
+          isActivityRoundMode(conditionType) ? row.value : undefined
+        );
+      } else {
+        if (hideNotAchieved) continue;
+        filteredCount++;
         notAchievedCount++;
       }
     }
@@ -1786,11 +1875,15 @@ export interface NYDResultRow {
   tier: BonusTier | null;
   tierIndex: number;
   remaining: number | null;
+  secondaryCheck: SecondaryConditionResult;
+  secondaryPassed: boolean;
+  effectiveTier: BonusTier | null;
 }
 
 export function computeNYDResultRows(
   nydData: NYDData[],
-  config: ContestConfig
+  config: ContestConfig,
+  tvvStructList: TVVStructMember[] = []
 ): NYDResultRow[] {
   if (config.targetType !== 'nyd') return [];
   const conditionType = config.conditionType;
@@ -1805,7 +1898,14 @@ export function computeNYDResultRows(
         : n.recruitFYP + (includeIndividualNTD ? n.ownFYP : 0);
       const { tier, tierIndex } = calculateBonusWithTiers(value, bonusTiers);
       const remaining = getRemainingToNextTier(value, bonusTiers);
-      return { nyd: n, value, tier, tierIndex, remaining };
+      const entityContracts = n.contracts.filter((contract) =>
+        (contract.maDaiLyTD === n.nydCode && contract.agentCode !== n.nydCode) ||
+        (includeIndividualNTD && contract.agentCode === n.nydCode)
+      );
+      const secondaryCheck = evaluateSecondaryConditions(entityContracts, config, tvvStructList);
+      const secondaryPassed = secondaryCheck.passed;
+      const effectiveTier = secondaryPassed ? tier : null;
+      return { nyd: n, value, tier, tierIndex, remaining, secondaryCheck, secondaryPassed, effectiveTier };
     })
     .sort((a, b) => b.value - a.value);
 }
@@ -1820,7 +1920,8 @@ export function getGroupTVVPassCountIPAFYP(
   g: GroupData,
   displayContracts: Contract[],
   staffList: StaffMember[],
-  config: ContestConfig
+  config: ContestConfig,
+  tvvStructList: TVVStructMember[] = []
 ): number {
   if (config.conditionType !== 'pass_count_ip_afyp') return 0;
   const tnAgentCode = g.leader?.agentCode || '';
@@ -1828,22 +1929,7 @@ export function getGroupTVVPassCountIPAFYP(
   const passCountIPMin = config.secondaryIPMin ?? 0;
   const passCountAFYPMin = config.secondaryAFYPMin ?? 0;
 
-  const agentCodes = new Set<string>();
-  const groupContracts = displayContracts.filter(
-    (c) =>
-      c.maNhom === g.maNhom ||
-      (c.maNhom && c.maNhom.toLowerCase() === g.maNhom.toLowerCase())
-  );
-  for (const c of groupContracts) {
-    if (c.agentCode) agentCodes.add(c.agentCode);
-  }
-  // Also include TVV from staffList in group (no contracts → won't pass anyway)
-  const groupStaff = staffList.filter(
-    (s) =>
-      s.maNhom === g.maNhom ||
-      (s.maNhom && s.maNhom.toLowerCase() === g.maNhom.toLowerCase())
-  );
-  for (const s of groupStaff) agentCodes.add(s.agentCode);
+  const agentCodes = getGroupTVVAgentCodes(g, displayContracts, staffList, tvvStructList);
 
   let count = 0;
   for (const code of agentCodes) {
@@ -1854,4 +1940,104 @@ export function getGroupTVVPassCountIPAFYP(
     if (totalIP >= passCountIPMin && totalAFYP >= passCountAFYPMin) count++;
   }
   return count;
+}
+
+/**
+ * Kiểm tra một TVV có đạt chương trình TVV tham chiếu hay không.
+ * Hàm này cố ý đi qua đúng chuỗi lọc/tính dùng cho bảng kết quả đã lưu để
+ * Trang Thi đua và Sao Việt toàn chặng không tự diễn giải chương trình tham
+ * chiếu theo hai cách khác nhau.
+ */
+export function doesTVVPassReferenceContest(
+  agentCode: string,
+  rawReferenceContest: any,
+  allContracts: Contract[],
+  staffList: StaffMember[],
+  recruiterList: RecruiterMember[],
+  tvvStructList: TVVStructMember[] = [],
+  priorityAgentCodes?: ReadonlySet<string>
+): boolean {
+  if (!rawReferenceContest || !agentCode) return false;
+  const referenceConfig = parseContestConfig(rawReferenceContest);
+  if (referenceConfig.targetType !== 'tvv' || isTVVPassCountMode(referenceConfig.conditionType)) {
+    return false;
+  }
+
+  const dateFiltered = filterContractsByContest(allContracts, referenceConfig);
+  const display = filterDisplayContracts(
+    dateFiltered,
+    referenceConfig,
+    staffList,
+    recruiterList,
+    tvvStructList
+  );
+
+  if (isPerContractMode(referenceConfig.conditionType)) {
+    return computeTVVPerContractRows(display, referenceConfig, tvvStructList)
+      .some((row) => row.contract.agentCode === agentCode && row.effectiveTier !== null);
+  }
+
+  return computeTVVTotalRows(
+    display,
+    referenceConfig,
+    staffList,
+    recruiterList,
+    tvvStructList,
+    priorityAgentCodes
+  ).some((row) => {
+    if (row.agent.agentCode !== agentCode || !row.tier) return false;
+    const agentContracts = display.filter((contract) => contract.agentCode === agentCode);
+    return evaluateSecondaryConditions(agentContracts, referenceConfig, tvvStructList).passed;
+  });
+}
+
+/** Danh sách TVV của nhóm luôn ưu tiên nguồn Cấu trúc; chỉ fallback khi nguồn này trống. */
+export function getGroupTVVAgentCodes(
+  group: GroupData,
+  allContracts: Contract[],
+  staffList: StaffMember[],
+  tvvStructList: TVVStructMember[] = []
+): string[] {
+  const sameGroup = (value?: string | null) =>
+    norm(value || '').toLowerCase() === norm(group.maNhom || '').toLowerCase();
+  const codes = new Set<string>();
+
+  if (tvvStructList.length > 0) {
+    for (const member of tvvStructList) {
+      if (member.agentCode && sameGroup(member.maBanNhom)) codes.add(member.agentCode);
+    }
+  } else {
+    for (const contract of allContracts) {
+      if (contract.agentCode && sameGroup(contract.maNhom)) codes.add(contract.agentCode);
+    }
+    for (const member of staffList) {
+      if (member.agentCode && sameGroup(member.maNhom)) codes.add(member.agentCode);
+    }
+  }
+  return Array.from(codes);
+}
+
+export function getGroupTVVPassCountForReference(
+  group: GroupData,
+  rawReferenceContest: any,
+  allContracts: Contract[],
+  staffList: StaffMember[],
+  recruiterList: RecruiterMember[],
+  tvvStructList: TVVStructMember[] = [],
+  includeLeader = false,
+  priorityAgentCodes?: ReadonlySet<string>
+): number {
+  if (!rawReferenceContest) return 0;
+  const leaderCode = group.leader?.agentCode || '';
+  return getGroupTVVAgentCodes(group, allContracts, staffList, tvvStructList)
+    .filter((agentCode) => includeLeader || !leaderCode || agentCode !== leaderCode)
+    .filter((agentCode) => doesTVVPassReferenceContest(
+      agentCode,
+      rawReferenceContest,
+      allContracts,
+      staffList,
+      recruiterList,
+      tvvStructList,
+      priorityAgentCodes
+    )).length;
 }

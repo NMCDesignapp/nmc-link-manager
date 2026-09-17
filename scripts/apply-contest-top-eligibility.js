@@ -71,39 +71,44 @@ function patchMainPage() {
   const loadReplacement = `    setUseTopRanking(contest.useTopRanking ?? false);\n    try {\n      const parsedTopRewards = JSON.parse(contest.topRewardAmounts || '[]');\n      const rewards = Array.isArray(parsedTopRewards)\n        ? parsedTopRewards\n        : (Array.isArray(parsedTopRewards?.rewards) ? parsedTopRewards.rewards : []);\n      setTopRewardAmounts(rewards.length > 0\n        ? rewards.map((value: unknown) => Math.max(0, Number(value) || 0))\n        : [1_000_000, 500_000, 300_000]);\n      const rawEligibilityType = Array.isArray(parsedTopRewards) ? 'none' : parsedTopRewards?.eligibilityType;\n      setTopEligibilityType(rawEligibilityType === 'per_contract_ip' || rawEligibilityType === 'per_contract_afyp' || rawEligibilityType === 'total_ip' || rawEligibilityType === 'total_afyp'\n        ? rawEligibilityType\n        : 'none');\n      setTopEligibilityMin(Array.isArray(parsedTopRewards) ? 0 : Math.max(0, Number(parsedTopRewards?.eligibilityMin) || 0));\n    } catch {\n      setTopRewardAmounts([1_000_000, 500_000, 300_000]);\n      setTopEligibilityType('none');\n      setTopEligibilityMin(0);\n    }`;
   source = replaceOnce(source, loadAnchor, loadReplacement, 'load combined TOP eligibility');
 
-  const candidatesAnchor = `      return true;\n    };\n\n    const candidates: { key: string; value: number; qualified: boolean }[] = [];`;
-  const candidatesReplacement = `      return true;\n    };\n\n    const passesTopEligibility = (rows: Contract[], focusContract?: Contract) =>\n      passesCombinedTopEligibility(topEligibilityType, topEligibilityMin, rows, focusContract);\n\n    const candidates: { key: string; value: number; qualified: boolean }[] = [];`;
+  const secondaryHelper = `    const passesSecondaryConditions = (rows: Contract[]) => evaluateSecondaryConditions(rows, {
+      useSecondaryCondition, secondaryTotalAFYPMin, secondaryTotalIPMin,
+      secondaryLuotHDMin, secondaryLuotHDCMin, secondaryLuotHDFilter, secondaryLuotHDCFilter,
+      luotHDThreshold, luotHDCTThreshold,
+    }, tvvStructList).passed;`;
+  const candidatesAnchor = `${secondaryHelper}\n\n    const candidates: { key: string; value: number; qualified: boolean }[] = [];`;
+  const candidatesReplacement = `${secondaryHelper}\n\n    const passesTopEligibility = (rows: Contract[], focusContract?: Contract) =>\n      passesCombinedTopEligibility(topEligibilityType, topEligibilityMin, rows, focusContract);\n\n    const candidates: { key: string; value: number; qualified: boolean }[] = [];`;
   source = replaceOnce(source, candidatesAnchor, candidatesReplacement, 'main ranking eligibility helper');
 
   source = replaceOnce(
     source,
-    "        candidates.push({ key: `contract:${contract.id}`, value, qualified: Boolean(tier) && passesSecondaryTotals(agentContracts) });",
-    "        candidates.push({ key: `contract:${contract.id}`, value, qualified: Boolean(tier) && passesSecondaryTotals(agentContracts) && passesTopEligibility(agentContracts, contract) });",
+    "        candidates.push({ key: `contract:${contract.id}`, value, qualified: Boolean(tier) && passesSecondaryConditions(agentContracts) });",
+    "        candidates.push({ key: `contract:${contract.id}`, value, qualified: Boolean(tier) && passesSecondaryConditions(agentContracts) && passesTopEligibility(agentContracts, contract) });",
     'main per-contract eligibility',
   );
   source = replaceOnce(
     source,
-    "        candidates.push({ key: `tvv:${row.agent.agentCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryTotals(agentContracts) });",
-    "        candidates.push({ key: `tvv:${row.agent.agentCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryTotals(agentContracts) && passesTopEligibility(agentContracts) });",
+    "        candidates.push({ key: `tvv:${row.agent.agentCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryConditions(agentContracts) });",
+    "        candidates.push({ key: `tvv:${row.agent.agentCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryConditions(agentContracts) && passesTopEligibility(agentContracts) });",
     'main TVV total eligibility',
   );
   source = replaceOnce(
     source,
-    "        candidates.push({ key: `nhom:${group.maNhom}`, value, qualified: Boolean(tier) && passesSecondaryTotals(group.contracts || []) });",
-    "        candidates.push({ key: `nhom:${group.maNhom}`, value, qualified: Boolean(tier) && passesSecondaryTotals(group.contracts || []) && passesTopEligibility(group.contracts || []) });",
+    "        candidates.push({ key: `nhom:${group.maNhom}`, value, qualified: Boolean(tier) && passesSecondaryConditions(group.contracts || []) });",
+    "        candidates.push({ key: `nhom:${group.maNhom}`, value, qualified: Boolean(tier) && passesSecondaryConditions(group.contracts || []) && passesTopEligibility(group.contracts || []) });",
     'main group eligibility',
   );
   source = replaceOnce(
     source,
-    "        candidates.push({ key: `nyd:${person.nydCode}`, value, qualified: Boolean(tier) && passesSecondaryTotals(personContracts) });",
-    "        candidates.push({ key: `nyd:${person.nydCode}`, value, qualified: Boolean(tier) && passesSecondaryTotals(personContracts) && passesTopEligibility(personContracts) });",
+    "        candidates.push({ key: `nyd:${person.nydCode}`, value, qualified: Boolean(tier) && passesSecondaryConditions(personContracts) });",
+    "        candidates.push({ key: `nyd:${person.nydCode}`, value, qualified: Boolean(tier) && passesSecondaryConditions(personContracts) && passesTopEligibility(personContracts) });",
     'main NTD eligibility',
   );
 
   source = replaceOnce(
     source,
-    "    useSecondaryCondition, secondaryTotalAFYPMin, secondaryTotalIPMin,\n  ]);",
-    "    useSecondaryCondition, secondaryTotalAFYPMin, secondaryTotalIPMin, topEligibilityType, topEligibilityMin,\n  ]);",
+    "    secondaryLuotHDFilter, secondaryLuotHDCFilter, luotHDThreshold, luotHDCTThreshold, tvvStructList,\n  ]);",
+    "    secondaryLuotHDFilter, secondaryLuotHDCFilter, luotHDThreshold, luotHDCTThreshold, tvvStructList,\n    topEligibilityType, topEligibilityMin,\n  ]);",
     'main eligibility dependencies',
   );
 
@@ -129,32 +134,32 @@ function patchSavedContestInline() {
     'saved eligibility helper import',
   );
 
-  const candidatesAnchor = `      return true;\n    };\n    const candidates: { key: string; value: number; qualified: boolean }[] = [];`;
-  const candidatesReplacement = `      return true;\n    };\n    const passesTopEligibility = (rows: Contract[], focusContract?: Contract) =>\n      passesCombinedTopEligibility(config.topEligibilityType ?? 'none', config.topEligibilityMin ?? 0, rows, focusContract);\n    const candidates: { key: string; value: number; qualified: boolean }[] = [];`;
+  const candidatesAnchor = `    const passesSecondaryConditions = (rows: Contract[]) => evaluateSecondaryConditions(rows, config, tvvStructList).passed;\n    const candidates: { key: string; value: number; qualified: boolean }[] = [];`;
+  const candidatesReplacement = `    const passesSecondaryConditions = (rows: Contract[]) => evaluateSecondaryConditions(rows, config, tvvStructList).passed;\n    const passesTopEligibility = (rows: Contract[], focusContract?: Contract) =>\n      passesCombinedTopEligibility(config.topEligibilityType ?? 'none', config.topEligibilityMin ?? 0, rows, focusContract);\n    const candidates: { key: string; value: number; qualified: boolean }[] = [];`;
   source = replaceOnce(source, candidatesAnchor, candidatesReplacement, 'saved ranking eligibility helper');
 
   source = replaceOnce(
     source,
-    "        candidates.push({ key: `contract:${row.contract.id}`, value: row.cValue, qualified: Boolean(row.tier) && passesSecondaryTotals(agentRows) });",
-    "        candidates.push({ key: `contract:${row.contract.id}`, value: row.cValue, qualified: Boolean(row.tier) && passesSecondaryTotals(agentRows) && passesTopEligibility(agentRows, row.contract) });",
+    "        candidates.push({ key: `contract:${row.contract.id}`, value: row.cValue, qualified: Boolean(row.tier) && passesSecondaryConditions(agentRows) });",
+    "        candidates.push({ key: `contract:${row.contract.id}`, value: row.cValue, qualified: Boolean(row.tier) && passesSecondaryConditions(agentRows) && passesTopEligibility(agentRows, row.contract) });",
     'saved per-contract eligibility',
   );
   source = replaceOnce(
     source,
-    "        candidates.push({ key: `tvv:${row.agent.agentCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryTotals(agentRows) });",
-    "        candidates.push({ key: `tvv:${row.agent.agentCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryTotals(agentRows) && passesTopEligibility(agentRows) });",
+    "        candidates.push({ key: `tvv:${row.agent.agentCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryConditions(agentRows) });",
+    "        candidates.push({ key: `tvv:${row.agent.agentCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryConditions(agentRows) && passesTopEligibility(agentRows) });",
     'saved TVV total eligibility',
   );
   source = replaceOnce(
     source,
-    "        candidates.push({ key: `nhom:${group.maNhom}`, value, qualified: Boolean(tier) && passesSecondaryTotals(group.contracts || []) });",
-    "        candidates.push({ key: `nhom:${group.maNhom}`, value, qualified: Boolean(tier) && passesSecondaryTotals(group.contracts || []) && passesTopEligibility(group.contracts || []) });",
+    "        candidates.push({ key: `nhom:${group.maNhom}`, value, qualified: Boolean(tier) && passesSecondaryConditions(group.contracts || []) });",
+    "        candidates.push({ key: `nhom:${group.maNhom}`, value, qualified: Boolean(tier) && passesSecondaryConditions(group.contracts || []) && passesTopEligibility(group.contracts || []) });",
     'saved group eligibility',
   );
   source = replaceOnce(
     source,
-    "        candidates.push({ key: `nyd:${row.nyd.nydCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryTotals(personRows) });",
-    "        candidates.push({ key: `nyd:${row.nyd.nydCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryTotals(personRows) && passesTopEligibility(personRows) });",
+    "        candidates.push({ key: `nyd:${row.nyd.nydCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryConditions(personRows) });",
+    "        candidates.push({ key: `nyd:${row.nyd.nydCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryConditions(personRows) && passesTopEligibility(personRows) });",
     'saved NTD eligibility',
   );
 

@@ -16,7 +16,7 @@
  * để kết quả khớp 100% với popup "Kết quả chi tiết" trên trang đó.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Table,
   TableHeader,
@@ -46,7 +46,10 @@ import {
   computeContestStats,
   computeNYDData,
   computeNYDResultRows,
+  evaluateSecondaryConditions,
+  getGroupTVVPassCountForReference,
   getGroupTVVPassCountIPAFYP,
+  calculateNYDPhaseOutcome,
   calculateBonusWithTiers,
   getRemainingToNextTier,
   calculateActivityRoundBonusWithTiers,
@@ -170,9 +173,43 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     [displayContracts, config, recruiterList, staffList, tvvStructList]
   );
   const nydResultRows = useMemo(
-    () => computeNYDResultRows(nydData, config),
-    [nydData, config]
+    () => computeNYDResultRows(nydData, config, tvvStructList),
+    [nydData, config, tvvStructList]
   );
+
+  const referenceContest = useMemo(
+    () => (appData.contests || []).find((item: any) => item.id === config.referenceContestId) || null,
+    [appData.contests, config.referenceContestId]
+  );
+  const resolveGroupMetricValue = useCallback((group: GroupData): number => {
+    if (config.conditionType === 'tvv_pass_count') {
+      return getGroupTVVPassCountForReference(
+        group,
+        referenceContest,
+        allContracts,
+        staffList,
+        recruiterList,
+        tvvStructList,
+        config.includeTNInPassCount ?? false,
+        priorityTvvCodes
+      );
+    }
+    if (config.conditionType === 'pass_count_ip_afyp') {
+      return getGroupTVVPassCountIPAFYP(group, displayContracts, staffList, config, tvvStructList);
+    }
+    if (isActivityRoundMode(config.conditionType)) return group.activityRounds;
+    if (config.conditionType === 'total_afyp' || config.conditionType === 'per_contract_afyp') return group.totalAFYP;
+    return group.totalFYP;
+  }, [
+    config,
+    referenceContest,
+    allContracts,
+    staffList,
+    recruiterList,
+    tvvStructList,
+    priorityTvvCodes,
+    displayContracts,
+  ]);
 
   // Step 4: stats summary
   const stats = useMemo(
@@ -182,9 +219,12 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
         groupedData,
         tvvTotalRows,
         tvvPerContractRows,
-        config
+        config,
+        nydResultRows,
+        tvvStructList,
+        config.targetType === 'nhom' ? resolveGroupMetricValue : undefined
       ),
-    [displayContracts, groupedData, tvvTotalRows, tvvPerContractRows, config]
+    [displayContracts, groupedData, tvvTotalRows, tvvPerContractRows, config, nydResultRows, tvvStructList, resolveGroupMetricValue]
   );
 
   // ===== Apply local filters (nhom + name) =====
@@ -221,7 +261,35 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   const showSecondaryTotalColumn =
     (config.useSecondaryCondition ?? false) &&
     ((config.secondaryTotalAFYPMin ?? 0) > 0 || (config.secondaryTotalIPMin ?? 0) > 0);
+  const showSecondaryRoundColumn =
+    (config.useSecondaryCondition ?? false) &&
+    ((config.secondaryLuotHDMin ?? 0) > 0 || (config.secondaryLuotHDCMin ?? 0) > 0);
   const usePhase2 = config.usePhase2 ?? false;
+  const nydPhaseBonusByCode = useMemo(() => {
+    const result = new Map<string, { phase1Bonus: number; phase2Bonus: number }>();
+    if (!usePhase2 || !config.phase2StartDate || config.targetType !== 'nyd') return result;
+    const phase2Start = new Date(config.phase2StartDate);
+    const phase1Contracts = displayContracts.filter(contract => new Date(contract.effectiveDate) < phase2Start);
+    const phase2Contracts = displayContracts.filter(contract => new Date(contract.effectiveDate) >= phase2Start);
+    const threshold = isStandardMode(config.conditionType) ? config.luotHDCTThreshold : config.luotHDThreshold;
+    for (const row of nydResultRows) {
+      const phase1 = calculateNYDPhaseOutcome(
+        phase1Contracts, row.nyd.nydCode, config.bonusTiers, config.conditionType,
+        config.includeIndividualNTD ?? false, threshold, config.tvv90MaxMonths,
+        config.tvv90MinIP, structureStartDates,
+      );
+      const phase2 = calculateNYDPhaseOutcome(
+        phase2Contracts, row.nyd.nydCode, config.bonusTiers2, config.conditionType,
+        config.includeIndividualNTD ?? false, threshold, config.tvv90MaxMonths,
+        config.tvv90MinIP, structureStartDates,
+      );
+      result.set(row.nyd.nydCode, {
+        phase1Bonus: row.secondaryPassed ? phase1.bonus : 0,
+        phase2Bonus: row.secondaryPassed ? phase2.bonus : 0,
+      });
+    }
+    return result;
+  }, [usePhase2, config, displayContracts, nydResultRows, structureStartDates]);
   const hideNotAchieved = config.hideNotAchieved ?? false;
   // The contest card can be opened while the shared AppDataProvider is still
   // fetching its source arrays. Keep the table in an explicit loading state
@@ -355,7 +423,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   // ===== Render: TVV per-contract table (per_contract_ip / per_contract_afyp) =====
   const renderTVVPerContractTable = () => {
     const filteredRows = tvvPerContractRows.filter((row) => {
-      if (hideNotAchieved && !row.tier) return false;
+      if (hideNotAchieved && !row.effectiveTier) return false;
       if (!row.contract.nhom && !row.contract.maNhom) return false;
       if (nhomFilter && row.contract.nhom !== nhomFilter && row.contract.maNhom !== nhomFilter) return false;
       if (q && !((row.contract.agentName || '').toLowerCase().includes(q) || (row.contract.agentCode || '').toLowerCase().includes(q))) return false;
@@ -440,7 +508,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   // ===== Render: TVV total table (total_ip / total_afyp / activity_round*) =====
   const renderTVVTotalTable = () => {
     const filteredRows = tvvTotalRows.filter((row) => {
-      if (hideNotAchieved && !row.tier) return false;
+      const entityContracts = displayContracts.filter((contract) => contract.agentCode === row.agent.agentCode);
+      const secondaryPassed = evaluateSecondaryConditions(entityContracts, config, tvvStructList).passed;
+      if (hideNotAchieved && (!row.tier || !secondaryPassed)) return false;
       if (!row.agent.nhom && !row.agent.maNhom) return false;
       if (nhomFilter && row.agent.nhom !== nhomFilter && row.agent.maNhom !== nhomFilter) return false;
       if (q && !((row.agent.agentName || '').toLowerCase().includes(q) || (row.agent.agentCode || '').toLowerCase().includes(q))) return false;
@@ -486,14 +556,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           ) : filteredRows.map((row, idx) => {
             // Secondary check
             const agentContracts = displayContracts.filter((c) => c.agentCode === row.agent.agentCode);
-            const totalAFYP = agentContracts.reduce((s, c) => s + c.afyp, 0);
-            const totalIP = agentContracts.reduce((s, c) => s + c.pdt10DT, 0);
-            let secondaryPassed = true;
-            if (config.useSecondaryCondition) {
-              if ((config.secondaryTotalAFYPMin ?? 0) > 0 && totalAFYP < (config.secondaryTotalAFYPMin ?? 0)) secondaryPassed = false;
-              if ((config.secondaryTotalIPMin ?? 0) > 0 && totalIP < (config.secondaryTotalIPMin ?? 0)) secondaryPassed = false;
-            }
-            const effectiveTier = secondaryPassed ? row.tier : ((config.secondaryTotalAFYPMin ?? 0) > 0 || (config.secondaryTotalIPMin ?? 0) > 0 ? null : row.tier);
+            const secondaryCheck = evaluateSecondaryConditions(agentContracts, config, tvvStructList);
+            const secondaryPassed = secondaryCheck.passed;
+            const effectiveTier = secondaryPassed ? row.tier : null;
             // Top N mode: tính label hạng để ghi vào cột Ghi chú (KHÔNG có cột HẠNG riêng)
             let noteLabel: React.ReactNode = null;
             if (isTopN) {
@@ -562,7 +627,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   // Hỗ trợ TẤT CẢ mode: total_ip / total_afyp / activity_round* / tvv_pass_count / pass_count_ip_afyp
   // - total_ip / total_afyp: value = tổng FYP/AFYP nhóm
   // - activity_round*: value = tổng lượt HĐ nhóm
-  // - tvv_pass_count: value = số TVV đạt CTĐK (cần referenceContest) — hiện fallback 0 nếu không có
+  // - tvv_pass_count: value = số TVV đạt CTĐK tham chiếu, dùng cùng calculator với Trang Thi đua
   // - pass_count_ip_afyp: value = số TVV trong nhóm đạt IP >= secondaryIPMin AND AFYP >= secondaryAFYPMin
   const renderNhomTable = () => {
     // Sort groups by value desc
@@ -572,33 +637,15 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     const sortedGroups = [...groupedData]
       .map((g) => {
         let value: number;
-        if (isPassCountIPAFYP) {
-          // Đếm TVV trong nhóm đạt IP+AFYP threshold
-          value = getGroupTVVPassCountIPAFYP(g, displayContracts, staffList, config);
-        } else if (isPassCount) {
-          // tvv_pass_count mode — cần referenceContest + savedContests để tính
-          // Hiện chưa có context savedContests trong SavedContestInline → fallback 0
-          // (User hiếm khi dùng mode này với SavedContestInline — thường dùng thi-dua-chau page)
-          value = 0;
-        } else if (isActivity) {
-          value = g.activityRounds;
-        } else if (config.conditionType === 'total_afyp' || config.conditionType === 'per_contract_afyp') {
-          value = g.totalAFYP;
-        } else {
-          value = g.totalFYP;
-        }
+        value = resolveGroupMetricValue(g);
         const { tier } = isActivity
           ? calculateActivityRoundBonusWithTiers(value, config.bonusTiers)
           : calculateBonusWithTiers(value, config.bonusTiers);
         // Secondary check
-        const totalAFYP = g.contracts.reduce((s, c) => s + c.afyp, 0);
-        const totalIP = g.contracts.reduce((s, c) => s + c.pdt10DT, 0);
-        let secondaryPassed = true;
-        if (config.useSecondaryCondition) {
-          if ((config.secondaryTotalAFYPMin ?? 0) > 0 && totalAFYP < (config.secondaryTotalAFYPMin ?? 0)) secondaryPassed = false;
-          if ((config.secondaryTotalIPMin ?? 0) > 0 && totalIP < (config.secondaryTotalIPMin ?? 0)) secondaryPassed = false;
-        }
-        const effectiveTier = secondaryPassed ? tier : ((config.secondaryTotalAFYPMin ?? 0) > 0 || (config.secondaryTotalIPMin ?? 0) > 0 ? null : tier);
+        const secondaryCheck = evaluateSecondaryConditions(g.contracts, config, tvvStructList);
+        const { totalAFYP, totalIP } = secondaryCheck;
+        const secondaryPassed = secondaryCheck.passed;
+        const effectiveTier = secondaryPassed ? tier : null;
         // Phase 2 split — chỉ áp dụng cho non-pass-count modes (pass count dùng giá trị đếm được, không chia phase)
         let phase1Bonus = 0, phase2Bonus = 0;
         if (usePhase2 && config.phase2StartDate && !isPassCountIPAFYP && !isPassCount) {
@@ -625,7 +672,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
         return { g, value, tier, effectiveTier, secondaryPassed, totalAFYP, totalIP, phase1Bonus, phase2Bonus };
       })
       .filter((row) => {
-        if (hideNotAchieved && !row.tier) return false;
+        if (hideNotAchieved && !row.effectiveTier) return false;
         if (nhomFilter && row.g.nhom !== nhomFilter) return false;
         if (q) {
           const leaderName = row.g.leader?.agentName || '';
@@ -739,7 +786,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     const isActivity = isActivityRoundMode(config.conditionType);
     const includeIndividualNTD = config.includeIndividualNTD ?? false;
     const filteredRows = nydResultRows.filter((row) => {
-      if (hideNotAchieved && !row.tier) return false;
+      if (hideNotAchieved && !row.effectiveTier) return false;
       if (!row.nyd.nhom) return false;
       if (nhomFilter && row.nyd.nhom !== nhomFilter) return false;
       if (q && !((row.nyd.nydName || '').toLowerCase().includes(q) || (row.nyd.nydCode || '').toLowerCase().includes(q))) return false;
@@ -762,6 +809,18 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>TÊN NTD</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>CHỨC VỤ</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#ECFDF5', backgroundColor: '#047857' }}>{valueLabel}</TableHead>
+            {showSecondaryTotalColumn && (
+              <>
+                {(config.secondaryTotalAFYPMin ?? 0) > 0 && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ color: '#ECFDF5', backgroundColor: '#92400E' }}>Tổng AFYP</TableHead>}
+                {(config.secondaryTotalIPMin ?? 0) > 0 && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ color: '#ECFDF5', backgroundColor: '#92400E' }}>Tổng IP</TableHead>}
+              </>
+            )}
+            {showSecondaryRoundColumn && (
+              <>
+                {(config.secondaryLuotHDMin ?? 0) > 0 && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ color: '#ECFDF5', backgroundColor: '#9A3412' }}>Lượt HĐ {config.secondaryLuotHDFilter === 'tvvm' ? 'TVVm' : ''}</TableHead>}
+                {(config.secondaryLuotHDCMin ?? 0) > 0 && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ color: '#ECFDF5', backgroundColor: '#9A3412' }}>Lượt HĐC {config.secondaryLuotHDCFilter === 'tvvm' ? 'TVVm' : ''}</TableHead>}
+              </>
+            )}
             {showRateColumn && (
               <TableHead className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap" style={{ color: '#ECFDF5', backgroundColor: '#047857' }}><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
             )}
@@ -785,38 +844,52 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               </TableCell>
             </TableRow>
           ) : filteredRows.map((row, idx) => (
-            <TableRow key={row.nyd.nydCode} className={`${row.tier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
+            <TableRow key={row.nyd.nydCode} className={`${row.effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
               <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
               <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{row.nyd.nhom || '—'}</TableCell>
               <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.nyd.nydCode}</TableCell>
               <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.nyd.nydName}</TableCell>
               <TableCell className="text-xs text-gray-600 whitespace-nowrap">{row.nyd.position || '—'}</TableCell>
               <TableCell className="text-center text-xs text-gray-900 whitespace-nowrap font-semibold">{isActivity ? row.value : formatNumber(row.value)}</TableCell>
+              {showSecondaryTotalColumn && (
+                <>
+                  {(config.secondaryTotalAFYPMin ?? 0) > 0 && <TableCell className="text-right text-xs whitespace-nowrap">{formatNumber(row.secondaryCheck.totalAFYP)}</TableCell>}
+                  {(config.secondaryTotalIPMin ?? 0) > 0 && <TableCell className="text-right text-xs whitespace-nowrap">{formatNumber(row.secondaryCheck.totalIP)}</TableCell>}
+                </>
+              )}
+              {showSecondaryRoundColumn && (
+                <>
+                  {(config.secondaryLuotHDMin ?? 0) > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{row.secondaryCheck.luotHD}</TableCell>}
+                  {(config.secondaryLuotHDCMin ?? 0) > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{row.secondaryCheck.luotHDC}</TableCell>}
+                </>
+              )}
               {showRateColumn && (
                 <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">
-                  {row.tier ? <span className="font-bold text-violet-600">{formatRate(row.tier)}</span> : <span className="text-gray-400">—</span>}
+                  {row.effectiveTier ? <span className="font-bold text-violet-600">{formatRate(row.effectiveTier)}</span> : <span className="text-gray-400">—</span>}
                 </TableCell>
               )}
               {usePhase2 ? (
                 <>
-                  <TableCell className="text-center bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{row.tier ? <span className="text-gray-400">—</span> : <span className="text-gray-400">—</span>}</TableCell>
-                  <TableCell className="text-center bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{row.tier ? <span className="text-gray-400">—</span> : <span className="text-gray-400">—</span>}</TableCell>
-                  <TableCell className="text-center bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{row.tier ? formatCurrency(0) : <span className="text-gray-400">—</span>}</TableCell>
+                  <TableCell className="text-center bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{(nydPhaseBonusByCode.get(row.nyd.nydCode)?.phase1Bonus ?? 0) > 0 ? formatCurrency(nydPhaseBonusByCode.get(row.nyd.nydCode)!.phase1Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+                  <TableCell className="text-center bg-emerald-50 text-xs font-semibold text-emerald-600 whitespace-nowrap">{(nydPhaseBonusByCode.get(row.nyd.nydCode)?.phase2Bonus ?? 0) > 0 ? formatCurrency(nydPhaseBonusByCode.get(row.nyd.nydCode)!.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
+                  <TableCell className="text-center bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{row.secondaryPassed ? formatCurrency((nydPhaseBonusByCode.get(row.nyd.nydCode)?.phase1Bonus ?? 0) + (nydPhaseBonusByCode.get(row.nyd.nydCode)?.phase2Bonus ?? 0)) : <span className="text-gray-400">—</span>}</TableCell>
                 </>
               ) : (
                 <TableCell className="text-center bg-emerald-50 whitespace-nowrap">
-                  {row.tier ? (
+                  {row.effectiveTier ? (
                     <span className="flex items-center justify-center gap-1">
-                      {row.tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}
-                      <span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(row.tier, row.value, isActivity ? row.value : undefined)}</span>
+                      {row.effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}
+                      <span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(row.effectiveTier, row.value, isActivity ? row.value : undefined)}</span>
                     </span>
                   ) : <span className="text-gray-400 text-xs">—</span>}
                 </TableCell>
               )}
               <TableCell className="text-left px-3 whitespace-nowrap">
-                {!row.tier && row.remaining !== null ? (
+                {!row.effectiveTier && row.tier && !row.secondaryPassed ? (
+                  <span className="text-[10px] italic text-gray-400">Chưa đạt ĐKB</span>
+                ) : !row.effectiveTier && row.remaining !== null ? (
                   <span className="text-[10px] italic text-gray-400">{isActivity ? `Cần thêm ${row.remaining} lượt` : `Cần thêm ${formatNumber(row.remaining)}`}</span>
-                ) : !row.tier ? (
+                ) : !row.effectiveTier ? (
                   <span className="text-[10px] italic text-gray-400">Chưa đạt</span>
                 ) : null}
               </TableCell>

@@ -21,8 +21,8 @@ patchFile('src/app/thi-dua-chau/page.tsx', (source) => {
   // Live NTD result: primary reward remains in Thưởng; TOP prize is Ghi chú only.
   source = replaceOnce(
     source,
-    `<TableCell className="whitespace-nowrap">{!tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>`,
-    `<TableCell className="whitespace-nowrap">{getCombinedTopNote(\`nyd:\${nyd.nydCode}\`) ? <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Crown className="w-4 h-4" />{getCombinedTopNote(\`nyd:\${nyd.nydCode}\`)}</span> : !tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>`,
+    `<TableCell className="whitespace-nowrap">{!effectiveTier ? <span className="text-[10px] italic text-gray-400">{tier && !secondaryCheck.passed ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>`,
+    `<TableCell className="whitespace-nowrap">{getCombinedTopNote(\`nyd:\${nyd.nydCode}\`) ? <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Crown className="w-4 h-4" />{getCombinedTopNote(\`nyd:\${nyd.nydCode}\`)}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{tier && !secondaryCheck.passed ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>`,
     'live NTD note',
   );
 
@@ -113,8 +113,8 @@ patchFile('src/components/saved-contest-inline.tsx', (source) => {
   // Saved NTD result.
   source = replaceOnce(
     source,
-    `              <TableCell className="text-left px-3 whitespace-nowrap">\n                {!row.tier && row.remaining !== null ? (`,
-    `              <TableCell className="text-left px-3 whitespace-nowrap">\n                {getCombinedTopNote(\`nyd:\${row.nyd.nydCode}\`) ? (\n                  <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Crown className="w-4 h-4" />{getCombinedTopNote(\`nyd:\${row.nyd.nydCode}\`)}</span>\n                ) : !row.tier && row.remaining !== null ? (`,
+    `              <TableCell className="text-left px-3 whitespace-nowrap">\n                {!row.effectiveTier && row.tier && !row.secondaryPassed ? (`,
+    `              <TableCell className="text-left px-3 whitespace-nowrap">\n                {getCombinedTopNote(\`nyd:\${row.nyd.nydCode}\`) ? (\n                  <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Crown className="w-4 h-4" />{getCombinedTopNote(\`nyd:\${row.nyd.nydCode}\`)}</span>\n                ) : !row.effectiveTier && row.tier && !row.secondaryPassed ? (`,
     'saved NTD note',
   );
 

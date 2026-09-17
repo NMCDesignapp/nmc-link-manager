@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { createDefaultContestPoster } from '@/lib/contest-poster';
+import { getContestArchiveYear, isChotContestTitle } from '@/lib/contest-archive';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -94,12 +95,7 @@ const summaryWithPosterUrl = <T extends PosterContest>(contest: T) => ({
 });
 
 const isSaoVietTrackingContest = (contest: { title?: string | null }) => {
-  const normalizedTitle = String(contest.title || '')
-    .trimStart()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase('vi-VN');
-  return !normalizedTitle.startsWith('chot');
+  return !isChotContestTitle(contest.title);
 };
 
 async function ensureTopNColumns(): Promise<void> {
@@ -131,6 +127,9 @@ async function readContests(request: NextRequest) {
   const id = request.nextUrl.searchParams.get('id');
   const summary = request.nextUrl.searchParams.get('summary') === '1';
   const saoVietView = request.nextUrl.searchParams.get('view') === 'saoviet';
+  const scope = request.nextUrl.searchParams.get('scope');
+  const archiveYearParam = request.nextUrl.searchParams.get('year');
+  const archiveYear = archiveYearParam ? Number.parseInt(archiveYearParam, 10) : null;
   if (id) {
     const contest = await db.contest.findUnique({ where: { id } });
     if (!contest) return NextResponse.json({ error: 'Không tìm thấy chương trình thi đua' }, { status: 404 });
@@ -140,11 +139,21 @@ async function readContests(request: NextRequest) {
     orderBy: { createdAt: 'desc' },
     ...(summary ? { select: contestSummarySelect } : {}),
   });
+  const scopedContests = contests.filter((contest) => {
+    if (saoVietView) return isSaoVietTrackingContest(contest);
+    if (scope === 'active') return !isChotContestTitle(contest.title);
+    if (scope === 'archive') {
+      if (!isChotContestTitle(contest.title)) return false;
+      return archiveYear === null || !Number.isFinite(archiveYear)
+        ? true
+        : getContestArchiveYear(contest) === archiveYear;
+    }
+    return true;
+  });
   if (summary) {
-    const visibleContests = saoVietView ? contests.filter(isSaoVietTrackingContest) : contests;
-    return NextResponse.json(visibleContests.map(summaryWithPosterUrl), { headers: noStore });
+    return NextResponse.json(scopedContests.map(summaryWithPosterUrl), { headers: noStore });
   }
-  const normalized = await Promise.all(contests.map((contest: any) => normalizePoster(contest)));
+  const normalized = await Promise.all(scopedContests.map((contest: any) => normalizePoster(contest)));
   return NextResponse.json(normalized, { headers: noStore });
 }
 

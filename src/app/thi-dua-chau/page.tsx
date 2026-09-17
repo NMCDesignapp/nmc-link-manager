@@ -25,14 +25,23 @@ import {
   Sparkles, Target, Award, Users, Banknote, CalendarRange, Gift,
   UserCheck, Percent, Image as ImageIcon, ChevronDown, ChevronUp, ArrowLeft,
   Camera, UserPlus, EyeOff, Filter, Layers, Settings2, Maximize2, Minimize2,
-  RefreshCw, CheckCircle2, CalendarClock, Crown, Medal,
+  RefreshCw, CheckCircle2, CalendarClock, Crown, Medal, FolderArchive,
 } from 'lucide-react';
 import { NeonDatePicker } from '@/components/neon-date-picker';
 import { expandActivityExportDetails } from '@/lib/contest-export-details';
 import {
+  createYearArchivePayload,
+  getContestArchiveYear,
+  groupChotContestsByMonth,
+  isChotContestTitle,
+} from '@/lib/contest-archive';
+import {
   calculateNYDPhaseOutcome,
+  doesTVVPassReferenceContest,
+  evaluateSecondaryConditions,
   filterQualifyingActivityContracts,
   getContestMetricLabel,
+  type SecondaryConditionResult,
 } from '@/lib/contest-calculator';
 
 interface Contract {
@@ -630,6 +639,11 @@ function ThiDuaPageInner() {
   const [selectedContestId, setSelectedContestId] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [contestListOpen, setContestListOpen] = useState(false);
+  const [contestArchiveOpen, setContestArchiveOpen] = useState(false);
+  const [contestArchiveLoaded, setContestArchiveLoaded] = useState(false);
+  const [contestArchiveLoading, setContestArchiveLoading] = useState(false);
+  const [selectedArchiveYear, setSelectedArchiveYear] = useState<number | null>(null);
+  const [expandedArchiveMonth, setExpandedArchiveMonth] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showSourceData, setShowSourceData] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
@@ -701,8 +715,40 @@ function ThiDuaPageInner() {
   const fetchSavedContests = useCallback(async () => {
     // Danh sách chỉ lấy cấu hình tóm tắt, không kéo dữ liệu ảnh poster nặng.
     // Chi tiết/poster của chương trình được tải riêng khi người dùng mở chương trình đó.
-    try { const res = await fetchFresh('/api/contests?summary=1'); if (res.ok) { const data = await res.json(); setSavedContests(data); } } catch { /* silent */ }
+    try {
+      const res = await fetchFresh('/api/contests?summary=1&scope=active');
+      if (res.ok) {
+        const data = await res.json();
+        setSavedContests(previous => [
+          ...data,
+          ...previous.filter(contest => isChotContestTitle(contest.title)),
+        ]);
+      }
+    } catch { /* silent */ }
   }, [fetchFresh]);
+
+  const fetchArchivedContests = useCallback(async () => {
+    if (contestArchiveLoading) return;
+    setContestArchiveLoading(true);
+    try {
+      const res = await fetchFresh('/api/contests?summary=1&scope=archive');
+      if (!res.ok) throw new Error('Không thể tải kho CHỐT');
+      const archived: SavedContest[] = await res.json();
+      setSavedContests(previous => {
+        const active = previous.filter(contest => !isChotContestTitle(contest.title));
+        return [...active, ...archived];
+      });
+      setContestArchiveLoaded(true);
+    } catch (error) {
+      toast({
+        title: 'Không thể mở kho CHỐT',
+        description: error instanceof Error ? error.message : 'Vui lòng thử lại',
+        variant: 'destructive',
+      });
+    } finally {
+      setContestArchiveLoading(false);
+    }
+  }, [contestArchiveLoading, fetchFresh]);
 
   const deleteSourceContract = useCallback(async (id: string) => {
     try {
@@ -745,7 +791,12 @@ function ThiDuaPageInner() {
   // user sửa DS TVV / DS TB/TN ở trang Quản lý (Cấu trúc) → reload context → dataVersion bump.
   useEffect(() => {
     if (appData.contracts && appData.contracts.length > 0) setContracts(appData.contracts);
-    if (appData.contests) setSavedContests(appData.contests);
+    if (appData.contests) {
+      setSavedContests(previous => [
+        ...appData.contests,
+        ...previous.filter(contest => isChotContestTitle(contest.title)),
+      ]);
+    }
     if (appData.staff) setStaffList(appData.staff);
     if (appData.recruiters) setRecruiterList(appData.recruiters);
     if (appData.structureTvv) setTvvStructList(appData.structureTvv);
@@ -1914,86 +1965,33 @@ function ThiDuaPageInner() {
     if (!referenceContestId) return false;
     const refContest = savedContests.find(sc => sc.id === referenceContestId);
     if (!refContest) return false;
-
-    const refCondition = refContest.conditionType as ConditionType;
-    const refTiers: BonusTier[] = (() => { try { return JSON.parse(refContest.bonusTiers); } catch { return []; } })();
-    if (refTiers.length === 0) return false;
-
-    // Lọc HĐ theo ngày của CHƯƠNG TRÌNH THAM CHIẾU (dùng contracts gốc, không dùng displayContracts)
-    let agentContracts = contracts.filter(c => c.agentCode === agentCode);
-    // Lọc theo ngày hiệu lực của chương trình tham chiếu
-    if (refContest.startDate) {
-      const start = new Date(refContest.startDate);
-      agentContracts = agentContracts.filter(c => new Date(c.effectiveDate) >= start);
-    }
-    if (refContest.endDate) {
-      const end = new Date(refContest.endDate);
-      end.setHours(23, 59, 59, 999);
-      agentContracts = agentContracts.filter(c => new Date(c.effectiveDate) <= end);
-    }
-    // Lọc theo ngày phát hành nếu chương trình tham chiếu có cài
-    if (refContest.issueDate) {
-      const issueStart = new Date(refContest.issueDate);
-      agentContracts = agentContracts.filter(c => new Date(c.issueDate) >= issueStart);
-    }
-
-    // Tính giá trị cho TVV theo điều kiện của CTĐK tham chiếu
-    const isAFYP = refCondition === 'total_afyp' || refCondition === 'per_contract_afyp';
-    const isPerContract = isPerContractMode(refCondition);
-    const isActivity = isActivityRoundMode(refCondition);
-    const refLuotThreshold = isStandardMode(refCondition)
-      ? (refContest.luotHDCTThreshold ?? 12_000_000)
-      : (refContest.luotHDThreshold ?? 3_000_000);
-
-    // TVV đạt = calculateBonusWithTiers tìm được tier (đạt bất kỳ mức thưởng nào)
-    // Giống hệt logic tính kết quả trên trang thi đua TVV
-    let passed = false;
-
-    if (isPerContract) {
-      // Per-contract: TVV đạt nếu có ít nhất 1 HĐ đạt mức thưởng
-      passed = agentContracts.some(c => {
-        const value = refCondition === 'per_contract_afyp' ? c.afyp : c.pdt10DT;
-        const { tier } = calculateBonusWithTiers(value, refTiers);
-        return tier !== null;
-      });
-    } else if (isActivity) {
-      // Activity round: tính lượt rồi check tier
-      const luot = calculateLuotWithStructure(agentContracts, refLuotThreshold, refCondition, refContest.tvv90MaxMonths ?? 3, refContest.tvv90MinIP ?? 12_000_000);
-      const { tier } = calculateBonusWithTiers(luot, refTiers);
-      passed = tier !== null;
-    } else {
-      // Total mode: tính tổng IP/AFYP rồi check tier
-      const value = isAFYP
-        ? agentContracts.reduce((s, c) => s + c.afyp, 0)
-        : agentContracts.reduce((s, c) => s + c.pdt10DT, 0);
-      const { tier } = calculateBonusWithTiers(value, refTiers);
-      passed = tier !== null;
-    }
-
-    // Kiểm tra điều kiện bổ sung (Tổng AFYP/Tổng IP tối thiểu) của chương trình tham chiếu
-    if (passed && refContest.useSecondaryCondition) {
-      const totalAFYP = agentContracts.reduce((s, c) => s + c.afyp, 0);
-      const totalIP = agentContracts.reduce((s, c) => s + c.pdt10DT, 0);
-      if ((refContest.secondaryTotalAFYPMin ?? 0) > 0 && totalAFYP < (refContest.secondaryTotalAFYPMin ?? 0)) passed = false;
-      if ((refContest.secondaryTotalIPMin ?? 0) > 0 && totalIP < (refContest.secondaryTotalIPMin ?? 0)) passed = false;
-    }
-
-    return passed;
-  }, [referenceContestId, savedContests, contracts, calculateBonusWithTiers, calculateLuot]);
+    return doesTVVPassReferenceContest(
+      agentCode,
+      refContest,
+      contracts,
+      staffList,
+      recruiterList,
+      tvvStructList
+    );
+  }, [referenceContestId, savedContests, contracts, staffList, recruiterList, tvvStructList]);
 
   // Đếm số TVV đạt CTĐK trong mỗi nhóm (cho tvv_pass_count mode)
   const getGroupTVVPassCount = useCallback((g: GroupData): number => {
     if (conditionType !== 'tvv_pass_count' || !referenceContestId) return 0;
     // Xác định agentCode của Trưởng Nhóm để loại trừ nếu cần
     const tnAgentCode = g.leader?.agentCode || '';
-    // Lấy danh sách unique TVV trong nhóm (từ contracts + staffList)
+    // Lấy danh sách TVV từ Cấu trúc để cùng nguồn đối tượng với bảng TVV.
     const agentCodes = new Set<string>();
-    // Lấy từ tất cả HĐ gốc (contracts) thuộc nhóm — dùng contracts gốc để không bỏ sót TVV
-    const groupAllContracts = contracts.filter(c => c.maNhom === g.maNhom || (c.maNhom && c.maNhom.toLowerCase() === g.maNhom.toLowerCase()));
-    for (const c of groupAllContracts) { if (c.agentCode) agentCodes.add(c.agentCode); }
-    // Thêm TVV từ staffList trong nhóm (không có HĐ vẫn tính, nhưng sẽ không đạt)
-    const groupStaff = staffList.filter(s => s.maNhom === g.maNhom || (s.maNhom && s.maNhom.toLowerCase() === g.maNhom.toLowerCase()));
-    for (const s of groupStaff) agentCodes.add(s.agentCode);
+    if (tvvStructList.length > 0) {
+      for (const member of tvvStructList) {
+        if (member.maBanNhom === g.maNhom && member.agentCode) agentCodes.add(member.agentCode);
+      }
+    } else {
+      const groupAllContracts = contracts.filter(c => c.maNhom === g.maNhom || (c.maNhom && c.maNhom.toLowerCase() === g.maNhom.toLowerCase()));
+      for (const c of groupAllContracts) { if (c.agentCode) agentCodes.add(c.agentCode); }
+      const groupStaff = staffList.filter(s => s.maNhom === g.maNhom || (s.maNhom && s.maNhom.toLowerCase() === g.maNhom.toLowerCase()));
+      for (const s of groupStaff) agentCodes.add(s.agentCode);
+    }
 
     let count = 0;
     for (const code of agentCodes) {
@@ -2003,20 +2001,25 @@ function ThiDuaPageInner() {
       if (checkTVVPassContest(code)) count++;
     }
     return count;
-  }, [conditionType, referenceContestId, contracts, staffList, checkTVVPassContest, includeTNInPassCount]);
+  }, [conditionType, referenceContestId, contracts, staffList, tvvStructList, checkTVVPassContest, includeTNInPassCount]);
 
   // Đếm số TVV đạt IP+AFYP trong mỗi nhóm (cho pass_count_ip_afyp mode)
   // Điều kiện: TVV có tổng IP (pdt10DT) >= passCountIPMin AND tổng AFYP >= passCountAFYPMin
   const getGroupTVVPassCountIPAFYP = useCallback((g: GroupData): number => {
     if (conditionType !== 'pass_count_ip_afyp') return 0;
     const tnAgentCode = g.leader?.agentCode || '';
-    // Lấy danh sách unique TVV trong nhóm
+    // Cùng nguồn đối tượng TVV từ Cấu trúc; chỉ fallback khi Cấu trúc chưa tải.
     const agentCodes = new Set<string>();
-    const groupContracts = displayContracts.filter(c => c.maNhom === g.maNhom || (c.maNhom && c.maNhom.toLowerCase() === g.maNhom.toLowerCase()));
-    for (const c of groupContracts) { if (c.agentCode) agentCodes.add(c.agentCode); }
-    // Thêm TVV từ staffList trong nhóm
-    const groupStaff = staffList.filter(s => s.maNhom === g.maNhom || (s.maNhom && s.maNhom.toLowerCase() === g.maNhom.toLowerCase()));
-    for (const s of groupStaff) agentCodes.add(s.agentCode);
+    if (tvvStructList.length > 0) {
+      for (const member of tvvStructList) {
+        if (member.maBanNhom === g.maNhom && member.agentCode) agentCodes.add(member.agentCode);
+      }
+    } else {
+      const groupContracts = displayContracts.filter(c => c.maNhom === g.maNhom || (c.maNhom && c.maNhom.toLowerCase() === g.maNhom.toLowerCase()));
+      for (const c of groupContracts) { if (c.agentCode) agentCodes.add(c.agentCode); }
+      const groupStaff = staffList.filter(s => s.maNhom === g.maNhom || (s.maNhom && s.maNhom.toLowerCase() === g.maNhom.toLowerCase()));
+      for (const s of groupStaff) agentCodes.add(s.agentCode);
+    }
 
     let count = 0;
     for (const code of agentCodes) {
@@ -2028,19 +2031,35 @@ function ThiDuaPageInner() {
       if (totalIP >= passCountIPMin && totalAFYP >= passCountAFYPMin) count++;
     }
     return count;
-  }, [conditionType, displayContracts, staffList, includeTNInPassCount, passCountIPMin, passCountAFYPMin]);
+  }, [conditionType, displayContracts, staffList, tvvStructList, includeTNInPassCount, passCountIPMin, passCountAFYPMin]);
 
-  // Helper: kiểm tra điều kiện bổ sung Tổng AFYP / Tổng IP cho 1 entity (TVV/nhóm/NTD)
-  // Trả về { passed, totalAFYP, totalIP } — passed=true nếu đạt tất cả điều kiện
-  const checkSecondaryTotalCondition = useCallback((contracts: Contract[]): { passed: boolean; totalAFYP: number; totalIP: number } => {
-    const totalAFYP = contracts.reduce((sum, c) => sum + c.afyp, 0);
-    const totalIP = contracts.reduce((sum, c) => sum + c.pdt10DT, 0);
-    if (!useSecondaryCondition) return { passed: true, totalAFYP, totalIP };
-    let passed = true;
-    if (secondaryTotalAFYPMin > 0 && totalAFYP < secondaryTotalAFYPMin) passed = false;
-    if (secondaryTotalIPMin > 0 && totalIP < secondaryTotalIPMin) passed = false;
-    return { passed, totalAFYP, totalIP };
-  }, [useSecondaryCondition, secondaryTotalAFYPMin, secondaryTotalIPMin]);
+  // Tất cả chỉ tiêu phụ được đánh giá độc lập trên cùng đúng một đối tượng.
+  // Ví dụ NTD A: mọi TVVm hợp lệ của A cùng tạo Tổng IP, còn Lượt HĐC chỉ
+  // đếm các TVVm trong tập đó đạt ngưỡng chuẩn 12 triệu.
+  const checkSecondaryTotalCondition = useCallback((entityContracts: Contract[]): SecondaryConditionResult => (
+    evaluateSecondaryConditions(entityContracts, {
+      useSecondaryCondition,
+      secondaryTotalAFYPMin,
+      secondaryTotalIPMin,
+      secondaryLuotHDMin,
+      secondaryLuotHDCMin,
+      secondaryLuotHDFilter,
+      secondaryLuotHDCFilter,
+      luotHDThreshold,
+      luotHDCTThreshold,
+    }, tvvStructList)
+  ), [
+    useSecondaryCondition,
+    secondaryTotalAFYPMin,
+    secondaryTotalIPMin,
+    secondaryLuotHDMin,
+    secondaryLuotHDCMin,
+    secondaryLuotHDFilter,
+    secondaryLuotHDCFilter,
+    luotHDThreshold,
+    luotHDCTThreshold,
+    tvvStructList,
+  ]);
 
   const getTotalFYPBonus = useCallback((): { totalFYP: number; bonus: number; tier: BonusTier | null; remaining: number | null } => {
     const totalFYP = displayContracts.reduce((sum, c) => sum + c.pdt10DT, 0);
@@ -2080,7 +2099,15 @@ function ThiDuaPageInner() {
         secondaryIPMin: conditionType === 'pass_count_ip_afyp' ? passCountIPMin : secondaryIPMin,
         secondaryAFYPMin: conditionType === 'pass_count_ip_afyp' ? passCountAFYPMin : secondaryAFYPMin,
       }) });
-      if (res.ok) { const data = await res.json(); toast({ title: 'Thành công', description: data.message }); fetchSavedContests(); reloadAppData(); }
+      if (res.ok) {
+        const data = await res.json();
+        toast({ title: 'Thành công', description: data.message });
+        await Promise.all([
+          fetchSavedContests(),
+          contestArchiveLoaded ? fetchArchivedContests() : Promise.resolve(),
+          reloadAppData(),
+        ]);
+      }
       else {
         let errMsg = 'Không thể lưu';
         try {
@@ -2113,6 +2140,55 @@ function ThiDuaPageInner() {
       console.error('[Contest save] Network/client error:', err);
     }
     finally { setIsSaving(false); }
+  };
+
+  const activeSavedContests = useMemo(
+    () => savedContests.filter(contest => !isChotContestTitle(contest.title)),
+    [savedContests],
+  );
+  const archivedSavedContests = useMemo(
+    () => savedContests.filter(contest => isChotContestTitle(contest.title)),
+    [savedContests],
+  );
+  const archiveYears = useMemo(() => (
+    Array.from(new Set(
+      archivedSavedContests
+        .map(getContestArchiveYear)
+        .filter((year): year is number => year !== null),
+    )).sort((a, b) => b - a)
+  ), [archivedSavedContests]);
+  const activeArchiveYear = selectedArchiveYear && archiveYears.includes(selectedArchiveYear)
+    ? selectedArchiveYear
+    : archiveYears[0] ?? null;
+  const archiveMonthGroups = useMemo(
+    () => activeArchiveYear === null
+      ? []
+      : groupChotContestsByMonth(archivedSavedContests, activeArchiveYear),
+    [activeArchiveYear, archivedSavedContests],
+  );
+
+  const handleToggleContestArchive = async () => {
+    const nextOpen = !contestArchiveOpen;
+    setContestArchiveOpen(nextOpen);
+    if (nextOpen && !contestArchiveLoaded) await fetchArchivedContests();
+  };
+
+  const handleDownloadContestArchiveYear = () => {
+    if (activeArchiveYear === null) return;
+    const payload = createYearArchivePayload(archivedSavedContests, activeArchiveYear);
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `thi-dua-chot-${activeArchiveYear}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    toast({
+      title: 'Đã tải kho CHỐT',
+      description: `${payload.count} chương trình của năm ${activeArchiveYear}`,
+    });
   };
 
   // Load contest with all new fields
@@ -2175,7 +2251,23 @@ function ThiDuaPageInner() {
   };
 
   const handleDeleteContest = async (id: string) => {
-    try { const res = await fetch(`/api/contests?id=${encodeURIComponent(id)}`, { method: 'DELETE', cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } }); if (res.ok) { setSavedContests(prev => prev.filter(contest => contest.id !== id)); if (selectedContestId === id) setSelectedContestId(''); await Promise.all([fetchSavedContests(), reloadAppData()]); window.dispatchEvent(new Event('nmc-contests-updated')); toast({ title: 'Thành công', description: 'Đã xóa' }); } else { const data = await res.json(); toast({ title: 'Lỗi', description: data.error || 'Không thể xóa', variant: 'destructive' }); } }
+    try {
+      const res = await fetch(`/api/contests?id=${encodeURIComponent(id)}`, { method: 'DELETE', cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
+      if (res.ok) {
+        setSavedContests(prev => prev.filter(contest => contest.id !== id));
+        if (selectedContestId === id) setSelectedContestId('');
+        await Promise.all([
+          fetchSavedContests(),
+          contestArchiveLoaded ? fetchArchivedContests() : Promise.resolve(),
+          reloadAppData(),
+        ]);
+        window.dispatchEvent(new Event('nmc-contests-updated'));
+        toast({ title: 'Thành công', description: 'Đã xóa' });
+      } else {
+        const data = await res.json();
+        toast({ title: 'Lỗi', description: data.error || 'Không thể xóa', variant: 'destructive' });
+      }
+    }
     catch { toast({ title: 'Lỗi', description: 'Không thể xóa', variant: 'destructive' }); }
     setDeleteConfirmId(null);
   };
@@ -2266,6 +2358,8 @@ function ThiDuaPageInner() {
     // Supplementary total column flags
     const expSecAFYP = showSecondaryTotalColumn && secondaryTotalAFYPMin > 0;
     const expSecIP = showSecondaryTotalColumn && secondaryTotalIPMin > 0;
+    const expSecLuotHD = showSecondaryRoundColumn && secondaryLuotHDMin > 0;
+    const expSecLuotHDC = showSecondaryRoundColumn && secondaryLuotHDCMin > 0;
 
     // Hai cột phục vụ kiểm tra điều kiện NTD: ngày hiệu lực chức vụ của người
     // tuyển dụng và ngày bắt đầu làm việc của TVV được tính vào chương trình.
@@ -2333,6 +2427,8 @@ function ThiDuaPageInner() {
         'Chức vụ', ...(!includeIndividualNTD ? [resultMetricLabel] : []),
         ...(expSecAFYP ? ['Tổng AFYP'] : []),
         ...(expSecIP ? ['Tổng IP'] : []),
+        ...(expSecLuotHD ? [`Lượt HĐ ${secondaryLuotHDFilter === 'tvvm' ? 'TVVm' : ''}`.trim()] : []),
+        ...(expSecLuotHDC ? [`Lượt HĐC ${secondaryLuotHDCFilter === 'tvvm' ? 'TVVm' : ''}`.trim()] : []),
         'Họ tên TVV',
         ...(showTVVStartDate ? ['Ngày bắt đầu làm việc'] : []),
         ...(showTVVmContributions ? ['Mã TVV', 'Tổng IP TVV trong kỳ', 'Lượt TVVm'] : []),
@@ -2360,7 +2456,7 @@ function ThiDuaPageInner() {
           || (includeIndividualNTD && c.agentCode === n.nydCode)
         ));
         const sc = checkSecondaryTotalCondition(nydContracts);
-        const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+        const effectiveTier = sc.passed ? tier : null;
         const p2Start = usePhase2 && phase2StartDate ? new Date(phase2StartDate) : null;
         const phase1Result = p2Start
           ? getNYDPhaseOutcome(n.nydCode, displayContracts.filter(c => new Date(c.effectiveDate) < p2Start), bonusTiers)
@@ -2391,6 +2487,8 @@ function ThiDuaPageInner() {
           if (!includeIndividualNTD) row.push(value);
           if (expSecAFYP) row.push(sc.totalAFYP);
           if (expSecIP) row.push(sc.totalIP);
+          if (expSecLuotHD) row.push(sc.luotHD);
+          if (expSecLuotHDC) row.push(sc.luotHDC);
           row.push('');
           if (showTVVStartDate) row.push('');
           if (showTVVmContributions) row.push('', '', '');
@@ -2424,6 +2522,8 @@ function ThiDuaPageInner() {
             if (!includeIndividualNTD) row.push(cIdx === 0 ? value : '');
             if (expSecAFYP) row.push(cIdx === 0 ? sc.totalAFYP : '');
             if (expSecIP) row.push(cIdx === 0 ? sc.totalIP : '');
+            if (expSecLuotHD) row.push(cIdx === 0 ? sc.luotHD : '');
+            if (expSecLuotHDC) row.push(cIdx === 0 ? sc.luotHDC : '');
             row.push(c.agentName || '');
             if (showTVVStartDate) row.push(tvvStartDateFor(c));
             if (contributionDetails) {
@@ -2485,7 +2585,7 @@ function ThiDuaPageInner() {
         }).sort((a, b) => b.tvvPassCount - a.tvvPassCount);
         sortedGroups.forEach(({ g, tier, tvvPassCount }, gIdx) => {
           const sc = checkSecondaryTotalCondition(g.contracts || []);
-          const effectiveTier = sc.passed ? tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : tier);
+          const effectiveTier = sc.passed ? tier : null;
           const remaining = getRemainingToNextTier(tvvPassCount);
           const row: (string | number)[] = [
             gIdx + 1,
@@ -2540,7 +2640,7 @@ function ThiDuaPageInner() {
             : groupMetricValue;
           // Check supplementary total condition
           const sc = checkSecondaryTotalCondition(g.contracts || []);
-          const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+          const effectiveTier = sc.passed ? tier : null;
           const effectiveGroupPhase1Bonus = sc.passed ? groupPhase.phase1Bonus : 0;
           const effectiveGroupPhase2Bonus = sc.passed ? groupPhase.phase2Bonus : 0;
           const groupHasEffectivePhaseTier = sc.passed && Boolean(groupPhase.phase1Tier || groupPhase.phase2Tier);
@@ -2658,7 +2758,7 @@ function ThiDuaPageInner() {
             const { tier } = calculateBonus(cValue);
             const agentContracts = displayContracts.filter(ac => ac.agentCode === c.agentCode);
             const sc = checkSecondaryTotalCondition(agentContracts);
-            const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+            const effectiveTier = sc.passed ? tier : null;
             return { c, cValue, tier, effectiveTier, sc };
           }).sort((a, b) => b.cValue - a.cValue).map(({ c, cValue, tier, effectiveTier, sc }, idx) => {
             const base: (string | number)[] = [idx + 1, c.nhom || '—', c.agentCode, c.agentName, c.contractNumber || '', formatDate(c.effectiveDate), formatDate(c.issueDate), cValue];
@@ -2719,7 +2819,7 @@ function ThiDuaPageInner() {
           rows = tvvTotalRows.map(({ agent, value, tier }, idx) => {
             const agentContracts = displayContracts.filter(c => c.agentCode === agent.agentCode);
             const sc = checkSecondaryTotalCondition(agentContracts);
-            const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+            const effectiveTier = sc.passed ? tier : null;
             const row: (string | number)[] = [idx + 1, agent.nhom || '—', agent.agentCode, agent.agentName];
             if (showTVVStartDate) {
               const date = structureStartDateByCode.get(agent.agentCode.trim().toUpperCase());
@@ -2774,7 +2874,7 @@ function ThiDuaPageInner() {
           const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(value) : calculateBonus(value);
           // Check supplementary condition
           const sc = checkSecondaryTotalCondition(g.contracts || []);
-          const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+          const effectiveTier = sc.passed ? tier : null;
           return effectiveTier ? formatBonusAmount(effectiveTier, value, g.activityRounds) : '';
         }
         if (targetType === 'nyd') {
@@ -2787,7 +2887,7 @@ function ThiDuaPageInner() {
             || (includeIndividualNTD && c.agentCode === n.nydCode)
           ));
           const sc = checkSecondaryTotalCondition(nydContracts);
-          const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+          const effectiveTier = sc.passed ? tier : null;
           return effectiveTier ? formatBonusAmount(effectiveTier, value, isActivityRoundMode(conditionType) ? value : n.recruitCount) : '';
         }
         // TVV total mode
@@ -2796,7 +2896,7 @@ function ThiDuaPageInner() {
           if (!tr) return '';
           const agentContracts = displayContracts.filter(c => c.agentCode === groupKey);
           const sc = checkSecondaryTotalCondition(agentContracts);
-          const effectiveTier = sc.passed ? tr.tier : (expSecAFYP || expSecIP ? null : tr.tier);
+          const effectiveTier = sc.passed ? tr.tier : null;
           return effectiveTier
             ? formatBonusAmount(
                 effectiveTier,
@@ -2827,7 +2927,7 @@ function ThiDuaPageInner() {
           const { tier } = calculateBonus(cValue);
           const agentContracts = displayContracts.filter(ac => ac.agentCode === c.agentCode);
           const sc = checkSecondaryTotalCondition(agentContracts);
-          const effectiveTier = sc.passed ? tier : (expSecAFYP || expSecIP ? null : tier);
+          const effectiveTier = sc.passed ? tier : null;
           bonusValue = effectiveTier ? formatBonusAmount(effectiveTier, cValue) : '';
         }
         return {
@@ -3204,25 +3304,37 @@ function ThiDuaPageInner() {
     let tvvAchievedCount: number;
     let tvvTotalBonus: number;
     if (targetType === 'tvv' && !isPerContractMode(conditionType)) {
-      tvvAchievedCount = tvvTotalRows.filter(r => r.tier).length;
+      tvvAchievedCount = tvvTotalRows.filter(r => {
+        const entityContracts = displayContracts.filter(c => c.agentCode === r.agent.agentCode);
+        return r.tier && checkSecondaryTotalCondition(entityContracts).passed;
+      }).length;
       tvvTotalBonus = tvvTotalRows.reduce((sum, r) => {
-        if (!r.tier) return sum;
+        const entityContracts = displayContracts.filter(c => c.agentCode === r.agent.agentCode);
+        if (!r.tier || !checkSecondaryTotalCondition(entityContracts).passed) return sum;
         return sum + computeBonusFromTier(r.tier, r.value, isActivityRoundMode(conditionType) ? r.value : undefined);
       }, 0);
     } else {
       const contractValue = (c: Contract) => conditionType === 'per_contract_afyp' ? c.afyp : c.pdt10DT;
-      tvvAchievedCount = perContractDisplayContracts.filter(c => calculateBonus(contractValue(c)).tier).length;
-      tvvTotalBonus = perContractDisplayContracts.reduce((sum, c) => sum + getBonusAmount(contractValue(c)), 0);
+      tvvAchievedCount = perContractDisplayContracts.filter(c => {
+        const entityContracts = displayContracts.filter(row => row.agentCode === c.agentCode);
+        return calculateBonus(contractValue(c)).tier && checkSecondaryTotalCondition(entityContracts).passed;
+      }).length;
+      tvvTotalBonus = perContractDisplayContracts.reduce((sum, c) => {
+        const entityContracts = displayContracts.filter(row => row.agentCode === c.agentCode);
+        return checkSecondaryTotalCondition(entityContracts).passed ? sum + getBonusAmount(contractValue(c)) : sum;
+      }, 0);
     }
 
     // Nhóm stats
     const nhomAchievedCount = groupedData.filter(g => {
+      if (!checkSecondaryTotalCondition(g.contracts).passed) return false;
       if (isTVVPassCountMode(conditionType)) return calculateBonus(conditionType === 'pass_count_ip_afyp' ? getGroupTVVPassCountIPAFYP(g) : getGroupTVVPassCount(g)).tier;
       if (isActivityRoundMode(conditionType)) return calculateActivityRoundBonus(g.activityRounds).tier;
       return calculateBonus(getGroupValue(g)).tier;
     }).length;
     const nhomTotalFYP = groupedData.reduce((sum, g) => sum + g.totalFYP, 0);
     const nhomTotalBonus = groupedData.reduce((sum, g) => {
+      if (!checkSecondaryTotalCondition(g.contracts).passed) return sum;
       if (isTVVPassCountMode(conditionType)) {
         const passCount = conditionType === 'pass_count_ip_afyp' ? getGroupTVVPassCountIPAFYP(g) : getGroupTVVPassCount(g);
         return sum + getBonusAmount(passCount, passCount);
@@ -3232,20 +3344,34 @@ function ThiDuaPageInner() {
     }, 0);
 
     // Activity round stats
-    const arAchievedCount = isActivityRoundMode(conditionType) ? groupedData.filter(g => calculateActivityRoundBonus(g.activityRounds).tier).length : 0;
+    const arAchievedCount = isActivityRoundMode(conditionType) ? groupedData.filter(g => (
+      calculateActivityRoundBonus(g.activityRounds).tier && checkSecondaryTotalCondition(g.contracts).passed
+    )).length : 0;
     const arNotAchievedCount = isActivityRoundMode(conditionType) ? groupedData.length - arAchievedCount : 0;
-    const arTotalBonus = isActivityRoundMode(conditionType) ? groupedData.reduce((sum, g) => sum + getActivityRoundBonusAmount(g.activityRounds, g.totalFYP), 0) : 0;
+    const arTotalBonus = isActivityRoundMode(conditionType) ? groupedData.reduce((sum, g) => (
+      checkSecondaryTotalCondition(g.contracts).passed
+        ? sum + getActivityRoundBonusAmount(g.activityRounds, g.totalFYP)
+        : sum
+    ), 0) : 0;
 
     // NYD stats
     const nydAchievedCount = targetType === 'nyd' ? nydData.filter(n => {
       const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
-      return calculateBonus(value).tier;
+      const entityContracts = n.contracts.filter(c =>
+        (c.maDaiLyTD === n.nydCode && c.agentCode !== n.nydCode) ||
+        (includeIndividualNTD && c.agentCode === n.nydCode)
+      );
+      return calculateBonus(value).tier && checkSecondaryTotalCondition(entityContracts).passed;
     }).length : 0;
     const nydNotAchievedCount = targetType === 'nyd' ? nydData.length - nydAchievedCount : 0;
     const nydTotalBonus = targetType === 'nyd' ? nydData.reduce((sum, n) => {
       const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
       const { tier } = calculateBonus(value);
-      if (!tier) return sum;
+      const entityContracts = n.contracts.filter(c =>
+        (c.maDaiLyTD === n.nydCode && c.agentCode !== n.nydCode) ||
+        (includeIndividualNTD && c.agentCode === n.nydCode)
+      );
+      if (!tier || !checkSecondaryTotalCondition(entityContracts).passed) return sum;
       return sum + computeBonusFromTier(tier, value, isActivityRoundMode(conditionType) ? value : n.recruitCount);
     }, 0) : 0;
 
@@ -3289,7 +3415,7 @@ function ThiDuaPageInner() {
       baseTotalBonus, totalBonusDisplay, displayTotalFYP,
       totalFYPValue, totalValue, matchedTotalTier, totalRemaining
     };
-  }, [displayContracts, perContractDisplayContracts, groupedData, nydData, tvvTotalRows, conditionType, targetType, includeIndividualTN, includeIndividualNTD, usePhase2, phase2Results, calculateBonus, getBonusAmount, calculateActivityRoundBonus, getActivityRoundBonusAmount, getRemainingToNextTier, computeBonusFromTier]);
+  }, [displayContracts, perContractDisplayContracts, groupedData, nydData, tvvTotalRows, conditionType, targetType, includeIndividualTN, includeIndividualNTD, usePhase2, phase2Results, calculateBonus, getBonusAmount, calculateActivityRoundBonus, getActivityRoundBonusAmount, getRemainingToNextTier, computeBonusFromTier, checkSecondaryTotalCondition]);
 
   const { totalFYP, tvvAchievedCount, tvvTotalBonus, nhomAchievedCount, nhomTotalFYP, nhomTotalBonus, arAchievedCount, arNotAchievedCount, arTotalBonus, nydAchievedCount, nydNotAchievedCount, nydTotalBonus, achievedCount, notAchievedCount, baseTotalBonus, totalBonusDisplay, displayTotalFYP, totalFYPValue, totalValue, matchedTotalTier, totalRemaining } = stats;
 
@@ -3298,6 +3424,7 @@ function ThiDuaPageInner() {
 
   // Có hiển thị cột điều kiện bổ sung Tổng AFYP/Tổng IP trong bảng kết quả không?
   const showSecondaryTotalColumn = useSecondaryCondition && (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0);
+  const showSecondaryRoundColumn = useSecondaryCondition && (secondaryLuotHDMin > 0 || secondaryLuotHDCMin > 0);
   // Có hiển thị cột điều kiện bổ sung per-contract (AFYP/IP tối thiểu mỗi HĐ) không?
   const showSecondaryPerContractColumn = useSecondaryCondition && (secondaryAFYPMin > 0 || secondaryIPMin > 0);
   const isAFYP = conditionType === 'per_contract_afyp' || conditionType === 'total_afyp';
@@ -3446,9 +3573,41 @@ function ThiDuaPageInner() {
     return nydData.map(n => {
       const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
       const { tier, tierIndex } = calculateBonus(value);
-      return { nyd: n, tier, tierIndex, value };
+      const entityContracts = n.contracts.filter(c =>
+        (c.maDaiLyTD === n.nydCode && c.agentCode !== n.nydCode) ||
+        (includeIndividualNTD && c.agentCode === n.nydCode)
+      );
+      const secondaryCheck = checkSecondaryTotalCondition(entityContracts);
+      const effectiveTier = secondaryCheck.passed ? tier : null;
+      return { nyd: n, tier, tierIndex, value, secondaryCheck, effectiveTier };
     }).sort((a, b) => b.value - a.value);
-  }, [nydData, conditionType, includeIndividualNTD, calculateBonus]);
+  }, [nydData, conditionType, includeIndividualNTD, calculateBonus, checkSecondaryTotalCondition]);
+
+  const renderSavedContestMenuRow = (contest: SavedContest, showStartDate = false) => (
+    <div key={contest.id} className="group flex items-center gap-1 rounded-md">
+      <button
+        className="min-w-0 flex-1 rounded px-2 py-1.5 text-left text-xs text-white/80 transition-colors hover:bg-emerald-600 hover:text-white"
+        onClick={() => { handleLoadContest(contest.id); setContestListOpen(false); }}
+      >
+        <span className="block truncate">{contest.title}</span>
+        {showStartDate ? <span className="mt-0.5 block text-[9px] text-emerald-300/55">Bắt đầu {formatDate(contest.startDate)}</span> : null}
+      </button>
+      {deleteConfirmId === contest.id ? (
+        <div className="flex shrink-0 items-center gap-0.5">
+          <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-red-400 hover:bg-red-500/10 hover:text-red-300" onClick={() => handleDeleteContest(contest.id)} aria-label={`Xác nhận xóa ${contest.title}`}>
+            <CheckCircle2 className="h-3 w-3" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-emerald-300/70 hover:bg-gray-800 hover:text-emerald-200/70" onClick={() => setDeleteConfirmId(null)} aria-label="Hủy xóa">
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      ) : (
+        <Button variant="ghost" size="sm" className="h-5 w-5 shrink-0 p-0 text-white/20 opacity-0 transition-opacity hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100" onClick={() => setDeleteConfirmId(contest.id)} aria-label={`Xóa ${contest.title}`}>
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      )}
+    </div>
+  );
 
   return (
     <div className={`min-h-screen ${isEmbedMode ? 'embed-mode bg-white' : 'nmc-contest-skin'}`}>
@@ -3507,33 +3666,63 @@ function ThiDuaPageInner() {
                       <span className="truncate">{selectedContestId ? savedContests.find(sc => sc.id === selectedContestId)?.title || 'Đã lưu...' : 'Đã lưu...'}</span>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[220px] p-1 bg-[#1a1a2e] border-emerald-500/20" align="end">
-                    {savedContests.length === 0 ? (
-                      <div className="text-xs text-emerald-300/70 text-center py-2">Chưa có chương trình nào</div>
-                    ) : savedContests.map((sc) => (
-                      <div key={sc.id} className="flex items-center gap-1 group">
-                        <button
-                          className="flex-1 text-left text-xs text-white/80 hover:text-white hover:bg-emerald-600 rounded px-2 py-1.5 truncate transition-colors"
-                          onClick={() => { handleLoadContest(sc.id); setContestListOpen(false); }}
-                        >
-                          {sc.title}
-                        </button>
-                        {deleteConfirmId === sc.id ? (
-                          <div className="flex items-center gap-0.5 shrink-0">
-                            <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10" onClick={() => handleDeleteContest(sc.id)}>
-                              <CheckCircle2 className="w-3 h-3" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-emerald-300/70 hover:text-emerald-200/70 hover:bg-gray-800" onClick={() => setDeleteConfirmId(null)}>
-                              <X className="w-3 h-3" />
-                            </Button>
-                          </div>
+                  <PopoverContent className="max-h-[70vh] w-[320px] overflow-y-auto border-emerald-500/20 bg-[#1a1a2e] p-1.5" align="end">
+                    <div className="px-2 pb-1 pt-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300/60">Dùng thường xuyên</div>
+                    {activeSavedContests.length === 0 ? (
+                      <div className="py-2 text-center text-xs text-emerald-300/70">Chưa có chương trình thường</div>
+                    ) : activeSavedContests.map(contest => renderSavedContestMenuRow(contest))}
+
+                    <div className="my-1.5 h-px bg-emerald-500/15" />
+                    <button
+                      type="button"
+                      onClick={handleToggleContestArchive}
+                      className="flex w-full items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-950/20 px-2.5 py-2 text-left transition-colors hover:bg-amber-900/30"
+                      aria-expanded={contestArchiveOpen}
+                    >
+                      <FolderArchive className="h-4 w-4 shrink-0 text-amber-400" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-xs font-bold text-amber-200">Kho chương trình CHỐT</span>
+                        <span className="block text-[9px] text-amber-200/55">Chỉ tải khi mở · nhóm theo ngày bắt đầu</span>
+                      </span>
+                      {contestArchiveLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-300" /> : contestArchiveOpen ? <ChevronUp className="h-3.5 w-3.5 text-amber-300" /> : <ChevronDown className="h-3.5 w-3.5 text-amber-300" />}
+                    </button>
+
+                    {contestArchiveOpen ? (
+                      <div className="mt-1.5 rounded-lg border border-amber-500/15 bg-black/15 p-1.5">
+                        {contestArchiveLoading ? (
+                          <div className="flex items-center justify-center gap-2 py-4 text-xs text-amber-200/70"><Loader2 className="h-3.5 w-3.5 animate-spin" />Đang tải kho CHỐT...</div>
+                        ) : archivedSavedContests.length === 0 ? (
+                          <div className="py-4 text-center text-xs text-amber-200/60">Chưa có chương trình bắt đầu bằng CHỐT</div>
                         ) : (
-                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-white/20 hover:text-red-400 hover:bg-red-500/10 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setDeleteConfirmId(sc.id)}>
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
+                          <>
+                            <div className="mb-1.5 flex items-center gap-1 overflow-x-auto pb-1">
+                              {archiveYears.map(year => (
+                                <button key={year} type="button" onClick={() => { setSelectedArchiveYear(year); setExpandedArchiveMonth(null); }} className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${activeArchiveYear === year ? 'bg-amber-500 text-slate-950' : 'bg-gray-800 text-amber-200/70 hover:text-amber-100'}`}>{year}</button>
+                              ))}
+                              <Button type="button" variant="ghost" size="sm" onClick={handleDownloadContestArchiveYear} className="ml-auto h-6 shrink-0 px-2 text-[10px] text-sky-300 hover:bg-sky-500/10 hover:text-sky-200" title={`Tải toàn bộ chương trình CHỐT năm ${activeArchiveYear ?? ''}`}>
+                                <Download className="mr-1 h-3 w-3" />Tải cả năm
+                              </Button>
+                            </div>
+                            <div className="space-y-1">
+                              {archiveMonthGroups.map(group => {
+                                const expanded = expandedArchiveMonth === group.key;
+                                return (
+                                  <div key={group.key} className="overflow-hidden rounded-md border border-white/5 bg-gray-900/45">
+                                    <button type="button" onClick={() => setExpandedArchiveMonth(expanded ? null : group.key)} className="flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-amber-500/10" aria-expanded={expanded}>
+                                      {expanded ? <ChevronUp className="h-3 w-3 text-amber-300" /> : <ChevronDown className="h-3 w-3 text-amber-300" />}
+                                      <CalendarRange className="h-3 w-3 text-emerald-300" />
+                                      <span className="flex-1 text-[11px] font-semibold text-white/85">{group.label}</span>
+                                      <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-200">{group.contests.length}</span>
+                                    </button>
+                                    {expanded ? <div className="border-t border-white/5 p-1">{group.contests.map(contest => renderSavedContestMenuRow(contest, true))}</div> : null}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
                         )}
                       </div>
-                    ))}
+                    ) : null}
                   </PopoverContent>
                 </Popover>
                 <Button variant="outline" size="sm" onClick={handleSaveContest} disabled={isSaving} className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 h-7 text-xs bg-transparent">{isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}Lưu</Button>
@@ -3766,9 +3955,9 @@ function ThiDuaPageInner() {
                             <SelectValue placeholder="— Chọn chương trình —" />
                           </SelectTrigger>
                           <SelectContent className="bg-gray-900 border-purple-500/30">
-                            {savedContests.filter(sc => sc.targetType === 'tvv' && sc.conditionType !== 'tvv_pass_count').length === 0 ? (
+                            {activeSavedContests.filter(sc => sc.targetType === 'tvv' && sc.conditionType !== 'tvv_pass_count').length === 0 ? (
                               <div className="px-3 py-2 text-xs text-gray-400">Chưa có CTĐK cho TVV</div>
-                            ) : savedContests.filter(sc => sc.targetType === 'tvv' && sc.conditionType !== 'tvv_pass_count').map(sc => (
+                            ) : activeSavedContests.filter(sc => sc.targetType === 'tvv' && sc.conditionType !== 'tvv_pass_count').map(sc => (
                               <SelectItem key={sc.id} value={sc.id} className="text-xs text-white focus:bg-purple-500/20 focus:text-white">
                                 {sc.title} ({getConditionLabel(sc.conditionType as ConditionType)})
                               </SelectItem>
@@ -3920,15 +4109,17 @@ function ThiDuaPageInner() {
                 </div>
                 {useSecondaryCondition && (
                   <div className="space-y-2 pl-4 border-l-2 border-orange-500/30">
-                    {/* Lọc theo hợp đồng — chỉ giữ lại HĐ đạt điều kiện */}
-                    <div className="text-[10px] text-orange-400/50 font-medium uppercase tracking-wider">Lọc hợp đồng</div>
+                    <div className="text-[10px] text-orange-400/50 font-medium uppercase tracking-wider">Chỉ tiêu hợp đồng và lượt</div>
+                    <p className="text-[10px] leading-4 text-emerald-200/70">
+                      Mọi chỉ tiêu được tính riêng trên cùng đối tượng đang xét (TVV, Nhóm hoặc NTD); không gộp dữ liệu giữa các đối tượng. Tổng IP và số lượt là hai điều kiện độc lập.
+                    </p>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1"><Label className="text-[10px] text-orange-400/70">AFYP/HĐ từ (nđ)</Label><Input type="number" placeholder="0" value={secondaryAFYPMin ? vndToNgan(secondaryAFYPMin) : ''} onChange={(e) => setSecondaryAFYPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" /></div>
                       <div className="space-y-1"><Label className="text-[10px] text-orange-400/70">IP/HĐ từ (nđ)</Label><Input type="number" placeholder="0" value={secondaryIPMin ? vndToNgan(secondaryIPMin) : ''} onChange={(e) => setSecondaryIPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" /></div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
-                        <Label className="text-[10px] text-orange-400/70">Lượt HĐ từ</Label>
+                        <Label className="text-[10px] text-orange-400/70">SL lượt HĐ tối thiểu</Label>
                         <Input type="number" placeholder="0" value={secondaryLuotHDMin || ''} onChange={(e) => setSecondaryLuotHDMin(parseInt(e.target.value) || 0)} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" />
                         <div className="flex gap-1">
                           <button type="button" onClick={() => setSecondaryLuotHDFilter('all')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDFilter === 'all' ? 'bg-orange-500/60 text-white' : 'bg-gray-800/50 text-emerald-300/70'}`}>Tất cả</button>
@@ -3936,7 +4127,7 @@ function ThiDuaPageInner() {
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[10px] text-orange-400/70">Lượt HĐC từ</Label>
+                        <Label className="text-[10px] text-orange-400/70">SL lượt HĐC tối thiểu</Label>
                         <Input type="number" placeholder="0" value={secondaryLuotHDCMin || ''} onChange={(e) => setSecondaryLuotHDCMin(parseInt(e.target.value) || 0)} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" />
                         <div className="flex gap-1">
                           <button type="button" onClick={() => setSecondaryLuotHDCFilter('all')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDCFilter === 'all' ? 'bg-orange-500/60 text-white' : 'bg-gray-800/50 text-emerald-300/70'}`}>Tất cả</button>
@@ -4240,6 +4431,12 @@ function ThiDuaPageInner() {
                               {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                             </>
                           )}
+                          {showSecondaryRoundColumn && (
+                            <>
+                              {secondaryLuotHDMin > 0 && <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center bg-orange-800/60"><div>Lượt HĐ</div><div className="text-[9px] italic font-normal normal-case">{secondaryLuotHDFilter === 'tvvm' ? 'TVVm' : 'Tất cả'}</div></TableHead>}
+                              {secondaryLuotHDCMin > 0 && <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center bg-orange-800/60"><div>Lượt HĐC</div><div className="text-[9px] italic font-normal normal-case">{secondaryLuotHDCFilter === 'tvvm' ? 'TVVm' : 'Tất cả'}</div></TableHead>}
+                            </>
+                          )}
                           {showRateColumn && !usePhase2 && (
                             <TableHead className="text-yellow-100 min-w-[50px] font-bold uppercase text-center bg-violet-800 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
                           )}
@@ -4420,8 +4617,8 @@ function ThiDuaPageInner() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {targetType === 'nyd' ? nydResultRows.map(({ nyd, tier, value }, idx) => {
-                      if (hideNotAchieved && !tier) return null;
+                    {targetType === 'nyd' ? nydResultRows.map(({ nyd, tier, effectiveTier, secondaryCheck, value }, idx) => {
+                      if (hideNotAchieved && !effectiveTier) return null;
                       if (!nyd.nhom) return null;
                       const phaseBonus = usePhase2 && phase2StartDate ? (() => {
                         const p2Start = new Date(phase2StartDate);
@@ -4438,10 +4635,13 @@ function ThiDuaPageInner() {
                           includeIndividualNTD, threshold, tvv90MaxMonths, tvv90MinIP,
                           structureStartDateByCode,
                         );
-                        return { phase1Bonus: phase1.bonus, phase2Bonus: phase2.bonus };
+                        return {
+                          phase1Bonus: secondaryCheck.passed ? phase1.bonus : 0,
+                          phase2Bonus: secondaryCheck.passed ? phase2.bonus : 0,
+                        };
                       })() : null;
                       return (
-                        <TableRow key={nyd.nydCode} className={`${tier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
+                        <TableRow key={nyd.nydCode} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
                           <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
                           <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{nyd.nhom || '—'}</TableCell>
                           <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{nyd.nydCode}</TableCell>
@@ -4451,8 +4651,7 @@ function ThiDuaPageInner() {
                             {isActivityRoundMode(conditionType) ? `${value} Lượt` : formatNumber(value)}
                           </TableCell>
                           {showSecondaryTotalColumn && (() => {
-                            const nydContracts = nyd.contracts || displayContracts.filter(c => c.maDaiLyTD === nyd.nydCode);
-                            const sc = checkSecondaryTotalCondition(nydContracts);
+                            const sc = secondaryCheck;
                             return (
                               <>
                                 {secondaryTotalAFYPMin > 0 && (
@@ -4470,8 +4669,14 @@ function ThiDuaPageInner() {
                               </>
                             );
                           })()}
+                          {showSecondaryRoundColumn && (
+                            <>
+                              {secondaryLuotHDMin > 0 && <TableCell className={`text-center text-xs whitespace-nowrap ${secondaryCheck.luotHD >= secondaryLuotHDMin ? 'text-emerald-600' : 'text-red-500'}`}>{secondaryCheck.luotHD}{secondaryCheck.luotHD < secondaryLuotHDMin && <span className="text-[9px] ml-1">✗</span>}</TableCell>}
+                              {secondaryLuotHDCMin > 0 && <TableCell className={`text-center text-xs whitespace-nowrap ${secondaryCheck.luotHDC >= secondaryLuotHDCMin ? 'text-emerald-600' : 'text-red-500'}`}>{secondaryCheck.luotHDC}{secondaryCheck.luotHDC < secondaryLuotHDCMin && <span className="text-[9px] ml-1">✗</span>}</TableCell>}
+                            </>
+                          )}
                           {showRateColumn && !usePhase2 && (
-                            <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{tier ? <span className="font-bold text-violet-600">{formatRate(tier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
+                            <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{effectiveTier ? <span className="font-bold text-violet-600">{formatRate(effectiveTier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
                           )}
                           {usePhase2 && phaseBonus ? (
                             <>
@@ -4480,9 +4685,9 @@ function ThiDuaPageInner() {
                               <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{formatCurrency(phaseBonus.phase1Bonus + phaseBonus.phase2Bonus)}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{tier ? <span className="flex items-center justify-end gap-1">{tier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(tier, value, isActivityRoundMode(conditionType) ? value : nyd.recruitCount)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, value, isActivityRoundMode(conditionType) ? value : nyd.recruitCount)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                           )}
-                          <TableCell className="whitespace-nowrap">{!tier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
+                          <TableCell className="whitespace-nowrap">{!effectiveTier ? <span className="text-[10px] italic text-gray-400">{tier && !secondaryCheck.passed ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
                         </TableRow>
                       );
                     }) : targetType === 'nhom' ? [...groupedData].map((g) => {
@@ -4505,7 +4710,7 @@ function ThiDuaPageInner() {
                       // Kiểm tra điều kiện bổ sung Tổng AFYP/Tổng IP cho nhóm
                       const secondaryCheck = checkSecondaryTotalCondition(group.contracts || []);
                       const secondaryPassed = secondaryCheck.passed;
-                      const effectiveTier = secondaryPassed ? tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : tier);
+                      const effectiveTier = secondaryPassed ? tier : null;
                       // Per-contract secondary: tính số HĐ đạt AFYP/IP tối thiểu / tổng số HĐ
                       const groupContracts = group.contracts || [];
                       const totalContracts = groupContracts.length;
@@ -4599,7 +4804,7 @@ function ThiDuaPageInner() {
                       const agentContracts = displayContracts.filter(ac => ac.agentCode === c.agentCode);
                       const secondaryCheck = checkSecondaryTotalCondition(agentContracts);
                       const secondaryPassed = secondaryCheck.passed;
-                      const effectiveTier = secondaryPassed ? tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : tier);
+                      const effectiveTier = secondaryPassed ? tier : null;
                       return { contract: c, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier };
                     }).sort((a, b) => b.cValue - a.cValue).map(({ contract, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier }, idx) => {
                       if (hideNotAchieved && !tier) return null;
@@ -4670,7 +4875,7 @@ function ThiDuaPageInner() {
                         const secondaryCheck = checkSecondaryTotalCondition(agentContracts);
                         const secondaryPassed = secondaryCheck.passed;
                         // Nếu có điều kiện bổ sung mà không đạt → không được thưởng (nhưng vẫn hiển thị)
-                        const effectiveTier = secondaryPassed ? tier : (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0 ? null : tier);
+                        const effectiveTier = secondaryPassed ? tier : null;
                         // Top N mode: tính label hạng để ghi vào cột Ghi chú (KHÔNG có cột HẠNG riêng)
                         let noteLabel: React.ReactNode = null;
                         // Detect selected Phòng để append tên phòng vào danh hiệu Top N
