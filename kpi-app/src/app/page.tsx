@@ -5915,7 +5915,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               <span>Quay lại</span>
             </button>
             <div className="kpi-embed-title">
-              {kpiSheet === 'saoviet' && (<><Flag size={16} /> <span>Thi Đua Sao Việt</span></>)}
+              {kpiSheet === 'saoviet' && (<><Flag size={16} /> <span>Thi đua</span></>)}
               {kpiSheet === 'report' && (<><BookOpen size={16} /> <span>Chính Sách 2026</span></>)}
               {kpiSheet === 'clb-saoviet' && (<><Star size={16} /> <span>CLB Sao Việt</span></>)}
             </div>
@@ -5948,7 +5948,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               src={standalone
                 ? `${buildMainUrl('/quan-ly?sheet=' + kpiSheet + '&from=kpi')}`
                 : `/quan-ly?sheet=${kpiSheet}&admin=1`}
-              title={kpiSheet === 'saoviet' ? 'Thi Đua Sao Việt' : kpiSheet === 'report' ? 'Chính Sách 2026' : 'CLB Sao Việt'}
+              title={kpiSheet === 'saoviet' ? 'Thi đua' : kpiSheet === 'report' ? 'Chính Sách 2026' : 'CLB Sao Việt'}
               className="kpi-embed-iframe"
               loading="eager"
               allow="fullscreen"

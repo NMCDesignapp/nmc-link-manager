@@ -56,6 +56,11 @@ const sharedCopies = [
     label: 'kpi-app/src/lib/contest-poster.ts',
   },
   {
+    source: path.join(root, 'src', 'lib', 'contest-archive.ts'),
+    target: path.join(root, 'kpi-app', 'src', 'lib', 'contest-archive.ts'),
+    label: 'kpi-app/src/lib/contest-archive.ts',
+  },
+  {
     source: mainTemplate,
     target: standaloneTemplate,
     label: 'kpi-app/src/app/template.tsx',

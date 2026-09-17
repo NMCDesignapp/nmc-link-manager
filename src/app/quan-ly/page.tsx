@@ -22,7 +22,7 @@ import {
   Merge, Split, Target, BarChart3, Building2, UserCog, Edit2, Percent,
   Menu, ChevronLeft, UserPlus, BookOpen, Award, UserCheck, Trophy, Gift,
   Crown, Medal, Database,
-  FileDown, Star, Image as ImageIcon,
+  FileDown, Flag, Star, Image as ImageIcon,
 } from 'lucide-react';
 import { scrapePolicyTable, downloadPolicyExcel, downloadTableExcel, type ContractDetailRow } from './policy-excel-export';
 import { downloadVinhDanhExcel } from './vinh-danh-excel-export';
@@ -4162,7 +4162,7 @@ export default function QuanLyPage() {
                 </div>
               );
             })}
-            {/* Số liệu Sao Việt button — placed before Cài đặt. Direct navigation to overview (no popup) */}
+            {/* Thi đua — các chương trình tạo từ Trang Thi Đua */}
             <div className="relative">
               <button
                 onClick={() => {
@@ -4178,10 +4178,10 @@ export default function QuanLyPage() {
                   opacity: activeSheet === 'saoviet' ? 1 : 0.95,
                   minHeight: '52px',
                 }}
-                title="Sao Việt Toàn Chặng"
+                title="Thi đua"
               >
                 <Star className="w-5 h-5 flex-shrink-0" />
-                <span className="truncate w-full text-center leading-tight text-[10px]">SV Toàn Chặng</span>
+                <span className="truncate w-full text-center leading-tight text-[10px]">Thi đua</span>
               </button>
             </div>
             {/* CLB Sao Việt button — same style as Sao Việt, pink color */}
@@ -10047,15 +10047,14 @@ export default function QuanLyPage() {
   };
 
   // ========== RENDER SHEET DISPATCHER ==========
-  // ========== RENDER: Sao Việt (3 sub-sections) ==========
-  // Sao Việt menu expands to show 3 sub-programs (similar to Chính sách đại lý)
-  // Click a sub-item → opens dedicated page for that single program
-  // Click "Số liệu Sao Việt" itself → expands the sub-list (desktop) / opens popup (mobile)
+  // ========== RENDER: Sao Việt toàn chặng + các chương trình Thi đua ==========
+  // Ba chương trình toàn chặng dùng nguyên nguồn dữ liệu/công thức cũ nhưng được
+  // điều hướng từ CLB Sao Việt. Mục Thi đua chỉ giữ các chương trình tạo từ Trang Thi Đua.
   const SAOVIET_ITEMS = [
-    { key: 'ca-nhan', label: 'Sao Việt Cá Nhân', desc: 'TVV — FYP cá nhân (3 hạng: Vàng/BạchKim/KimCương)', icon: UserCircle, color: '#7C3AED' },
-    { key: 'tn-ktm',  label: 'Sao Việt TN KTM',  desc: 'TN — FYP cá nhân (3 hạng: Vàng/BạchKim/KimCương)', icon: Users, color: '#2563EB' },
-    { key: 'tn-td',   label: 'Sao Việt TN TD',   desc: 'TN — FYP & HĐC của TVVm do TN tuyển (2 hạng: Vàng/BạchKim)', icon: UserPlus, color: '#059669' },
-  ];
+    { key: 'ca-nhan', clbKey: 'toan-chang-ca-nhan', label: 'SAO VIỆT TOÀN CHẶNG - CÁ NHÂN', desc: 'TVV — FYP cá nhân (3 hạng: Vàng/BạchKim/KimCương)', icon: UserCircle, color: '#7C3AED' },
+    { key: 'tn-td',   clbKey: 'toan-chang-tn-td',   label: 'SAO VIỆT TOÀN CHẶNG - TN TUYỂN DỤNG', desc: 'TN — FYP & HĐC của TVVm do TN tuyển (2 hạng: Vàng/BạchKim)', icon: UserPlus, color: '#059669' },
+    { key: 'tn-ktm',  clbKey: 'toan-chang-tn-ktm',  label: 'SAO VIỆT TOÀN CHẶNG - TN KTM', desc: 'TN — FYP cá nhân (3 hạng: Vàng/BạchKim/KimCương)', icon: Users, color: '#2563EB' },
+  ] as const;
   // Lightsalmon (#FFA07A) là màu tiêu đề chung cho các bảng Sao Việt (theo yêu cầu)
   // Phần nền nội dung (rank cells) luôn nhạt hơn màu chữ — bg=#xxx light, fg=#xxx dark
   const SV_HEADER_BG = '#FFA07A';   // lightsalmon — màu tiêu đề bảng
@@ -10278,92 +10277,12 @@ export default function QuanLyPage() {
       {/* Top bar: title + Settings button (mở modal chứa all sync/upload + poster management) */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm sm:text-base font-extrabold text-amber-300 flex items-center gap-2">
-          <Star className="w-4 h-4" /> TỔNG QUAN SAO VIỆT
+          <Flag className="w-4 h-4" /> THI ĐUA
         </h2>
-        {isAdmin && (
-          <button
-            onClick={() => setSaovietSettingsOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md text-white transition-all hover:brightness-110 active:scale-95"
-            style={{ backgroundColor: '#D97706', border: '1px solid #B45309', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
-          >
-            <Settings className="w-3.5 h-3.5" />
-            Cài đặt dữ liệu
-          </button>
-        )}
       </div>
 
-      {/* 3 program cards — SELECTION ONLY (poster 16:9 + name + period). Upload/delete moved to settings modal */}
+      {/* Chỉ các chương trình tạo từ Trang Thi Đua. Ba chương trình toàn chặng đã chuyển sang CLB Sao Việt. */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {SAOVIET_ITEMS.map(item => {
-          const posterUrl = saovietPosters[item.key] || '';
-          const IIcon = item.icon;
-          return (
-            <button
-              key={item.key}
-              onClick={() => navigateTo({ sheet: 'saoviet', saovietOpen: item.key })}
-              className="kpi-linked-program-card group relative rounded-lg overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
-              style={{
-                borderColor: `${item.color}AA`,
-              }}
-            >
-              {/* Decorative top glow strip for elevated feel */}
-              <span
-                className="absolute top-0 left-0 right-0 h-[3px] z-10 opacity-70 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none"
-                style={{ background: `linear-gradient(90deg, transparent, ${item.color}, transparent)` }}
-              />
-              {/* Top: 16:9 poster — click anywhere opens detail */}
-              <div
-                className="kpi-linked-program-poster relative w-full flex items-center justify-center overflow-hidden"
-                style={{ aspectRatio: '16 / 9' }}
-              >
-                {posterUrl ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={posterUrl}
-                      alt={item.label}
-                      className="w-full h-full object-cover pointer-events-none transition-transform duration-500 group-hover:scale-105"
-                    />
-                    {/* Subtle dark gradient at bottom for text legibility */}
-                    <span className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
-                  </>
-                ) : (
-                  // Empty poster — placeholder icon (no upload button — manage in Settings)
-                  <div className="flex flex-col items-center justify-center gap-1 px-3 py-3 text-center">
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-dashed transition-transform duration-300 group-hover:scale-110"
-                      style={{ borderColor: `${item.color}66`, backgroundColor: `${item.color}11` }}
-                    >
-                      <IIcon className="w-5 h-5" style={{ color: item.color }} />
-                    </div>
-                    <span className="text-[10px] font-semibold" style={{ color: item.color }}>
-                      {item.label}
-                    </span>
-                    <span className="text-[8px] text-gray-500 italic">Chưa có poster</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Bottom: program name + period */}
-              <div
-                className="text-left px-2.5 py-2 border-t flex-1 flex flex-col gap-0.5 transition-colors"
-                style={{ borderColor: `${item.color}33` }}
-              >
-                <div className="flex items-center gap-1.5">
-                  <IIcon className="w-3 h-3 flex-shrink-0 transition-transform duration-300 group-hover:scale-110" style={{ color: item.color }} />
-                  <h3 className="text-[11px] font-extrabold truncate leading-tight transition-colors" style={{ color: item.color }}>
-                    {item.label}
-                  </h3>
-                  <ChevronRight className="w-3 h-3 ml-auto flex-shrink-0 text-gray-500 transition-all duration-300 group-hover:translate-x-1 group-hover:text-white/80" />
-                </div>
-                <p className="text-[10px] text-gray-300 font-semibold leading-tight">
-                  01/12/2025 — 30/11/2026
-                </p>
-              </div>
-            </button>
-          );
-        })}
-
         {/* ===== Saved contests từ Trang Thi Đua — tự động hiện thành card thứ 4, 5... =====
             Mỗi contest đã lưu (qua /api/contests POST trên Trang Thi Đua) sẽ xuất hiện ở đây.
             Click → mở sub-page 'saved-<id>' render kết quả chi tiết inline.
@@ -10429,6 +10348,11 @@ export default function QuanLyPage() {
             </button>
           );
         })}
+        {savedContestsList.length === 0 && (
+          <div className="sm:col-span-3 rounded-lg border border-dashed border-emerald-500/30 bg-emerald-500/5 px-4 py-8 text-center text-sm text-emerald-100/60">
+            Chưa có chương trình thi đua đang theo dõi.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -11799,7 +11723,9 @@ export default function QuanLyPage() {
     return renderClbsvDetailShell('tn-ktm', uniqueNhomList, filteredMembers.length, totalFypLuyKe, 'SL TN đạt', 'Tổng FYP LK', tableJsx);
   };
 
-  // ---------- CLB Sao Việt overview (list of 3 program cards) ----------
+  // ---------- CLB Sao Việt overview ----------
+  // Ba chương trình Sao Việt toàn chặng luôn nằm đầu danh sách. Các chương trình
+  // CLB theo tháng giữ nguyên thứ tự và công thức ở phần kế tiếp.
   const renderCLBSaoVietList = () => (
     <div>
       <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
@@ -11811,17 +11737,80 @@ export default function QuanLyPage() {
             Chỉ tiêu tự động cập nhật theo tháng hiện tại
           </span>
           {isAdmin && (
-            <button
-              onClick={() => setClbsvSettingsOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md text-white transition-all hover:brightness-110 active:scale-95"
-              style={{ backgroundColor: '#1E3A8A', border: '1px solid #1E40AF', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
-            >
-              <Settings className="w-3.5 h-3.5" />
-              Cài đặt dữ liệu
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setSaovietSettingsOpen(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold rounded-md text-white transition-all hover:brightness-110 active:scale-95"
+                style={{ backgroundColor: '#D97706', border: '1px solid #B45309', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
+              >
+                <Settings className="w-3.5 h-3.5" />
+                Toàn chặng
+              </button>
+              <button
+                onClick={() => setClbsvSettingsOpen(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold rounded-md text-white transition-all hover:brightness-110 active:scale-95"
+                style={{ backgroundColor: '#1E3A8A', border: '1px solid #1E40AF', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
+              >
+                <Settings className="w-3.5 h-3.5" />
+                CLB theo tháng
+              </button>
+            </div>
           )}
         </div>
       </div>
+      <div className="mb-5">
+        <h3 className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.14em] text-amber-300">
+          Sao Việt toàn chặng
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {SAOVIET_ITEMS.map(item => {
+            const IIcon = item.icon;
+            const posterUrl = saovietPosters[item.key] || '';
+            return (
+              <button
+                key={item.clbKey}
+                onClick={() => navigateTo({ sheet: 'clb-saoviet', clbsvOpen: item.clbKey })}
+                className="kpi-linked-program-card group relative rounded-lg overflow-hidden border-2 shadow-lg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
+                style={{ borderColor: `${item.color}AA` }}
+              >
+                <span
+                  className="absolute top-0 left-0 right-0 h-[3px] z-10 opacity-70 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none"
+                  style={{ background: `linear-gradient(90deg, transparent, ${item.color}, transparent)` }}
+                />
+                <div
+                  className="kpi-linked-program-poster relative w-full flex items-center justify-center overflow-hidden"
+                  style={{ aspectRatio: '16 / 9' }}
+                >
+                  {posterUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={posterUrl} alt={item.label} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <IIcon className="w-10 h-10 transition-transform duration-500 group-hover:scale-110 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
+                  )}
+                  <span className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                </div>
+                <div className="px-2.5 py-2 text-left flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <IIcon className="w-3 h-3 flex-shrink-0" style={{ color: item.color }} />
+                    <h3 className="text-[11px] font-extrabold uppercase tracking-wider leading-tight text-white">{item.label}</h3>
+                    <ChevronRight className="w-3 h-3 ml-auto flex-shrink-0 text-gray-500 transition-all duration-300 group-hover:translate-x-1 group-hover:text-white/80" />
+                  </div>
+                  <p className="text-[10px] text-gray-300 leading-snug">{item.desc}</p>
+                  <div className="mt-1 flex items-center justify-between">
+                    <span className="text-[9px] text-amber-200/70 italic">01/12/2025 — 30/11/2026</span>
+                    <span className="text-[9px] font-bold flex items-center gap-1 text-amber-300">
+                      Xem chi tiết <ChevronRight className="w-2.5 h-2.5" />
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <h3 className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.14em] text-blue-200">
+        Chương trình CLB Sao Việt
+      </h3>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {CLBSV_ITEMS.map(item => {
           const IIcon = item.icon;
@@ -11980,6 +11969,9 @@ export default function QuanLyPage() {
   };
 
   const renderCLBSaoViet = () => {
+    if (clbsvOpen === 'toan-chang-ca-nhan') return renderSaoVietCaNhan();
+    if (clbsvOpen === 'toan-chang-tn-td')   return renderSaoVietTNTD();
+    if (clbsvOpen === 'toan-chang-tn-ktm')  return renderSaoVietTNKTM();
     if (clbsvOpen === 'ca-nhan') return renderCLBSVCaNhan();
     if (clbsvOpen === 'tn-td')   return renderCLBSVTNTuyenDung();
     if (clbsvOpen === 'tn-ktm')  return renderCLBSVTNKTM();
@@ -12251,7 +12243,7 @@ export default function QuanLyPage() {
         ) : (
           <BackButton onClick={handleAppBack} size={20} title="Trở về thao tác trước" />
         )}
-        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Chính Sách Đại Lý') : activeSheet === 'saoviet' && saovietOpen ? (saovietOpen.startsWith('saved-') ? (savedContestsList.find(c => c.id === saovietOpen.slice(6))?.title || 'Chương trình thi đua') : (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'SV Toàn Chặng')) : activeSheet === 'saoviet' ? 'SAO VIỆT TOÀN CHẶNG' : activeSheet === 'clb-saoviet' && clbsvOpen ? (CLBSV_ITEMS.find(i => i.key === clbsvOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB SAO VIỆT' : activeSheet === 'vinh-danh' ? (VINH_DANH_SUBS.find(s => s.key === vinhdanhSub)?.label || 'TÔN VINH') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : activeSheet === 'report' ? 'CHÍNH SÁCH ĐẠI LÝ' : 'Quản Lý Dữ Liệu'}</h1>
+        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Chính Sách Đại Lý') : activeSheet === 'saoviet' && saovietOpen ? (saovietOpen.startsWith('saved-') ? (savedContestsList.find(c => c.id === saovietOpen.slice(6))?.title || 'Chương trình thi đua') : (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'Thi đua')) : activeSheet === 'saoviet' ? 'THI ĐUA' : activeSheet === 'clb-saoviet' && clbsvOpen ? (SAOVIET_ITEMS.find(i => i.clbKey === clbsvOpen)?.label || CLBSV_ITEMS.find(i => i.key === clbsvOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB SAO VIỆT' : activeSheet === 'vinh-danh' ? (VINH_DANH_SUBS.find(s => s.key === vinhdanhSub)?.label || 'TÔN VINH') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : activeSheet === 'report' ? 'CHÍNH SÁCH ĐẠI LÝ' : 'Quản Lý Dữ Liệu'}</h1>
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Nút Cài đặt đã được chuyển vào menu mobile (PHẦN 1) và sidebar — bỏ ở header để tránh trùng */}
           {/* Nút Tải lại — HIỆN cho cả end-user (đến từ /kpi-standalone) và admin */}
@@ -12388,7 +12380,7 @@ export default function QuanLyPage() {
                 </div>
               );
             })}
-            {/* SAO VIỆT TOÀN CHẶNG — sidebar item, direct navigation to overview (no expand) */}
+            {/* THI ĐUA — sidebar item, chỉ gồm các chương trình tạo từ Trang Thi Đua */}
             <div>
               <button
                 onClick={() => {
@@ -12400,10 +12392,10 @@ export default function QuanLyPage() {
                 className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
                   activeSheet === 'saoviet' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/40' : 'text-violet-300/70 hover:bg-violet-500/10 hover:text-violet-300'
                 }`}
-                title="Sao Việt Toàn Chặng"
+                title="Thi đua"
               >
                 <Star className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate flex-1 text-left">SV Toàn Chặng</span>
+                <span className="truncate flex-1 text-left">Thi đua</span>
               </button>
             </div>
             {/* CLB Sao Việt — sidebar item, direct navigation to overview */}
