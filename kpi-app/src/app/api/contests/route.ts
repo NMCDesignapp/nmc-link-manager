@@ -18,7 +18,6 @@ const contestSummarySelect = {
   luotHDThreshold: true, luotHDCTThreshold: true, tvv90MaxMonths: true,
   tvv90MinIP: true, referenceContestId: true, includeTNInPassCount: true,
   topN: true, topNMinIP: true, topNValueType: true, filterByEffectiveDate: true,
-  recruitedAgentScope: true,
   csvContractUrl: true, csvStaffUrl: true, csvRecruiterUrl: true,
   createdAt: true, updatedAt: true,
 } as const;
@@ -32,6 +31,38 @@ type PosterContest = {
   endDate?: Date;
   targetType?: string;
 };
+
+const contestCompatSelect = {
+  ...contestSummarySelect,
+  posterUrl: true,
+} as const;
+
+const recruitedAgentScopeKey = (id: string) => `contest-recruited-agent-scope-${id}`;
+
+async function loadRecruitedAgentScopes<T extends { id: string }>(contests: T[]): Promise<Array<T & { recruitedAgentScope: string }>> {
+  if (!contests.length) return [];
+  const keys = contests.map((contest) => recruitedAgentScopeKey(contest.id));
+  let settings: Array<{ key: string; value: string | null }> = [];
+  try {
+    settings = await db.setting.findMany({ where: { key: { in: keys } }, select: { key: true, value: true } });
+  } catch (error) {
+    console.warn('[contest recruitedAgentScope] fallback read failed:', (error as Error)?.message);
+  }
+  const byKey = new Map(settings.map((item) => [item.key, item.value]));
+  return contests.map((contest) => ({
+    ...contest,
+    recruitedAgentScope: byKey.get(recruitedAgentScopeKey(contest.id)) === 'tvvm' ? 'tvvm' : 'all',
+  }));
+}
+
+async function saveRecruitedAgentScope(id: string, value: unknown): Promise<void> {
+  const normalized = value === 'tvvm' ? 'tvvm' : 'all';
+  await db.setting.upsert({
+    where: { key: recruitedAgentScopeKey(id) },
+    update: { value: normalized },
+    create: { key: recruitedAgentScopeKey(id), value: normalized },
+  });
+}
 
 const posterKey = (id: string) => `contest-poster-${id}`;
 const posterPublicUrl = (contest: Pick<PosterContest, 'id' | 'updatedAt'>) =>
@@ -140,13 +171,14 @@ async function readContests(request: NextRequest) {
   const archiveYearParam = request.nextUrl.searchParams.get('year');
   const archiveYear = archiveYearParam ? Number.parseInt(archiveYearParam, 10) : null;
   if (id) {
-    const contest = await db.contest.findUnique({ where: { id } });
+    const contest = await db.contest.findUnique({ where: { id }, select: contestCompatSelect });
     if (!contest) return NextResponse.json({ error: 'Không tìm thấy chương trình thi đua' }, { status: 404 });
-    return NextResponse.json(await normalizePoster(contest), { headers: noStore });
+    const [withScope] = await loadRecruitedAgentScopes([contest]);
+    return NextResponse.json(await normalizePoster(withScope), { headers: noStore });
   }
   const contests = await db.contest.findMany({
     orderBy: { createdAt: 'desc' },
-    ...(summary ? { select: contestSummarySelect } : {}),
+    select: summary ? contestSummarySelect : contestCompatSelect,
   });
   const scopedContests = contests.filter((contest) => {
     if (saoVietView) return isSaoVietTrackingContest(contest);
@@ -159,10 +191,11 @@ async function readContests(request: NextRequest) {
     }
     return true;
   });
+  const scopedWithScope = await loadRecruitedAgentScopes(scopedContests as any[]);
   if (summary) {
-    return NextResponse.json(scopedContests.map(summaryWithPosterUrl), { headers: noStore });
+    return NextResponse.json(scopedWithScope.map(summaryWithPosterUrl), { headers: noStore });
   }
-  const normalized = await Promise.all(scopedContests.map((contest: any) => normalizePoster(contest)));
+  const normalized = await Promise.all(scopedWithScope.map((contest: any) => normalizePoster(contest)));
   return NextResponse.json(normalized, { headers: noStore });
 }
 
@@ -252,12 +285,13 @@ export async function POST(request: NextRequest) {
       topNMinIP: topNMinIP ?? 50_000_000,
       topNValueType: topNValueType === 'afyp' ? 'afyp' : 'ip',
       filterByEffectiveDate: filterByEffectiveDate ?? false,
-      recruitedAgentScope: recruitedAgentScope === 'tvvm' ? 'tvvm' : 'all',
     };
 
     let contest = existing
       ? await db.contest.update({ where: { id: existing.id }, data })
       : await db.contest.create({ data });
+
+    await saveRecruitedAgentScope(contest.id, recruitedAgentScope);
 
     if (rawPoster.startsWith('data:')) {
       const storedUrl = await persistContestPoster(contest.id, rawPoster);
@@ -267,7 +301,7 @@ export async function POST(request: NextRequest) {
     console.log('[POST /api/contests] Saved', contest.id, `${Date.now() - startTime}ms`);
     return NextResponse.json({
       message: existing ? 'Đã cập nhật chương trình thi đua' : 'Đã lưu chương trình thi đua',
-      contest: { ...contest, posterUrl: posterPublicUrl(contest) },
+      contest: { ...contest, recruitedAgentScope: recruitedAgentScope === 'tvvm' ? 'tvvm' : 'all', posterUrl: posterPublicUrl(contest) },
     });
   } catch (error: any) {
     console.error('[POST /api/contests] Error:', error);
@@ -283,6 +317,9 @@ export async function DELETE(request: NextRequest) {
     try {
       await db.$executeRawUnsafe('DELETE FROM "PosterImage" WHERE "key" = $1', posterKey(id));
     } catch {}
+    try {
+      await db.setting.deleteMany({ where: { key: recruitedAgentScopeKey(id) } });
+    } catch {}
     return NextResponse.json({ message: 'Đã xóa chương trình thi đua', deleted: result.count > 0, alreadyDeleted: result.count === 0 }, { headers: noStore });
   } catch (error: any) {
     return NextResponse.json({ error: 'Không thể xóa chương trình thi đua', details: error?.message || String(error), code: error?.code }, { status: 500, headers: noStore });
@@ -294,11 +331,15 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { id, ...updates } = body as { id: string; [key: string]: any };
     if (!id) return NextResponse.json({ error: 'Thiếu ID chương trình thi đua' }, { status: 400 });
+    const recruitedAgentScopeUpdate = updates.recruitedAgentScope;
+    delete updates.recruitedAgentScope;
     if (typeof updates.posterUrl === 'string' && updates.posterUrl.startsWith('data:')) {
       updates.posterUrl = await persistContestPoster(id, updates.posterUrl);
     }
     const contest = await db.contest.update({ where: { id }, data: updates });
-    return NextResponse.json({ message: 'Đã cập nhật chương trình thi đua', contest: { ...contest, posterUrl: posterPublicUrl(contest) } });
+    if (recruitedAgentScopeUpdate !== undefined) await saveRecruitedAgentScope(id, recruitedAgentScopeUpdate);
+    const [withScope] = await loadRecruitedAgentScopes([contest]);
+    return NextResponse.json({ message: 'Đã cập nhật chương trình thi đua', contest: { ...withScope, posterUrl: posterPublicUrl(contest) } });
   } catch (error: any) {
     return NextResponse.json({ error: 'Không thể cập nhật chương trình thi đua', details: error?.message }, { status: 500 });
   }
