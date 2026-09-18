@@ -112,7 +112,7 @@ async function normalizePoster<T extends PosterContest>(contest: T): Promise<T &
   try {
     const storedUrl = await persistContestPoster(contest.id, source);
     if (storedUrl !== source) {
-      const updated = await db.contest.update({ where: { id: contest.id }, data: { posterUrl: storedUrl } });
+      const updated = await db.contest.update({ where: { id: contest.id }, data: { posterUrl: storedUrl }, select: contestCompatSelect });
       return { ...contest, ...updated, posterUrl: posterPublicUrl(updated) } as T & { posterUrl: string };
     }
   } catch (error) {
@@ -243,7 +243,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Ngày bắt đầu/kết thúc không hợp lệ' }, { status: 400 });
     }
 
-    const existing = await db.contest.findFirst({ where: { title } });
+    const existing = await db.contest.findFirst({ where: { title }, select: { id: true, posterUrl: true } });
     const rawPoster = posterUrl || createDefaultContestPoster({ title, startDate: parsedStart, endDate: parsedEnd, targetType });
     const temporaryPoster = rawPoster.startsWith('data:')
       ? (existing?.posterUrl && !existing.posterUrl.startsWith('data:') ? existing.posterUrl : '')
@@ -288,14 +288,14 @@ export async function POST(request: NextRequest) {
     };
 
     let contest = existing
-      ? await db.contest.update({ where: { id: existing.id }, data })
-      : await db.contest.create({ data });
+      ? await db.contest.update({ where: { id: existing.id }, data, select: contestCompatSelect })
+      : await db.contest.create({ data, select: contestCompatSelect });
 
     await saveRecruitedAgentScope(contest.id, recruitedAgentScope);
 
     if (rawPoster.startsWith('data:')) {
       const storedUrl = await persistContestPoster(contest.id, rawPoster);
-      contest = await db.contest.update({ where: { id: contest.id }, data: { posterUrl: storedUrl } });
+      contest = await db.contest.update({ where: { id: contest.id }, data: { posterUrl: storedUrl }, select: contestCompatSelect });
     }
 
     console.log('[POST /api/contests] Saved', contest.id, `${Date.now() - startTime}ms`);
@@ -336,7 +336,7 @@ export async function PATCH(request: NextRequest) {
     if (typeof updates.posterUrl === 'string' && updates.posterUrl.startsWith('data:')) {
       updates.posterUrl = await persistContestPoster(id, updates.posterUrl);
     }
-    const contest = await db.contest.update({ where: { id }, data: updates });
+    const contest = await db.contest.update({ where: { id }, data: updates, select: contestCompatSelect });
     if (recruitedAgentScopeUpdate !== undefined) await saveRecruitedAgentScope(id, recruitedAgentScopeUpdate);
     const [withScope] = await loadRecruitedAgentScopes([contest]);
     return NextResponse.json({ message: 'Đã cập nhật chương trình thi đua', contest: { ...withScope, posterUrl: posterPublicUrl(contest) } });
