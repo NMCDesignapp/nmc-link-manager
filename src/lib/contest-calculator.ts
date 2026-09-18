@@ -127,6 +127,7 @@ export type ConditionType =
   | 'top_n_ip';
 
 export type TargetType = 'tvv' | 'nhom' | 'nyd';
+export type RecruitedAgentScope = 'all' | 'tvvm';
 
 /** Config snapshot extracted from a saved Contest row. */
 export interface ContestConfig {
@@ -165,7 +166,8 @@ export interface ContestConfig {
   topN?: number;
   topNMinIP?: number;
   topNValueType?: 'ip' | 'afyp'; // Loại chỉ tiêu xét Top N: 'ip' (mặc định) hoặc 'afyp'
-  filterByEffectiveDate?: boolean; // true: chỉ tính TVV có ngày LV > ngày hiệu lực chức vụ gần nhất của NTD recruiter
+  filterByEffectiveDate?: boolean; // true: chỉ tính TVV có ngày LV >= ngày hiệu lực chức vụ gần nhất của NTD recruiter
+  recruitedAgentScope?: RecruitedAgentScope; // NTD: toàn bộ TVV hoặc chỉ TVVm do chính NTD tuyển
 }
 
 // ===== Helpers — mode detection =====
@@ -238,6 +240,29 @@ export function buildStructureStartDateMap(
     if (key && !map.has(key)) map.set(key, member.ngayBatDau || null);
   }
   return map;
+}
+
+/**
+ * Tập hợp đồng của TVV do đúng một NTD tuyển. Khi chọn TVVm, ngày bắt đầu
+ * làm việc chỉ lấy từ Cấu trúc để Trang Thi đua và bảng chương trình đã lưu
+ * không tự suy diễn từ dữ liệu hợp đồng theo hai cách khác nhau.
+ */
+export function filterRecruitedContractsByScope(
+  contracts: Contract[],
+  nydCode: string,
+  scope: RecruitedAgentScope = 'all',
+  structureStartDates?: ReadonlyMap<string, string | null>
+): Contract[] {
+  const normalizedNYDCode = normalizeAgentCode(nydCode);
+  return contracts.filter((contract) => {
+    if (
+      normalizeAgentCode(contract.maDaiLyTD) !== normalizedNYDCode ||
+      normalizeAgentCode(contract.agentCode) === normalizedNYDCode
+    ) return false;
+    if (scope !== 'tvvm') return true;
+    const startDate = structureStartDates?.get(normalizeAgentCode(contract.agentCode)) || null;
+    return isTVVm(startDate);
+  });
 }
 
 export function isTVV90Agent(
@@ -493,10 +518,14 @@ export function calculateNYDPhaseOutcome(
   luotThreshold: number,
   tvv90MaxMonths?: number,
   tvv90MinIP?: number,
-  structureStartDates?: ReadonlyMap<string, string | null>
+  structureStartDates?: ReadonlyMap<string, string | null>,
+  recruitedAgentScope: RecruitedAgentScope = 'all'
 ): NYDPhaseOutcome {
-  const recruitedContracts = contracts.filter(
-    contract => contract.maDaiLyTD === nydCode && contract.agentCode !== nydCode
+  const recruitedContracts = filterRecruitedContractsByScope(
+    contracts,
+    nydCode,
+    recruitedAgentScope,
+    structureStartDates
   );
   const ownContracts = includeIndividualNTD
     ? contracts.filter(contract => contract.agentCode === nydCode)
@@ -677,6 +706,7 @@ export function parseContestConfig(raw: any): ContestConfig {
     topNMinIP: raw.topNMinIP ?? 50_000_000,
     topNValueType: raw.topNValueType === 'afyp' ? 'afyp' : 'ip',
     filterByEffectiveDate: raw.filterByEffectiveDate ?? false,
+    recruitedAgentScope: raw.recruitedAgentScope === 'tvvm' ? 'tvvm' : 'all',
   };
 }
 
@@ -721,8 +751,8 @@ export function filterContractsByContest(
  * - Mỗi contract có TVV (c.agentCode) được tuyển bởi NTD (c.maDaiLyTD).
  * - Lấy ngày bắt đầu LV của TVV từ tvvStructList (TVVStruct.ngayBatDau).
  * - Lấy ngày hiệu lực chức vụ gần nhất của NTD từ recruiterList (Recruiter.ngayHieuLuc).
- * - Chỉ giữ contract nếu: TVV.ngayBatDau > NTD.ngayHieuLuc
- *   (tức là TVV bắt đầu làm việc SAU ngày NTD được bổ nhiệm chức vụ hiện tại).
+ * - Chỉ giữ contract nếu: TVV.ngayBatDau >= NTD.ngayHieuLuc
+ *   (tức là TVV bắt đầu làm việc BẰNG HOẶC SAU ngày NTD được bổ nhiệm chức vụ hiện tại).
  * - Nếu TVV không có ngày bắt đầu LV → bỏ qua (không tính, do data thiếu).
  * - Nếu NTD không có ngày hiệu lực chức vụ → vẫn giữ contract (không có ràng buộc để loại).
  *
@@ -762,8 +792,8 @@ export function filterByEffectiveDateRule(
     const ngayBatDauTs = ngayBatDauMap.get(tvvCode);
     if (!ngayBatDauTs) return false; // TVV không có ngày LV → bỏ qua (theo yêu cầu user)
 
-    // Chỉ giữ nếu TVV bắt đầu làm việc SAU ngày NTD được bổ nhiệm chức vụ
-    return ngayBatDauTs > ngayHieuLucTs;
+    // Giữ nếu TVV bắt đầu làm việc BẰNG HOẶC SAU ngày NTD được bổ nhiệm chức vụ
+    return ngayBatDauTs >= ngayHieuLucTs;
   });
 }
 
@@ -1637,12 +1667,12 @@ export function computeContestStats(
         const phase1 = calculateNYDPhaseOutcome(
           phase1Contracts, row.nyd.nydCode, config.bonusTiers, conditionType,
           config.includeIndividualNTD ?? false, threshold, config.tvv90MaxMonths,
-          config.tvv90MinIP, structureStartDates,
+          config.tvv90MinIP, structureStartDates, config.recruitedAgentScope,
         );
         const phase2 = calculateNYDPhaseOutcome(
           phase2Contracts, row.nyd.nydCode, config.bonusTiers2, conditionType,
           config.includeIndividualNTD ?? false, threshold, config.tvv90MaxMonths,
-          config.tvv90MinIP, structureStartDates,
+          config.tvv90MinIP, structureStartDates, config.recruitedAgentScope,
         );
         const phaseAchieved = row.secondaryPassed && Boolean(phase1.tier || phase2.tier);
         if (hideNotAchieved && !phaseAchieved) continue;
@@ -1803,8 +1833,11 @@ export function computeNYDData(
 
   // Step 3: For each NTD, find recruited TVV and compute recruit data
   for (const [nydCode, nyd] of nydMap) {
-    const recruitedContracts = displayContracts.filter(
-      (c) => c.maDaiLyTD === nydCode && c.agentCode !== nydCode
+    const recruitedContracts = filterRecruitedContractsByScope(
+      displayContracts,
+      nydCode,
+      config.recruitedAgentScope,
+      structureStartDates
     );
 
     if (isActivityMode) {

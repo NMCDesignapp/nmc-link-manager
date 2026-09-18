@@ -7,6 +7,7 @@ import {
   computeContestStats,
   doesTVVPassReferenceContest,
   evaluateSecondaryConditions,
+  filterByEffectiveDateRule,
   getGroupTVVPassCountForReference,
   type BonusTier,
   type ContestConfig,
@@ -234,4 +235,48 @@ test('Sao Việt cộng đúng thưởng NTD của hai giai đoạn', () => {
 
   assert.equal(stats.achievedCount, 1);
   assert.equal(stats.totalBonus, 3_000_000);
+});
+
+test('Tổng IP NTD chỉ cộng TVVm do chính NTD tuyển khi chọn phạm vi TVVm', () => {
+  const contracts = [
+    makeContract('TVVM-MOI', 'TTN-A', 30_000_000),
+    makeContract('TVV-CU', 'TTN-A', 40_000_000),
+    makeContract('TVVM-KHAC', 'TTN-B', 50_000_000),
+  ];
+  const scopedConfig = {
+    ...config,
+    recruitedAgentScope: 'tvvm',
+    useSecondaryCondition: false,
+  } as ContestConfig;
+  const recruiters = [{
+    id: 'TTN-A', agentCode: 'TTN-A', agentName: 'TTN A', nhom: 'N1',
+    position: 'TTN', startDate: '2025-01-01',
+  }];
+  const tvvStructList = [
+    structure('TVVM-MOI', 'TTN-A'),
+    { ...structure('TVV-CU', 'TTN-A'), ngayBatDau: '2024-01-01' },
+    structure('TVVM-KHAC', 'TTN-B'),
+  ];
+
+  const [nyd] = computeNYDData(contracts, scopedConfig, recruiters, [], tvvStructList);
+  const [row] = computeNYDResultRows([nyd], scopedConfig, tvvStructList);
+
+  assert.equal(nyd.recruitFYP, 30_000_000);
+  assert.deepEqual(nyd.contracts.filter(c => c.maDaiLyTD === 'TTN-A').map(c => c.agentCode), ['TVVM-MOI']);
+  assert.equal(row.value, 30_000_000);
+  assert.equal(row.secondaryCheck.totalIP, 30_000_000);
+});
+
+test('TVV bắt đầu đúng ngày hiệu lực chức vụ vẫn được tính', () => {
+  const contract = makeContract('TVVM-MOI', 'TTN-A', 12_000_000);
+  const filtered = filterByEffectiveDateRule(
+    [contract],
+    [{
+      id: 'TTN-A', agentCode: 'TTN-A', agentName: 'TTN A', nhom: 'N1',
+      position: 'TTN', startDate: '2025-01-01', ngayHieuLuc: '2026-01-01',
+    }],
+    [{ ...structure('TVVM-MOI', 'TTN-A'), ngayBatDau: '2026-01-01' }],
+  );
+
+  assert.equal(filtered.length, 1);
 });

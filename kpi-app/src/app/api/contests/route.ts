@@ -18,6 +18,7 @@ const contestSummarySelect = {
   luotHDThreshold: true, luotHDCTThreshold: true, tvv90MaxMonths: true,
   tvv90MinIP: true, referenceContestId: true, includeTNInPassCount: true,
   topN: true, topNMinIP: true, topNValueType: true, filterByEffectiveDate: true,
+  recruitedAgentScope: true,
   csvContractUrl: true, csvStaffUrl: true, csvRecruiterUrl: true,
   createdAt: true, updatedAt: true,
 } as const;
@@ -123,6 +124,14 @@ async function ensureTopNValueTypeColumn(): Promise<void> {
   }
 }
 
+async function ensureRecruitedAgentScopeColumn(): Promise<void> {
+  try {
+    await db.$executeRawUnsafe('ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "recruitedAgentScope" TEXT NOT NULL DEFAULT \'all\'');
+  } catch (e) {
+    console.warn('[ensureRecruitedAgentScopeColumn] Skipped:', (e as Error)?.message);
+  }
+}
+
 async function readContests(request: NextRequest) {
   const id = request.nextUrl.searchParams.get('id');
   const summary = request.nextUrl.searchParams.get('summary') === '1';
@@ -162,7 +171,7 @@ export async function GET(request: NextRequest) {
     return await readContests(request);
   } catch (error) {
     console.warn('[GET /api/contests] First attempt failed, trying self-heal:', (error as Error)?.message);
-    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn()]);
+    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn(), ensureRecruitedAgentScopeColumn()]);
     try {
       return await readContests(request);
     } catch (retryError) {
@@ -187,14 +196,14 @@ export async function POST(request: NextRequest) {
       hideNotAchieved, includeIndividualNTD, includeIndividualTN,
       luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
       referenceContestId, includeTNInPassCount,
-      topN, topNMinIP, topNValueType, filterByEffectiveDate,
+      topN, topNMinIP, topNValueType, filterByEffectiveDate, recruitedAgentScope,
     } = body as any;
 
     if (!title || !startDate || !endDate) {
       return NextResponse.json({ error: 'Thiếu thông tin bắt buộc' }, { status: 400 });
     }
 
-    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn()]);
+    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn(), ensureRecruitedAgentScopeColumn()]);
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
     if (isNaN(parsedStart.getTime()) || isNaN(parsedEnd.getTime())) {
@@ -243,6 +252,7 @@ export async function POST(request: NextRequest) {
       topNMinIP: topNMinIP ?? 50_000_000,
       topNValueType: topNValueType === 'afyp' ? 'afyp' : 'ip',
       filterByEffectiveDate: filterByEffectiveDate ?? false,
+      recruitedAgentScope: recruitedAgentScope === 'tvvm' ? 'tvvm' : 'all',
     };
 
     let contest = existing

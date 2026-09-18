@@ -181,6 +181,7 @@ model Contest {
   topNMinIP        Float   @default(50000000)
   topNValueType    String  @default("ip")     // Loại chỉ tiêu xét Top N: 'ip' | 'afyp'
   filterByEffectiveDate Boolean @default(false) // Chỉ tính TVV có ngày LV sau ngày hiệu lực chức vụ gần nhất của NTD
+  recruitedAgentScope String @default("all") // NTD: 'all' = mọi TVV đã tuyển, 'tvvm' = chỉ TVVm đã tuyển
   csvContractUrl   String   @default("")
   csvStaffUrl      String   @default("")
   csvRecruiterUrl  String   @default("")

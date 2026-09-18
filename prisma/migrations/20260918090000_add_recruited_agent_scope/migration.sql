@@ -1,0 +1,2 @@
+ALTER TABLE "Contest"
+ADD COLUMN IF NOT EXISTS "recruitedAgentScope" TEXT NOT NULL DEFAULT 'all';

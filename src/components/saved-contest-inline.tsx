@@ -276,12 +276,12 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       const phase1 = calculateNYDPhaseOutcome(
         phase1Contracts, row.nyd.nydCode, config.bonusTiers, config.conditionType,
         config.includeIndividualNTD ?? false, threshold, config.tvv90MaxMonths,
-        config.tvv90MinIP, structureStartDates,
+        config.tvv90MinIP, structureStartDates, config.recruitedAgentScope,
       );
       const phase2 = calculateNYDPhaseOutcome(
         phase2Contracts, row.nyd.nydCode, config.bonusTiers2, config.conditionType,
         config.includeIndividualNTD ?? false, threshold, config.tvv90MaxMonths,
-        config.tvv90MinIP, structureStartDates,
+        config.tvv90MinIP, structureStartDates, config.recruitedAgentScope,
       );
       result.set(row.nyd.nydCode, {
         phase1Bonus: row.secondaryPassed ? phase1.bonus : 0,

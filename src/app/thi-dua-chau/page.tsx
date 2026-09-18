@@ -130,12 +130,14 @@ interface SavedContest {
   topNMinIP?: number;
   topNValueType?: 'ip' | 'afyp';
   filterByEffectiveDate?: boolean;
+  recruitedAgentScope?: 'all' | 'tvvm';
   csvContractUrl?: string; csvStaffUrl?: string; csvRecruiterUrl?: string;
   createdAt: string; updatedAt: string;
 }
 
 type ConditionType = 'per_contract_ip' | 'per_contract_afyp' | 'total_ip' | 'total_afyp' | 'activity_round' | 'activity_round_tvvm' | 'activity_round_standard' | 'activity_round_standard_tvvm' | 'activity_round_tvv90' | 'tvv_pass_count' | 'top_n_ip' | 'pass_count_ip_afyp';
 type TargetType = 'tvv' | 'nhom' | 'nyd';
+type RecruitedAgentScope = 'all' | 'tvvm';
 
 function isActivityRoundMode(ct: ConditionType): boolean {
   return ct === 'activity_round' || ct === 'activity_round_tvvm' || ct === 'activity_round_standard' || ct === 'activity_round_standard_tvvm' || ct === 'activity_round_tvv90';
@@ -626,8 +628,10 @@ function ThiDuaPageInner() {
   const [topNMinIP, setTopNMinIP] = useState(50_000_000);
   // Top N value type: 'ip' (default) hoặc 'afyp' — cho phép user chọn chỉ tiêu xét Top N
   const [topNValueType, setTopNValueType] = useState<'ip' | 'afyp'>('ip');
-  // Filter by effective date — khi true: chỉ tính TVV có ngày LV (DS TVV) sau ngày hiệu lực chức vụ gần nhất của NTD recruiter
+  // Filter by effective date — khi true: chỉ tính TVV có ngày LV (DS TVV) bằng hoặc sau ngày hiệu lực chức vụ gần nhất của NTD recruiter
   const [filterByEffectiveDate, setFilterByEffectiveDate] = useState(false);
+  // Với hình thức NTD: chọn rõ tổng/lượt lấy từ toàn bộ TVV hay chỉ TVVm do từng NTD tuyển.
+  const [recruitedAgentScope, setRecruitedAgentScope] = useState<RecruitedAgentScope>('all');
 
   const [posterUrl, setPosterUrl] = useState<string>('');
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -1045,7 +1049,7 @@ function ThiDuaPageInner() {
     const list = type.startsWith('phong_')
       ? (subjectLists.phongLists?.[type] || [])
       : (subjectLists as any)[type] || [];
-    const nextTarget: TargetType = type === 'nhom' ? 'nhom' : type === 'ntd' ? 'nyd' : 'tvv';
+    const nextTarget: TargetType = type === 'nhom' ? 'nhom' : (type === 'ntd' || type === 'ttn') ? 'nyd' : 'tvv';
     setTargetType(nextTarget);
     if (nextTarget === 'nhom') {
       setIncludeIndividualTN(false); // mặc định không tính cá nhân trưởng nhóm
@@ -1057,6 +1061,20 @@ function ThiDuaPageInner() {
     setSelectedSubjectTypes(new Set([type]));
     setThiDuaSubjects(Array.from(new Set(list)).join('\n'));
   }, [subjectLists, conditionType]);
+
+  const chooseRecruitedAgentScope = useCallback((scope: RecruitedAgentScope) => {
+    setRecruitedAgentScope(scope);
+    // Khi nguồn chính đã giới hạn TVVm, hai chỉ tiêu lượt bổ sung phải dùng cùng nguồn đó.
+    if (scope === 'tvvm') {
+      setSecondaryLuotHDFilter('tvvm');
+      setSecondaryLuotHDCFilter('tvvm');
+    }
+  }, []);
+
+  const chooseSecondaryRoundScope = useCallback((scope: 'all' | 'tvvm') => {
+    setSecondaryLuotHDFilter(scope);
+    setSecondaryLuotHDCFilter(scope);
+  }, []);
 
   // Toggle tại hộp “Khác”: chỉ có thể chọn một bộ đối tượng chính; khi đổi
   // bộ thì danh sách được thay bằng đúng danh sách lấy từ Cấu trúc.
@@ -1075,7 +1093,7 @@ function ThiDuaPageInner() {
     // Luôn loại trừ hợp đồng thuộc nhóm DSO (không tham gia thi đua)
     const contractsNoDSO = filteredContracts.filter(c => !norm(c.nhom || '').toLowerCase().includes('dso') && !norm(c.maNhom || '').toLowerCase().includes('dso'));
     // Áp dụng filter "ngày hiệu lực chức vụ" nếu tích chọn (chỉ cho NTD và Nhóm)
-    // Quy tắc: chỉ giữ HĐ của TVV có ngày bắt đầu LV (DS TVV) sau ngày hiệu lực chức vụ gần nhất của NTD recruiter
+    // Quy tắc: chỉ giữ HĐ của TVV có ngày bắt đầu LV (DS TVV) bằng hoặc sau ngày hiệu lực chức vụ gần nhất của NTD recruiter
     let contractsFiltered = contractsNoDSO;
     if (filterByEffectiveDate && (targetType === 'nyd' || targetType === 'nhom')) {
       // Build map: agentCode → ngayHieuLuc (NTD recruiter)
@@ -1245,7 +1263,11 @@ function ThiDuaPageInner() {
     }
     for (const [nydCode, nyd] of nydMap) {
       // Find all contracts where maDaiLyTD = NTD's agentCode (TVV được tuyển bởi NTD này)
-      const recruitedContracts = displayContracts.filter(c => c.maDaiLyTD === nydCode && c.agentCode !== nydCode);
+      const recruitedContracts = displayContracts.filter(c => {
+        if (c.maDaiLyTD !== nydCode || c.agentCode === nydCode) return false;
+        if (recruitedAgentScope !== 'tvvm') return true;
+        return isTVVm(structureStartDateByCode.get(c.agentCode.trim().toUpperCase()) || null);
+      });
 
       if (isActivityRoundMode(conditionType)) {
         // Lượt HĐ mode: use activityRounds for recruited agents
@@ -1300,7 +1322,7 @@ function ThiDuaPageInner() {
     }
 
     return Array.from(nydMap.values());
-  }, [displayContracts, conditionType, ntdCandidates, subjectCodes, staffList, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode, calculateLuotWithStructure]);
+  }, [displayContracts, conditionType, ntdCandidates, subjectCodes, staffList, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode, calculateLuotWithStructure, recruitedAgentScope]);
 
   // Nhóm hiển thị luôn lấy theo Cấu trúc. Dữ liệu hợp đồng chỉ là nguồn doanh
   // số nên có thể thiếu tên/mã nhóm, nhưng không được làm trống cột Nhóm.
@@ -1861,6 +1883,7 @@ function ThiDuaPageInner() {
           tvv90MaxMonths,
           tvv90MinIP,
           structureStartDateByCode,
+          recruitedAgentScope,
         ).bonus;
         phase2Bonus += calculateNYDPhaseOutcome(
           phase2Contracts,
@@ -1872,6 +1895,7 @@ function ThiDuaPageInner() {
           tvv90MaxMonths,
           tvv90MinIP,
           structureStartDateByCode,
+          recruitedAgentScope,
         ).bonus;
       }
     } else {
@@ -1938,7 +1962,7 @@ function ThiDuaPageInner() {
     const phase1Count = phase1Contracts.length;
     const phase2Count = phase2Contracts.length;
     return { phase1Bonus, phase2Bonus, totalBonus: phase1Bonus + phase2Bonus, phase1Count, phase2Count };
-  }, [usePhase2, phase2StartDate, displayContracts, targetType, conditionType, bonusTiers, bonusTiers2, includeIndividualTN, includeIndividualNTD, leadersList, ntdCandidates, staffList, calculateBonusWithTiers, calculateActivityRoundBonusWithTiers, getBonusAmountWithTiers, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
+  }, [usePhase2, phase2StartDate, displayContracts, targetType, conditionType, bonusTiers, bonusTiers2, includeIndividualTN, includeIndividualNTD, leadersList, ntdCandidates, staffList, calculateBonusWithTiers, calculateActivityRoundBonusWithTiers, getBonusAmountWithTiers, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode, recruitedAgentScope]);
 
   // Helper: get the value for comparison based on condition type
   const getContractValue = useCallback((c: Contract): number => {
@@ -2095,7 +2119,7 @@ function ThiDuaPageInner() {
         referenceContestId: referenceContestId || undefined,
         includeTNInPassCount,
         topN, topNMinIP, topNValueType,
-        filterByEffectiveDate,
+        filterByEffectiveDate, recruitedAgentScope,
         secondaryIPMin: conditionType === 'pass_count_ip_afyp' ? passCountIPMin : secondaryIPMin,
         secondaryAFYPMin: conditionType === 'pass_count_ip_afyp' ? passCountAFYPMin : secondaryAFYPMin,
       }) });
@@ -2222,8 +2246,11 @@ function ThiDuaPageInner() {
     setSecondaryIPMin(contest.secondaryIPMin ?? 0);
     setSecondaryLuotHDMin(contest.secondaryLuotHDMin ?? 0);
     setSecondaryLuotHDCMin(contest.secondaryLuotHDCMin ?? 0);
-    setSecondaryLuotHDFilter((contest.secondaryLuotHDFilter as 'all' | 'tvvm') ?? 'all');
-    setSecondaryLuotHDCFilter((contest.secondaryLuotHDCFilter as 'all' | 'tvvm') ?? 'all');
+    // Giao diện mới dùng một phạm vi chung cho cả hai chỉ tiêu lượt. Với dữ
+    // liệu cũ từng lưu lệch nhau, ưu tiên TVVm để không vô tình mở rộng tập tính.
+    const savedRoundScope: 'all' | 'tvvm' = contest.secondaryLuotHDFilter === 'tvvm' || contest.secondaryLuotHDCFilter === 'tvvm' ? 'tvvm' : 'all';
+    setSecondaryLuotHDFilter(savedRoundScope);
+    setSecondaryLuotHDCFilter(savedRoundScope);
     setSecondaryTotalAFYPMin(contest.secondaryTotalAFYPMin ?? 0);
     setSecondaryTotalIPMin(contest.secondaryTotalIPMin ?? 0);
     // Options
@@ -2244,6 +2271,7 @@ function ThiDuaPageInner() {
     setTopNValueType(contest.topNValueType === 'afyp' ? 'afyp' : 'ip');
     // Filter by effective date
     setFilterByEffectiveDate(contest.filterByEffectiveDate ?? false);
+    setRecruitedAgentScope(contest.recruitedAgentScope === 'tvvm' ? 'tvvm' : 'all');
     // pass_count_ip_afyp: load IP min + AFYP min (reuse secondaryIPMin + secondaryAFYPMin)
     setPassCountIPMin(contest.secondaryIPMin || 6000000);
     setPassCountAFYPMin(contest.secondaryAFYPMin || 12000000);
@@ -2410,6 +2438,7 @@ function ThiDuaPageInner() {
       tvv90MaxMonths,
       tvv90MinIP,
       structureStartDateByCode,
+      recruitedAgentScope,
     );
     const phaseRewardCell = (tier: BonusTier | null, bonus: number): string | number => {
       if (!tier) return '';
@@ -2476,7 +2505,10 @@ function ThiDuaPageInner() {
           || (includeIndividualNTD && c.agentCode === n.nydCode)
         ));
         const contracts = qualifyingActivityContracts(countedContracts);
-        const contributionDetails = showTVVmContributions
+        // nmc-ntd-standard-export-all-contracts-v1
+        // Với Lượt HĐ Chuẩn của NTD: dùng HĐ đạt ngưỡng chỉ để xác định TVV đủ điều kiện,
+        // sau đó xuất toàn bộ HĐ trong kỳ của đúng TVV đó. Không thay đổi số lượt/kết quả.
+        const contributionDetails = (showTVVmContributions || conditionType === 'activity_round_standard')
           ? expandActivityExportDetails(countedContracts, contracts)
           : null;
         if (contracts.length === 0) {
@@ -2526,7 +2558,7 @@ function ThiDuaPageInner() {
             if (expSecLuotHDC) row.push(cIdx === 0 ? sc.luotHDC : '');
             row.push(c.agentName || '');
             if (showTVVStartDate) row.push(tvvStartDateFor(c));
-            if (contributionDetails) {
+            if (showTVVmContributions && contributionDetails) {
               const detail = contributionDetails[cIdx];
               row.push(c.agentCode, detail.totalIP, detail.rounds);
             }
@@ -3792,6 +3824,42 @@ function ThiDuaPageInner() {
                 <p className="text-[10px] text-emerald-400/50 italic">Chọn một nhóm đối tượng chính. “Khác” có thể cộng thêm mã đại lý vào nhóm đang chọn.</p>
               </div>
 
+              {targetType === 'nyd' && (
+                <div className="space-y-2 rounded-xl border border-violet-500/30 bg-violet-500/10 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-xs font-semibold text-violet-100">Phạm vi số liệu của mỗi NTD / TTN</Label>
+                    <span className="text-[9px] text-violet-300/70">Áp dụng cho chỉ tiêu chính và bổ sung</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button type="button" onClick={() => chooseRecruitedAgentScope('all')}
+                      className={`rounded-lg border px-2 py-2 text-left transition-all ${recruitedAgentScope === 'all' ? 'border-violet-300 bg-violet-500/35 text-white ring-1 ring-violet-300/30' : 'border-violet-500/20 bg-gray-900/40 text-violet-200/65 hover:border-violet-400/50'}`}>
+                      <span className="block text-[11px] font-bold">TVV do NTD tuyển</span>
+                      <span className="block text-[9px] opacity-70">Tính tất cả TVV được tuyển bởi chính NTD đó</span>
+                    </button>
+                    <button type="button" onClick={() => chooseRecruitedAgentScope('tvvm')}
+                      className={`rounded-lg border px-2 py-2 text-left transition-all ${recruitedAgentScope === 'tvvm' ? 'border-orange-300 bg-orange-500/35 text-white ring-1 ring-orange-300/30' : 'border-orange-500/20 bg-gray-900/40 text-orange-200/65 hover:border-orange-400/50'}`}>
+                      <span className="block text-[11px] font-bold">Chỉ TVVm do NTD tuyển</span>
+                      <span className="block text-[9px] opacity-70">TVV mới không quá 12 tháng, theo ngày BĐLV trong Cấu trúc</span>
+                    </button>
+                  </div>
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2">
+                    <Checkbox id="filterByEffectiveDateNyd" checked={filterByEffectiveDate} onCheckedChange={(v) => setFilterByEffectiveDate(!!v)} />
+                    <Label htmlFor="filterByEffectiveDateNyd" className="cursor-pointer text-[11px] leading-4 text-amber-100/90">
+                      Chỉ tính TVV/TVVm được tuyển từ ngày hiệu lực chức vụ gần nhất của chính NTD hoặc TTN đó
+                    </Label>
+                  </div>
+                  <div className="flex items-start gap-2 rounded-lg border border-violet-500/20 bg-gray-900/30 p-2">
+                    <Checkbox id="includeIndividualNTDScope" checked={includeIndividualNTD} onCheckedChange={(v) => setIncludeIndividualNTD(!!v)} />
+                    <Label htmlFor="includeIndividualNTDScope" className="cursor-pointer text-[11px] leading-4 text-violet-100/80">
+                      Cộng thêm kết quả cá nhân của NTD/TTN vào kết quả tuyển dụng
+                    </Label>
+                  </div>
+                  <p className="text-[10px] leading-4 text-violet-200/75">
+                    Đang tính <b>{getContestMetricLabel(conditionType, topNValueType, 'nyd')}</b> trên <b>{recruitedAgentScope === 'tvvm' ? 'chỉ TVVm' : 'toàn bộ TVV'}</b> do từng NTD/TTN tuyển{filterByEffectiveDate ? ', kể từ ngày hiệu lực chức vụ gần nhất' : ''}{includeIndividualNTD ? ', có cộng cá nhân NTD/TTN' : ', không cộng cá nhân NTD/TTN'}.
+                  </p>
+                </div>
+              )}
+
               <Separator className="bg-emerald-500/20" />
 
               {/* 2. Hình thức thi đua - quyết định cách tổng hợp kết quả */}
@@ -4117,22 +4185,22 @@ function ThiDuaPageInner() {
                       <div className="space-y-1"><Label className="text-[10px] text-orange-400/70">AFYP/HĐ từ (nđ)</Label><Input type="number" placeholder="0" value={secondaryAFYPMin ? vndToNgan(secondaryAFYPMin) : ''} onChange={(e) => setSecondaryAFYPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" /></div>
                       <div className="space-y-1"><Label className="text-[10px] text-orange-400/70">IP/HĐ từ (nđ)</Label><Input type="number" placeholder="0" value={secondaryIPMin ? vndToNgan(secondaryIPMin) : ''} onChange={(e) => setSecondaryIPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" /></div>
                     </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-orange-300/80">Phạm vi tính lượt bổ sung</Label>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button type="button" onClick={() => chooseSecondaryRoundScope('all')} className={`rounded-lg border px-2 py-1.5 text-[10px] font-bold transition-all ${secondaryLuotHDFilter === 'all' && secondaryLuotHDCFilter === 'all' ? 'border-orange-300 bg-orange-500/60 text-white' : 'border-orange-500/20 bg-gray-800/50 text-emerald-300/70'}`}>Tất cả TVV</button>
+                        <button type="button" onClick={() => chooseSecondaryRoundScope('tvvm')} className={`rounded-lg border px-2 py-1.5 text-[10px] font-bold transition-all ${secondaryLuotHDFilter === 'tvvm' && secondaryLuotHDCFilter === 'tvvm' ? 'border-orange-300 bg-orange-500/60 text-white' : 'border-orange-500/20 bg-gray-800/50 text-emerald-300/70'}`}>Chỉ TVVm (≤12 tháng)</button>
+                      </div>
+                      <p className="text-[9px] text-orange-200/60">Một lựa chọn dùng chung cho cả Lượt HĐ và Lượt HĐC bên dưới.</p>
+                    </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
                         <Label className="text-[10px] text-orange-400/70">SL lượt HĐ tối thiểu</Label>
                         <Input type="number" placeholder="0" value={secondaryLuotHDMin || ''} onChange={(e) => setSecondaryLuotHDMin(parseInt(e.target.value) || 0)} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" />
-                        <div className="flex gap-1">
-                          <button type="button" onClick={() => setSecondaryLuotHDFilter('all')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDFilter === 'all' ? 'bg-orange-500/60 text-white' : 'bg-gray-800/50 text-emerald-300/70'}`}>Tất cả</button>
-                          <button type="button" onClick={() => setSecondaryLuotHDFilter('tvvm')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDFilter === 'tvvm' ? 'bg-orange-500/60 text-white' : 'bg-gray-800/50 text-emerald-300/70'}`}>TVVm</button>
-                        </div>
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[10px] text-orange-400/70">SL lượt HĐC tối thiểu</Label>
                         <Input type="number" placeholder="0" value={secondaryLuotHDCMin || ''} onChange={(e) => setSecondaryLuotHDCMin(parseInt(e.target.value) || 0)} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" />
-                        <div className="flex gap-1">
-                          <button type="button" onClick={() => setSecondaryLuotHDCFilter('all')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDCFilter === 'all' ? 'bg-orange-500/60 text-white' : 'bg-gray-800/50 text-emerald-300/70'}`}>Tất cả</button>
-                          <button type="button" onClick={() => setSecondaryLuotHDCFilter('tvvm')} className={`text-[9px] px-2 py-0.5 rounded-full ${secondaryLuotHDCFilter === 'tvvm' ? 'bg-orange-500/60 text-white' : 'bg-gray-800/50 text-emerald-300/70'}`}>TVVm</button>
-                        </div>
                       </div>
                     </div>
                     {/* Điều kiện bổ sung nhận thưởng — phải đạt mới được thưởng */}
@@ -4158,14 +4226,6 @@ function ThiDuaPageInner() {
                     </Label>
                   </div>
                   {/* Include Individual NTD - for nhóm and NTD targets */}
-                  {targetType === 'nyd' && (
-                    <div className="flex items-center gap-2 p-2 rounded-lg border border-violet-500/30 bg-emerald-500/10">
-                      <Checkbox id="includeIndividualNTD" checked={includeIndividualNTD} onCheckedChange={(v) => setIncludeIndividualNTD(!!v)} />
-                      <Label htmlFor="includeIndividualNTD" className="text-xs text-emerald-200/70 cursor-pointer flex items-center gap-1">
-                        <UserPlus className="w-3 h-3 text-violet-400" /> Tính cá nhân NTD vào chương trình
-                      </Label>
-                    </div>
-                  )}
                   {/* Include Individual TN - for nhóm and NTD targets */}
                   {targetType === 'nhom' && (
                     <div className="flex items-center gap-2 p-2 rounded-lg border border-sky-500/30 bg-emerald-500/10">
@@ -4176,7 +4236,7 @@ function ThiDuaPageInner() {
                     </div>
                   )}
                   {/* Filter by effective date — chỉ tính TVV có ngày LV bằng hoặc sau ngày hiệu lực chức vụ gần nhất của NTD recruiter */}
-                  {(targetType === 'nhom' || targetType === 'nyd') && (
+                  {targetType === 'nhom' && (
                     <div className="flex items-center gap-2 p-2 rounded-lg border border-amber-500/40 bg-amber-500/10">
                       <Checkbox id="filterByEffectiveDate" checked={filterByEffectiveDate} onCheckedChange={(v) => setFilterByEffectiveDate(!!v)} />
                       <Label htmlFor="filterByEffectiveDate" className="text-xs text-amber-200/90 cursor-pointer flex items-center gap-1">
@@ -4185,7 +4245,7 @@ function ThiDuaPageInner() {
                     </div>
                   )}
                 </div>
-                {filterByEffectiveDate && (targetType === 'nhom' || targetType === 'nyd') && (
+                {filterByEffectiveDate && targetType === 'nhom' && (
                   <p className="text-[10px] text-amber-300/80 italic leading-snug">
                     Khi tích: chỉ giữ HĐ của TVV có <b>ngày bắt đầu LV</b> (lấy từ DS TVV — Cấu trúc) <b>bằng hoặc sau</b> ngày hiệu lực chức vụ gần nhất của NTD đã tuyển dụng họ (lấy từ DS TTN — Cấu trúc). TVV không có ngày LV sẽ bị bỏ qua. Độc lập với điều kiện "Tính cá nhân NTD/TN".
                   </p>
@@ -4629,11 +4689,13 @@ function ThiDuaPageInner() {
                           p1Contracts, nyd.nydCode, bonusTiers, conditionType,
                           includeIndividualNTD, threshold, tvv90MaxMonths, tvv90MinIP,
                           structureStartDateByCode,
+                          recruitedAgentScope,
                         );
                         const phase2 = calculateNYDPhaseOutcome(
                           p2Contracts, nyd.nydCode, bonusTiers2, conditionType,
                           includeIndividualNTD, threshold, tvv90MaxMonths, tvv90MinIP,
                           structureStartDateByCode,
+                          recruitedAgentScope,
                         );
                         return {
                           phase1Bonus: secondaryCheck.passed ? phase1.bonus : 0,
