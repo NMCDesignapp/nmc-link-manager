@@ -5,6 +5,7 @@ import {
   computeNYDResultRows,
   computeNYDData,
   computeContestStats,
+  computeBonusFromTier,
   doesTVVPassReferenceContest,
   evaluateSecondaryConditions,
   filterByEffectiveDateRule,
@@ -25,6 +26,16 @@ const tier: BonusTier = {
   bonusText: '',
   bonusPercent: 0,
 };
+
+test('thưởng % IP và % Tổng IP độc lập với chỉ tiêu xét AFYP', () => {
+  const percentIP: BonusTier = { ...tier, bonusType: 'percent', bonusPercent: 10 };
+  const percentTotalIP: BonusTier = { ...tier, bonusType: 'percent_total_ip', bonusPercent: 10 };
+  const percentFYC: BonusTier = { ...tier, bonusType: 'percent_fyc', bonusPercent: 10 };
+
+  assert.equal(computeBonusFromTier(percentIP, 30_000_000, undefined, 70_000_000), 3_000_000);
+  assert.equal(computeBonusFromTier(percentTotalIP, 30_000_000, undefined, 70_000_000), 7_000_000);
+  assert.equal(computeBonusFromTier(percentFYC, 30_000_000, undefined, 70_000_000), 750_000);
+});
 
 const makeContract = (agentCode: string, recruiterCode: string, ip: number): Contract => ({
   id: `${recruiterCode}-${agentCode}`,

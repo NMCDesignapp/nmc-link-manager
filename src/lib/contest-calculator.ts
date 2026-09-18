@@ -35,7 +35,7 @@ export interface BonusTier {
   minFYP: number;
   maxFYP: number | null;
   bonusAmount: number;
-  bonusType: 'money' | 'gift' | 'percent' | 'money_per_round' | 'money_per_tvv' | 'percent_fyc';
+  bonusType: 'money' | 'gift' | 'percent' | 'percent_total_ip' | 'money_per_round' | 'money_per_tvv' | 'percent_fyc';
   bonusText: string;
   bonusPercent: number;
 }
@@ -446,12 +446,14 @@ function isPAGroup(nhom?: string | null, maNhom?: string | null): boolean {
 // ===== Bonus computation =====
 export function computeBonusFromTier(
   tier: BonusTier,
-  fyp: number,
-  rounds?: number
+  ipBase: number,
+  rounds?: number,
+  totalIPBase = ipBase
 ): number {
-  if (tier.bonusType === 'percent') return (tier.bonusPercent / 100) * fyp;
+  if (tier.bonusType === 'percent') return (tier.bonusPercent / 100) * ipBase;
+  if (tier.bonusType === 'percent_total_ip') return (tier.bonusPercent / 100) * totalIPBase;
   if (tier.bonusType === 'percent_fyc')
-    return (tier.bonusPercent / 100) * (fyp * 0.25);
+    return (tier.bonusPercent / 100) * (ipBase * 0.25);
   if (tier.bonusType === 'money_per_round')
     return tier.bonusAmount * (rounds || 0);
   if (tier.bonusType === 'money_per_tvv')
@@ -570,14 +572,14 @@ export function calculateNYDPhaseOutcome(
     value,
     recruitCount,
     baseIP,
-    bonus: tier ? computeBonusFromTier(tier, value, recruitCount) : 0,
+    bonus: tier ? computeBonusFromTier(tier, baseIP, recruitCount) : 0,
     tier,
   };
 }
 
 export function hasPercentBonus(tiers: BonusTier[]): boolean {
   return tiers.some(
-    (t) => t.bonusType === 'percent' || t.bonusType === 'percent_fyc'
+    (t) => t.bonusType === 'percent' || t.bonusType === 'percent_total_ip' || t.bonusType === 'percent_fyc'
   );
 }
 
@@ -602,16 +604,18 @@ export function formatDate(dateStr: string): string {
 
 export function formatBonusAmount(
   tier: BonusTier,
-  fyp?: number,
-  rounds?: number
+  ipBase?: number,
+  rounds?: number,
+  totalIPBase?: number
 ): string {
   if (tier.bonusType === 'gift' && tier.bonusText) return tier.bonusText;
-  const amount = computeBonusFromTier(tier, fyp || 0, rounds);
+  const amount = computeBonusFromTier(tier, ipBase || 0, rounds, totalIPBase ?? ipBase ?? 0);
   return formatCurrency(amount);
 }
 
 export function formatRate(tier: BonusTier): string {
   if (tier.bonusType === 'percent') return `${tier.bonusPercent}%`;
+  if (tier.bonusType === 'percent_total_ip') return `${tier.bonusPercent}%`;
   if (tier.bonusType === 'percent_fyc') return `${tier.bonusPercent}%`;
   return '';
 }
@@ -1357,8 +1361,8 @@ export function computeTVVTotalRows(
           ? calculateActivityRoundBonusWithTiers(p2Value, bonusTiers2)
           : calculateBonusWithTiers(p2Value, bonusTiers2);
         phaseInfo = {
-          phase1Bonus: p1Res.tier ? computeBonusFromTier(p1Res.tier, isActivityMode ? p1Revenue : p1Value, isActivityMode ? p1Value : undefined) : 0,
-          phase2Bonus: p2Res.tier ? computeBonusFromTier(p2Res.tier, isActivityMode ? p2Revenue : p2Value, isActivityMode ? p2Value : undefined) : 0,
+          phase1Bonus: p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Revenue, isActivityMode ? p1Value : undefined, p1Revenue) : 0,
+          phase2Bonus: p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Revenue, isActivityMode ? p2Value : undefined, p2Revenue) : 0,
           phase1Tier: p1Res.tier,
           phase2Tier: p2Res.tier,
         };
@@ -1505,11 +1509,13 @@ export function computeTVVPerContractRows(
         const isPhase1 = new Date(c.effectiveDate) < p2Start;
         if (isPhase1) {
           const p1Res = calculateBonusWithTiers(cValue, bonusTiers);
-          phaseInfo.phase1Bonus = p1Res.tier ? computeBonusFromTier(p1Res.tier, cValue) : 0;
+          const totalAgentIP = displayContracts.filter(row => row.agentCode === c.agentCode).reduce((sum, row) => sum + row.pdt10DT, 0);
+          phaseInfo.phase1Bonus = p1Res.tier ? computeBonusFromTier(p1Res.tier, c.pdt10DT, undefined, totalAgentIP) : 0;
           phaseInfo.phase1Tier = p1Res.tier;
         } else {
           const p2Res = calculateBonusWithTiers(cValue, bonusTiers2);
-          phaseInfo.phase2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, cValue) : 0;
+          const totalAgentIP = displayContracts.filter(row => row.agentCode === c.agentCode).reduce((sum, row) => sum + row.pdt10DT, 0);
+          phaseInfo.phase2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, c.pdt10DT, undefined, totalAgentIP) : 0;
           phaseInfo.phase2Tier = p2Res.tier;
         }
       }
@@ -1603,13 +1609,16 @@ export function computeContestStats(
             const p2Value = isAFYP ? p2Contracts.reduce((s, c) => s + c.afyp, 0) : p2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
             const p1Res = calculateBonusWithTiers(p1Value, config.bonusTiers);
             const p2Res = calculateBonusWithTiers(p2Value, config.bonusTiers2);
-            totalBonus += (p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Value) : 0) + (p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Value) : 0);
+            const p1IP = p1Contracts.reduce((s, c) => s + c.pdt10DT, 0);
+            const p2IP = p2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
+            totalBonus += (p1Res.tier ? computeBonusFromTier(p1Res.tier, p1IP, undefined, p1IP) : 0) + (p2Res.tier ? computeBonusFromTier(p2Res.tier, p2IP, undefined, p2IP) : 0);
           }
         } else {
           totalBonus += computeBonusFromTier(
             effectiveTier,
-            value,
-            isActivityRoundMode(conditionType) ? value : undefined
+            g.totalFYP,
+            isActivityRoundMode(conditionType) ? value : undefined,
+            g.totalFYP
           );
         }
       } else {
@@ -1626,7 +1635,9 @@ export function computeContestStats(
         if (usePhase2) {
           totalBonus += row.phaseInfo.phase1Bonus + row.phaseInfo.phase2Bonus;
         } else {
-          totalBonus += computeBonusFromTier(row.effectiveTier, row.cValue);
+          const agentContracts = displayContracts.filter(contract => contract.agentCode === row.contract.agentCode);
+          const totalAgentIP = agentContracts.reduce((sum, contract) => sum + contract.pdt10DT, 0);
+          totalBonus += computeBonusFromTier(row.effectiveTier, row.contract.pdt10DT, undefined, totalAgentIP);
         }
       } else {
         notAchievedCount++;
@@ -1646,7 +1657,8 @@ export function computeContestStats(
         if (usePhase2) {
           totalBonus += row.phaseInfo.phase1Bonus + row.phaseInfo.phase2Bonus;
         } else {
-          totalBonus += computeBonusFromTier(effectiveTier, row.value);
+          const totalAgentIP = agentContracts.reduce((sum, contract) => sum + contract.pdt10DT, 0);
+          totalBonus += computeBonusFromTier(effectiveTier, totalAgentIP, undefined, totalAgentIP);
         }
       } else {
         notAchievedCount++;
@@ -1685,8 +1697,9 @@ export function computeContestStats(
         achievedCount++;
         totalBonus += computeBonusFromTier(
           row.effectiveTier,
-          row.value,
-          isActivityRoundMode(conditionType) ? row.value : undefined
+          row.nyd.contracts.reduce((sum, contract) => sum + contract.pdt10DT, 0),
+          isActivityRoundMode(conditionType) ? row.value : undefined,
+          row.nyd.contracts.reduce((sum, contract) => sum + contract.pdt10DT, 0)
         );
       } else {
         if (hideNotAchieved) continue;

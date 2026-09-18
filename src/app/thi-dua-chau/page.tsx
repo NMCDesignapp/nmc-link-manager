@@ -56,7 +56,7 @@ interface Contract {
 
 interface BonusTier {
   id: string; minFYP: number; maxFYP: number | null; bonusAmount: number;
-  bonusType: 'money' | 'gift' | 'percent' | 'money_per_round' | 'money_per_tvv' | 'percent_fyc'; bonusText: string; bonusPercent: number;
+  bonusType: 'money' | 'gift' | 'percent' | 'percent_total_ip' | 'money_per_round' | 'money_per_tvv' | 'percent_fyc'; bonusText: string; bonusPercent: number;
 }
 
 interface GroupLeader {
@@ -280,16 +280,21 @@ function formatDate(dateStr: string): string {
 function nganToVnd(val: number): number { return val * 1_000; }
 function vndToNgan(val: number): number { return val / 1_000; }
 
-function formatBonus(tier: BonusTier, fyp?: number, rounds?: number): string {
+function formatBonus(tier: BonusTier, ipBase?: number, rounds?: number, totalIPBase?: number): string {
   if (tier.bonusType === 'gift' && tier.bonusText) return tier.bonusText;
   if (tier.bonusType === 'percent' && tier.bonusPercent > 0) {
-    const calculated = fyp ? tier.bonusPercent / 100 * fyp : 0;
-    return `${tier.bonusPercent}% IP${fyp ? ` = ${formatCurrency(calculated)}` : ''}`;
+    const calculated = ipBase ? tier.bonusPercent / 100 * ipBase : 0;
+    return `${tier.bonusPercent}% IP${ipBase ? ` = ${formatCurrency(calculated)}` : ''}`;
+  }
+  if (tier.bonusType === 'percent_total_ip' && tier.bonusPercent > 0) {
+    const base = totalIPBase ?? ipBase ?? 0;
+    const calculated = tier.bonusPercent / 100 * base;
+    return `${tier.bonusPercent}% Tổng IP${base ? ` = ${formatCurrency(calculated)}` : ''}`;
   }
   if (tier.bonusType === 'percent_fyc' && tier.bonusPercent > 0) {
-    const fyc = fyp ? fyp * 0.25 : 0;
+    const fyc = ipBase ? ipBase * 0.25 : 0;
     const calculated = fyc ? tier.bonusPercent / 100 * fyc : 0;
-    return `${tier.bonusPercent}% FYC${fyp ? ` = ${formatCurrency(calculated)}` : ''}`;
+    return `${tier.bonusPercent}% FYC${ipBase ? ` = ${formatCurrency(calculated)}` : ''}`;
   }
   if (tier.bonusType === 'money_per_round') {
     const calculated = rounds ? tier.bonusAmount * rounds : 0;
@@ -306,25 +311,27 @@ function formatBonus(tier: BonusTier, fyp?: number, rounds?: number): string {
 // Format rate label for percent-based bonus types
 function formatRate(tier: BonusTier): string {
   if (tier.bonusType === 'percent') return `${tier.bonusPercent}%`;
+  if (tier.bonusType === 'percent_total_ip') return `${tier.bonusPercent}%`;
   if (tier.bonusType === 'percent_fyc') return `${tier.bonusPercent}%`;
   return '';
 }
 
 // Format bonus amount only (no formula) for display in table
-function formatBonusAmount(tier: BonusTier, fyp?: number, rounds?: number): string {
+function formatBonusAmount(tier: BonusTier, ipBase?: number, rounds?: number, totalIPBase?: number): string {
   if (tier.bonusType === 'gift' && tier.bonusText) return tier.bonusText;
-  const amount = computeBonusFromTier(tier, fyp || 0, rounds);
+  const amount = computeBonusFromTier(tier, ipBase || 0, rounds, totalIPBase ?? ipBase ?? 0);
   return formatCurrency(amount);
 }
 
 // Check if any tier uses percent-based bonus
 function hasPercentBonus(tiers: BonusTier[]): boolean {
-  return tiers.some(t => t.bonusType === 'percent' || t.bonusType === 'percent_fyc');
+  return tiers.some(t => t.bonusType === 'percent' || t.bonusType === 'percent_total_ip' || t.bonusType === 'percent_fyc');
 }
 
-function computeBonusFromTier(tier: BonusTier, fyp: number, rounds?: number): number {
-  if (tier.bonusType === 'percent') return tier.bonusPercent / 100 * fyp;
-  if (tier.bonusType === 'percent_fyc') return tier.bonusPercent / 100 * (fyp * 0.25);
+function computeBonusFromTier(tier: BonusTier, ipBase: number, rounds?: number, totalIPBase = ipBase): number {
+  if (tier.bonusType === 'percent') return tier.bonusPercent / 100 * ipBase;
+  if (tier.bonusType === 'percent_total_ip') return tier.bonusPercent / 100 * totalIPBase;
+  if (tier.bonusType === 'percent_fyc') return tier.bonusPercent / 100 * (ipBase * 0.25);
   if (tier.bonusType === 'money_per_round') return tier.bonusAmount * (rounds || 0);
   if (tier.bonusType === 'money_per_tvv') return tier.bonusAmount * (rounds || 0); // rounds doubles as tvvCount
   return tier.bonusAmount;
@@ -333,6 +340,7 @@ function computeBonusFromTier(tier: BonusTier, fyp: number, rounds?: number): nu
 function BonusTypeIcon({ type, className }: { type: string; className?: string }) {
   if (type === 'gift') return <Gift className={className} />;
   if (type === 'percent') return <Percent className={className} />;
+  if (type === 'percent_total_ip') return <Percent className={className} />;
   if (type === 'percent_fyc') return <Percent className={className} />;
   if (type === 'money_per_round') return <Layers className={className} />;
   if (type === 'money_per_tvv') return <UserCheck className={className} />;
@@ -370,6 +378,7 @@ const BONUS_TYPE_BUTTONS = [
   ['money', 'Tiền', Banknote, 'bg-emerald-600'],
   ['gift', 'Quà', Gift, 'bg-pink-600'],
   ['percent', '% IP', Percent, 'bg-violet-600'],
+  ['percent_total_ip', '% Tổng IP', Percent, 'bg-blue-600'],
   ['percent_fyc', '% FYC', Percent, 'bg-cyan-600'],
   ['money_per_round', '/Lượt', Layers, 'bg-teal-600'],
   ['money_per_tvv', '/TVV', UserCheck, 'bg-indigo-600'],
@@ -522,22 +531,34 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
           <div key={tier.id} className={`p-2 rounded-lg ${cls.bg} border ${cls.border}`}>
             <div className="flex items-center gap-1.5 mb-1.5">
               <span className={`text-[10px] font-bold ${cls.label} ${cls.badge} px-1.5 py-0.5 rounded`}>{isTopN ? `Hạng ${index + 1}` : `Mức ${index + 1}`}</span>
-              <div className="flex items-center gap-0.5 ml-auto overflow-x-auto scrollbar-none">
-                {BONUS_TYPE_BUTTONS.map(([type, label, Icon, activeCls]) => (
-                  <Button key={type} variant={tier.bonusType === type ? 'default' : 'outline'} size="sm" className={`h-5 w-5 p-0 shrink-0 ${tier.bonusType === type ? activeCls + ' hover:opacity-90' : 'border-emerald-500/20 text-emerald-300/60 bg-transparent'}`} onClick={() => onUpdate(tier.id, 'bonusType', type)} title={label}><Icon className="w-3 h-3" /></Button>
-                ))}
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => onRemove(tier.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-300"><Trash2 className="w-2.5 h-2.5" /></Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(tier.id)} className="ml-auto h-7 w-7 p-0 text-red-400 hover:text-red-300" aria-label={`Xóa ${isTopN ? `hạng ${index + 1}` : `mức ${index + 1}`}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+            </div>
+            <div className="mb-2 grid grid-cols-2 gap-1 sm:grid-cols-4" role="group" aria-label={`Loại thưởng ${isTopN ? `hạng ${index + 1}` : `mức ${index + 1}`}`}>
+              {BONUS_TYPE_BUTTONS.map(([type, label, Icon, activeCls]) => (
+                <Button
+                  key={type}
+                  type="button"
+                  variant={tier.bonusType === type ? 'default' : 'outline'}
+                  size="sm"
+                  className={`h-9 min-w-0 gap-1 px-1 text-[10px] font-semibold ${tier.bonusType === type ? activeCls + ' text-white shadow-sm ring-1 ring-white/30 hover:opacity-90' : 'border-emerald-500/20 bg-transparent text-emerald-300/70 hover:border-emerald-400/50 hover:text-emerald-200'}`}
+                  onClick={() => onUpdate(tier.id, 'bonusType', type)}
+                  aria-pressed={tier.bonusType === type}
+                  title={`Chọn thưởng ${label}`}
+                >
+                  <Icon className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{label}</span>
+                </Button>
+              ))}
             </div>
             <div className={`grid ${isTopN ? 'grid-cols-1' : 'grid-cols-3'} gap-1.5`}>
               {isTopN ? (
                 <div>
                   <Label className="text-[9px] text-emerald-300/70">
-                    {tier.bonusType === 'money' ? `Thưởng Hạng ${index + 1} (nđ)` : tier.bonusType === 'gift' ? 'Quà tặng' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Thưởng'}
+                    {tier.bonusType === 'money' ? `Thưởng Hạng ${index + 1} (nđ)` : tier.bonusType === 'gift' ? 'Quà tặng' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_total_ip' ? '% Tổng IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Thưởng'}
                   </Label>
                   {tier.bonusType === 'money' || tier.bonusType === 'money_per_round' || tier.bonusType === 'money_per_tvv'
                     ? <Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(e) => onUpdate(tier.id, 'bonusAmount', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
-                    : tier.bonusType === 'percent' || tier.bonusType === 'percent_fyc'
+                    : tier.bonusType === 'percent' || tier.bonusType === 'percent_total_ip' || tier.bonusType === 'percent_fyc'
                       ? <Input type="number" inputMode="decimal" placeholder="7" value={tier.bonusPercent || ''} onChange={(e) => onUpdate(tier.id, 'bonusPercent', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
                       : <Input type="text" placeholder="VD: iPhone 15" value={tier.bonusText} onChange={(e) => onUpdate(tier.id, 'bonusText', e.target.value)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />}
                 </div>
@@ -555,11 +576,11 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
               {!isTopN && (
                 <div>
                   <Label className="text-[9px] text-emerald-300/70">
-                    {tier.bonusType === 'money' ? 'Thưởng (nđ)' : tier.bonusType === 'money_per_round' ? '/Lượt (nđ)' : tier.bonusType === 'money_per_tvv' ? '/TVV (nđ)' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Quà tặng'}
+                    {tier.bonusType === 'money' ? 'Thưởng (nđ)' : tier.bonusType === 'money_per_round' ? '/Lượt (nđ)' : tier.bonusType === 'money_per_tvv' ? '/TVV (nđ)' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_total_ip' ? '% Tổng IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Quà tặng'}
                   </Label>
                   {tier.bonusType === 'money' || tier.bonusType === 'money_per_round' || tier.bonusType === 'money_per_tvv'
                     ? <Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(e) => onUpdate(tier.id, 'bonusAmount', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
-                    : tier.bonusType === 'percent' || tier.bonusType === 'percent_fyc'
+                    : tier.bonusType === 'percent' || tier.bonusType === 'percent_total_ip' || tier.bonusType === 'percent_fyc'
                       ? <Input type="number" inputMode="decimal" placeholder="7" value={tier.bonusPercent || ''} onChange={(e) => onUpdate(tier.id, 'bonusPercent', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
                       : <Input type="text" placeholder="VD: iPhone 15" value={tier.bonusText} onChange={(e) => onUpdate(tier.id, 'bonusText', e.target.value)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />}
                 </div>
@@ -3343,7 +3364,8 @@ function ThiDuaPageInner() {
       tvvTotalBonus = tvvTotalRows.reduce((sum, r) => {
         const entityContracts = displayContracts.filter(c => c.agentCode === r.agent.agentCode);
         if (!r.tier || !checkSecondaryTotalCondition(entityContracts).passed) return sum;
-        return sum + computeBonusFromTier(r.tier, r.value, isActivityRoundMode(conditionType) ? r.value : undefined);
+        const entityIP = entityContracts.reduce((total, contract) => total + contract.pdt10DT, 0);
+        return sum + computeBonusFromTier(r.tier, entityIP, isActivityRoundMode(conditionType) ? r.value : undefined, entityIP);
       }, 0);
     } else {
       const contractValue = (c: Contract) => conditionType === 'per_contract_afyp' ? c.afyp : c.pdt10DT;
@@ -3353,7 +3375,11 @@ function ThiDuaPageInner() {
       }).length;
       tvvTotalBonus = perContractDisplayContracts.reduce((sum, c) => {
         const entityContracts = displayContracts.filter(row => row.agentCode === c.agentCode);
-        return checkSecondaryTotalCondition(entityContracts).passed ? sum + getBonusAmount(contractValue(c)) : sum;
+        if (!checkSecondaryTotalCondition(entityContracts).passed) return sum;
+        const { tier } = calculateBonus(contractValue(c));
+        if (!tier) return sum;
+        const totalIP = entityContracts.reduce((total, contract) => total + contract.pdt10DT, 0);
+        return sum + computeBonusFromTier(tier, c.pdt10DT, undefined, totalIP);
       }, 0);
     }
 
@@ -3372,7 +3398,9 @@ function ThiDuaPageInner() {
         return sum + getBonusAmount(passCount, passCount);
       }
       if (isActivityRoundMode(conditionType)) return sum + getActivityRoundBonusAmount(g.activityRounds, g.totalFYP);
-      return sum + getBonusAmount(g.totalFYP);
+      const value = getGroupValue(g);
+      const { tier } = calculateBonus(value);
+      return tier ? sum + computeBonusFromTier(tier, g.totalFYP, undefined, g.totalFYP) : sum;
     }, 0);
 
     // Activity round stats
@@ -3404,7 +3432,8 @@ function ThiDuaPageInner() {
         (includeIndividualNTD && c.agentCode === n.nydCode)
       );
       if (!tier || !checkSecondaryTotalCondition(entityContracts).passed) return sum;
-      return sum + computeBonusFromTier(tier, value, isActivityRoundMode(conditionType) ? value : n.recruitCount);
+      const entityIP = entityContracts.reduce((total, contract) => total + contract.pdt10DT, 0);
+      return sum + computeBonusFromTier(tier, entityIP, isActivityRoundMode(conditionType) ? value : n.recruitCount, entityIP);
     }, 0) : 0;
 
     const tvvAgentCount = targetType === 'tvv'
@@ -3556,7 +3585,7 @@ function ThiDuaPageInner() {
           ? group.totalAFYP
           : group.totalFYP;
         const { tier } = calculateBonus(value);
-        const bonus = tier ? computeBonusFromTier(tier, value) : 0;
+        const bonus = tier ? computeBonusFromTier(tier, group.totalFYP, undefined, group.totalFYP) : 0;
         return { phase1Bonus: bonus, phase2Bonus: 0, phase1Tier: tier, phase2Tier: null };
       }
     }
@@ -3586,14 +3615,16 @@ function ThiDuaPageInner() {
     } else {
       const useAFYP = conditionType === 'total_afyp' || conditionType === 'per_contract_afyp';
       const p1Total = phase1Contracts.reduce((s, c) => s + (useAFYP ? c.afyp : c.pdt10DT), 0);
+      const p1IP = phase1Contracts.reduce((s, c) => s + c.pdt10DT, 0);
       const p1Res = calculateBonusWithTiers(p1Total, bonusTiers);
       phase1Tier = p1Res.tier;
-      if (p1Res.tier) phase1Bonus = computeBonusFromTier(p1Res.tier, p1Total);
+      if (p1Res.tier) phase1Bonus = computeBonusFromTier(p1Res.tier, p1IP, undefined, p1IP);
 
       const p2Total = phase2Contracts.reduce((s, c) => s + (useAFYP ? c.afyp : c.pdt10DT), 0);
+      const p2IP = phase2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
       const p2Res = calculateBonusWithTiers(p2Total, bonusTiers2);
       phase2Tier = p2Res.tier;
-      if (p2Res.tier) phase2Bonus = computeBonusFromTier(p2Res.tier, p2Total);
+      if (p2Res.tier) phase2Bonus = computeBonusFromTier(p2Res.tier, p2IP, undefined, p2IP);
     }
 
     return { phase1Bonus, phase2Bonus, phase1Tier, phase2Tier };
@@ -4747,7 +4778,7 @@ function ThiDuaPageInner() {
                               <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{formatCurrency(phaseBonus.phase1Bonus + phaseBonus.phase2Bonus)}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, value, isActivityRoundMode(conditionType) ? value : nyd.recruitCount)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, entityContracts.reduce((sum, contract) => sum + contract.pdt10DT, 0), isActivityRoundMode(conditionType) ? value : nyd.recruitCount)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                           )}
                           <TableCell className="whitespace-nowrap">{!effectiveTier ? <span className="text-[10px] italic text-gray-400">{tier && !secondaryCheck.passed ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
                         </TableRow>
@@ -4852,7 +4883,7 @@ function ThiDuaPageInner() {
                               <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{effectiveTier ? formatCurrency(groupPhase.phase1Bonus + groupPhase.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, isActivityRoundMode(conditionType) ? group.totalFYP : getGroupValue(group), group.activityRounds)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, group.totalFYP, group.activityRounds, group.totalFYP)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                           )}
                           <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${isActivityRoundMode(conditionType) ? `${remaining} lượt` : formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
                         </TableRow>
@@ -4911,7 +4942,7 @@ function ThiDuaPageInner() {
                               <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{effectiveTier ? formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, cValue)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, contract.pdt10DT, undefined, agentContracts.reduce((sum, row) => sum + row.pdt10DT, 0))}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                           )}
                           <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
                         </TableRow>
@@ -4998,7 +5029,7 @@ function ThiDuaPageInner() {
                                 <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{effectiveTier ? formatCurrency(phaseInfo.phase1Bonus + phaseInfo.phase2Bonus) : <span className="text-gray-400">—</span>}</TableCell>
                               </>
                             ) : (
-                              <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, value)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+                              <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, agentContracts.reduce((sum, contract) => sum + contract.pdt10DT, 0), undefined, agentContracts.reduce((sum, contract) => sum + contract.pdt10DT, 0))}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                             )}
                             <TableCell className="whitespace-nowrap">{isTopNResult ? noteLabel : nonTopNoteCell}</TableCell>
                           </TableRow>
