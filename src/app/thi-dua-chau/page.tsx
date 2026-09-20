@@ -3158,10 +3158,19 @@ function ThiDuaPageInner() {
 
           const tableClone = sourceTable.cloneNode(false) as HTMLTableElement;
           const liveScale = Number.parseFloat(window.getComputedStyle(sourceTable).zoom || '1') || 1;
-          const exportScale = Math.min(
+          // Measure the table itself instead of the popup. The table can be wider
+          // than the visible popup, so scaling from el.clientWidth clipped the
+          // rightmost columns when the capture root used overflow: hidden.
+          const sourceTableWidth = Math.max(
             1,
-            liveScale * (captureWidth / Math.max(1, el.clientWidth)),
+            sourceTable.scrollWidth,
+            sourceTable.offsetWidth,
+            sourceTable.getBoundingClientRect().width / liveScale,
           );
+          const availableTableWidth = Math.max(1, captureWidth - 4);
+          const exportScale = Math.min(1, availableTableWidth / sourceTableWidth);
+          tableClone.style.width = `${sourceTableWidth}px`;
+          tableClone.style.maxWidth = 'none';
           tableClone.style.zoom = String(exportScale);
           Array.from(sourceTable.children).forEach((section) => {
             if (section.tagName !== 'TBODY') {
