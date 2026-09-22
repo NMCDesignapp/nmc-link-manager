@@ -34,6 +34,7 @@ if (!targetFile || !fs.existsSync(targetFile)) {
 }
 
 let c = fs.readFileSync(targetFile, 'utf8');
+const lineEnding = c.includes('\r\n') ? '\r\n' : '\n';
 const changed = [];
 
 // Patch 1: Insert MAIN_APP_URL + buildMainUrl helper if missing
@@ -119,6 +120,6 @@ if (envMainUrlPattern.test(c)) {
 }
 
 if (!checkOnly) {
-  fs.writeFileSync(targetFile, c);
+  fs.writeFileSync(targetFile, c.replace(/\r?\n/g, lineEnding));
 }
 console.log('  → ' + changed.join('; '));
