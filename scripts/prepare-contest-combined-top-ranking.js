@@ -2,6 +2,8 @@ const fs = require('fs');
 
 const file = 'scripts/apply-contest-combined-top-ranking.js';
 let source = fs.readFileSync(file, 'utf8');
+const lineEnding = source.includes('\r\n') ? '\r\n' : '\n';
+source = source.replace(/\r\n/g, '\n');
 
 const badTopLabel = ": `TOP ${index + 1}`}</Label>";
 const goodTopLabel = ": 'TOP ' + (index + 1)}</Label>";
@@ -47,5 +49,5 @@ if (source.includes(oldBonusAnchor)) {
   throw new Error('[prepare-combined-top] Expected BonusTierEditor patch anchor not found');
 }
 
-fs.writeFileSync(file, source, 'utf8');
+fs.writeFileSync(file, source.replace(/\n/g, lineEnding), 'utf8');
 console.log('✓ normalized combined TOP patch script');
