@@ -28,6 +28,11 @@ import { scrapePolicyTable, downloadPolicyExcel, downloadTableExcel, type Contra
 import { downloadVinhDanhExcel } from './vinh-danh-excel-export';
 import { useAppData } from '@/lib/app-data-context';
 import { AppLoader } from '@/components/app-loader';
+import {
+  createClbCommunicationImage,
+  createStoredZip,
+  downloadBlob,
+} from '@/lib/clb-sao-viet-image-export';
 
 // nmc-sao-viet-exclude-chot-v1
 // Chuẩn hóa dấu và hoa/thường để "Chốt", "CHỐT" hoặc "Chot" đều được xem như nhau.
@@ -5558,6 +5563,7 @@ export default function QuanLyPage() {
   const [saovietSettingsOpen, setSaovietSettingsOpen] = useState<boolean>(false);
   // CLB Sao Việt settings modal — quản lý poster cho 3 chương trình CLBSV (ngoài detail tables)
   const [clbsvSettingsOpen, setClbsvSettingsOpen] = useState<boolean>(false);
+  const [clbsvImageExporting, setClbsvImageExporting] = useState(false);
 
   // Summary tÃ¡ch poster Ä‘á»ƒ app khá»Ÿi Ä‘á»™ng nhanh. Táº£i nháº¹ tá»«ng poster ngay sau
   // khi danh sÃ¡ch card sáºµn sÃ ng, nÃªn card táº¡o tá»« Trang Thi Äua luÃ´n cÃ³ áº£nh.
@@ -11723,6 +11729,174 @@ export default function QuanLyPage() {
     return renderClbsvDetailShell('tn-ktm', uniqueNhomList, filteredMembers.length, totalFypLuyKe, 'SL TN đạt', 'Tổng FYP LK', tableJsx);
   };
 
+  const handleDownloadClbCommunicationImages = async () => {
+    if (!isAdmin || isEmbedded || clbsvImageExporting) return;
+
+    type ExportProgram = {
+      target: string;
+      program: 'ca-nhan' | 'tn-td' | 'tn-ktm';
+      tableType: 'contest' | 'club';
+      title: string;
+      subtitle: string;
+      fileName: string;
+      posterUrl: string;
+      accentColor: string;
+      splitIntoTwo?: boolean;
+    };
+
+    const programs: ExportProgram[] = [
+      {
+        target: 'toan-chang-ca-nhan',
+        program: 'ca-nhan',
+        tableType: 'contest',
+        title: 'Sao Việt toàn chặng cá nhân',
+        subtitle: 'Poster chương trình và bảng kết quả chi tiết',
+        fileName: '01_sao-viet-toan-chang-ca-nhan',
+        posterUrl: saovietPosters['ca-nhan'] || '',
+        accentColor: '#7C3AED',
+      },
+      {
+        target: 'toan-chang-tn-td',
+        program: 'tn-td',
+        tableType: 'contest',
+        title: 'Sao Việt toàn chặng – Trưởng nhóm TD',
+        subtitle: 'Poster chương trình và bảng kết quả chi tiết',
+        fileName: '02_sao-viet-toan-chang-truong-nhom-td',
+        posterUrl: saovietPosters['tn-td'] || '',
+        accentColor: '#059669',
+      },
+      {
+        target: 'toan-chang-tn-ktm',
+        program: 'tn-ktm',
+        tableType: 'contest',
+        title: 'Sao Việt toàn chặng – Trưởng nhóm KTM',
+        subtitle: 'Poster chương trình và bảng kết quả chi tiết',
+        fileName: '03_sao-viet-toan-chang-truong-nhom-ktm',
+        posterUrl: saovietPosters['tn-ktm'] || '',
+        accentColor: '#2563EB',
+      },
+      {
+        target: 'ca-nhan',
+        program: 'ca-nhan',
+        tableType: 'club',
+        title: 'Xét danh hiệu CLB Sao Việt cá nhân',
+        subtitle: `Chỉ tiêu ${clbsvThresholdMonthLabel} • Chia 2 phần để bảo đảm dễ đọc`,
+        fileName: '04_xet-danh-hieu-clb-sao-viet-ca-nhan',
+        posterUrl: clbsvPosters['ca-nhan'] || '',
+        accentColor: '#2563EB',
+        splitIntoTwo: true,
+      },
+      {
+        target: 'tn-td',
+        program: 'tn-td',
+        tableType: 'club',
+        title: 'Xét danh hiệu CLB – Trưởng nhóm TD',
+        subtitle: `Chỉ tiêu ${clbsvThresholdMonthLabel} • Poster và bảng chi tiết`,
+        fileName: '05_xet-danh-hieu-clb-truong-nhom-td',
+        posterUrl: clbsvPosters['tn-td'] || '',
+        accentColor: '#1D4ED8',
+      },
+      {
+        target: 'tn-ktm',
+        program: 'tn-ktm',
+        tableType: 'club',
+        title: 'Xét danh hiệu CLB – Trưởng nhóm KTM',
+        subtitle: `Chỉ tiêu ${clbsvThresholdMonthLabel} • Poster và bảng chi tiết`,
+        fileName: '06_xet-danh-hieu-clb-truong-nhom-ktm',
+        posterUrl: clbsvPosters['tn-ktm'] || '',
+        accentColor: '#1E3A8A',
+      },
+    ];
+
+    const originalState = {
+      clbsvOpen,
+      saovietNhomFilter,
+      saovietNameFilter,
+      clbsvNhomFilter,
+      clbsvNameFilter,
+    };
+
+    const waitForTable = async (spec: ExportProgram) => {
+      const selector = spec.tableType === 'contest'
+        ? `.saoviet-detail-table-wrapper[data-saoviet-table="${spec.program}"] table`
+        : `[data-clb-saoviet-table="${spec.program}"] .clbsv-detail-table-wrapper table`;
+      for (let attempt = 0; attempt < 90; attempt += 1) {
+        const table = document.querySelector<HTMLTableElement>(selector);
+        if (table) return table;
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 50));
+      }
+      throw new Error(`Không tìm thấy bảng chi tiết: ${spec.title}`);
+    };
+
+    setClbsvImageExporting(true);
+    setSaovietNhomFilter('');
+    setSaovietNameFilter('');
+    setClbsvNhomFilter('');
+    setClbsvNameFilter('');
+    toast({ title: 'Đang tạo bộ ảnh', description: 'Vui lòng giữ trang đang mở trong giây lát.' });
+
+    try {
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      const images: { name: string; blob: Blob }[] = [];
+      const rowsPerImage = 18;
+
+      for (const spec of programs) {
+        setClbsvOpen(spec.target);
+        const table = await waitForTable(spec);
+        const totalRows = table.querySelectorAll('tbody > tr').length;
+        const visibleRows = Math.min(totalRows, rowsPerImage * (spec.splitIntoTwo ? 2 : 1));
+        const ranges = spec.splitIntoTwo && visibleRows >= 2
+          ? [
+              [0, Math.ceil(visibleRows / 2)],
+              [Math.ceil(visibleRows / 2), visibleRows],
+            ]
+          : [[0, Math.max(1, Math.min(rowsPerImage, visibleRows))]];
+
+        for (let pageIndex = 0; pageIndex < ranges.length; pageIndex += 1) {
+          const [startRow, endRow] = ranges[pageIndex];
+          const blob = await createClbCommunicationImage({
+            table,
+            title: spec.title,
+            subtitle: spec.subtitle,
+            posterUrl: spec.posterUrl,
+            startRow,
+            endRow,
+            pageNumber: pageIndex + 1,
+            pageCount: ranges.length,
+            accentColor: spec.accentColor,
+          });
+          images.push({
+            name: ranges.length > 1
+              ? `${spec.fileName}_phan-${pageIndex + 1}.png`
+              : `${spec.fileName}.png`,
+            blob,
+          });
+        }
+      }
+
+      const archive = await createStoredZip(images);
+      downloadBlob(archive, `anh-truyen-thong-clb-sao-viet_${new Date().toISOString().slice(0, 10)}.zip`);
+      toast({
+        title: 'Đã tạo xong bộ ảnh',
+        description: `Đã tải ${images.length} ảnh PNG 16:9 trong một file ZIP.`,
+      });
+    } catch (error) {
+      console.error('[CLB Sao Viet image export]', error);
+      toast({
+        title: 'Không thể tạo bộ ảnh',
+        description: error instanceof Error ? error.message : String(error),
+        variant: 'destructive',
+      });
+    } finally {
+      setSaovietNhomFilter(originalState.saovietNhomFilter);
+      setSaovietNameFilter(originalState.saovietNameFilter);
+      setClbsvNhomFilter(originalState.clbsvNhomFilter);
+      setClbsvNameFilter(originalState.clbsvNameFilter);
+      setClbsvOpen(originalState.clbsvOpen);
+      setClbsvImageExporting(false);
+    }
+  };
+
   // ---------- CLB Sao Việt overview ----------
   // Ba chương trình Sao Việt toàn chặng luôn nằm đầu danh sách. Các chương trình
   // CLB theo tháng giữ nguyên thứ tự và công thức ở phần kế tiếp.
@@ -11736,8 +11910,21 @@ export default function QuanLyPage() {
           <span className="text-[10px] text-amber-200/80 italic hidden sm:inline">
             Chỉ tiêu tự động cập nhật theo tháng hiện tại
           </span>
-          {isAdmin && (
+          {isAdmin && !isEmbedded && (
             <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleDownloadClbCommunicationImages}
+                disabled={clbsvImageExporting}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold rounded-md text-slate-950 transition-all hover:brightness-105 active:scale-95 disabled:cursor-wait disabled:opacity-70"
+                style={{ backgroundColor: '#FDE68A', border: '1px solid #F59E0B', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
+                title="Tải 7 ảnh truyền thông 16:9 của 6 chương trình"
+              >
+                {clbsvImageExporting
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <ImageIcon className="w-3.5 h-3.5" />}
+                {clbsvImageExporting ? 'Đang tạo ảnh...' : 'Tải 7 ảnh'}
+              </button>
               <button
                 onClick={() => setSaovietSettingsOpen(true)}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold rounded-md text-white transition-all hover:brightness-110 active:scale-95"
