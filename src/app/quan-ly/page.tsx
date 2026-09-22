@@ -11215,6 +11215,15 @@ export default function QuanLyPage() {
       <div
         className="flex-1 min-h-0 overflow-auto border bg-white clbsv-detail-table-wrapper"
         style={{ borderColor: '#3B82F6' }}
+        onClick={(e) => {
+          const row = (e.target as HTMLElement).closest<HTMLTableRowElement>('tbody tr');
+          if (!row || row.cells.length < 2) return;
+          const wrapper = e.currentTarget;
+          wrapper.querySelectorAll('tr.clbsv-row-highlighted').forEach((item) => {
+            if (item !== row) item.classList.remove('clbsv-row-highlighted');
+          });
+          row.classList.toggle('clbsv-row-highlighted');
+        }}
       >
           <style dangerouslySetInnerHTML={{ __html: `
             .clbsv-detail-table-wrapper thead {

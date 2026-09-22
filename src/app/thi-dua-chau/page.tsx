@@ -533,7 +533,7 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
               <span className={`text-[10px] font-bold ${cls.label} ${cls.badge} px-1.5 py-0.5 rounded`}>{isTopN ? `Hạng ${index + 1}` : `Mức ${index + 1}`}</span>
               <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(tier.id)} className="ml-auto h-7 w-7 p-0 text-red-400 hover:text-red-300" aria-label={`Xóa ${isTopN ? `hạng ${index + 1}` : `mức ${index + 1}`}`}><Trash2 className="w-3.5 h-3.5" /></Button>
             </div>
-            <div className="mb-2 grid grid-cols-2 gap-1 sm:grid-cols-4" role="group" aria-label={`Loại thưởng ${isTopN ? `hạng ${index + 1}` : `mức ${index + 1}`}`}>
+            <div className="mb-2 grid grid-cols-4 gap-1 md:grid-cols-7" role="group" aria-label={`Loại thưởng ${isTopN ? `hạng ${index + 1}` : `mức ${index + 1}`}`}>
               {BONUS_TYPE_BUTTONS.map(([type, label, Icon, activeCls]) => (
                 <Button
                   key={type}
@@ -3213,19 +3213,32 @@ function ThiDuaPageInner() {
             cell.style.setProperty('padding-bottom', `${exportVerticalPadding}px`, 'important');
           });
           const headerCells = Array.from(tableClone.querySelectorAll<HTMLTableCellElement>('thead th'));
-          const groupColumnIndex = headerCells.findIndex(
-            cell => cell.textContent?.trim().toLocaleUpperCase('vi-VN') === 'NHÓM',
+          const normalizedHeaders = headerCells.map(cell => cell.textContent?.trim().toLocaleUpperCase('vi-VN') || '');
+          const noteColumnIndex = normalizedHeaders.findIndex(label => label.includes('GHI CHÚ'));
+          const emphasisColumns = new Set(
+            normalizedHeaders.flatMap((label, index) =>
+              /CHỈ TIÊU|TỶ LỆ|THƯỞNG|GHI CHÚ/u.test(label) ? [index] : [],
+            ),
           );
-          if (groupColumnIndex >= 0) {
-            tableClone.querySelectorAll<HTMLTableRowElement>('tbody tr').forEach((row) => {
-              const groupCell = row.cells.item(groupColumnIndex);
-              if (!groupCell) return;
-              groupCell.style.setProperty('color', '#111827', 'important');
-              groupCell.querySelectorAll<HTMLElement>('*').forEach((element) => {
-                element.style.setProperty('color', '#111827', 'important');
+          tableClone.querySelectorAll<HTMLTableRowElement>('tbody tr').forEach((row) => {
+            Array.from(row.cells).forEach((cell, index) => {
+              if (index === noteColumnIndex) {
+                const textNodes = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+                while (textNodes.nextNode()) {
+                  const node = textNodes.currentNode;
+                  node.textContent = node.textContent?.replace(/(?:Cần thêm|Còn thiếu)\s+(?=[\d.,])/giu, '') || '';
+                }
+              }
+              if (emphasisColumns.has(index)) return;
+              [cell, ...Array.from(cell.querySelectorAll<HTMLElement>('*'))].forEach((element) => {
+                element.style.setProperty('font-family', 'Outfit, Arial, sans-serif', 'important');
+                element.style.setProperty('font-size', `${exportBodyFontSize}px`, 'important');
+                element.style.setProperty('font-weight', '600', 'important');
+                element.style.setProperty('font-style', 'normal', 'important');
+                element.style.setProperty('color', '#1f2937', 'important');
               });
             });
-          }
+          });
           tableContainerClone.appendChild(tableClone);
           printClone.appendChild(tableContainerClone);
         });
