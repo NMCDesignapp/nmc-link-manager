@@ -93,3 +93,24 @@ body .policy-detail-table-wrapper[data-policy-table='quy-tn'] thead tr:nth-child
   font-weight: 900 !important;
 }
 
+/* Sao Việt: one quiet rule at the start of each rank, never two adjacent edges. */
+body :is(.saoviet-detail-table-wrapper, .clbsv-detail-table-wrapper) table :is(th, td)[data-nmc-rank-edge] {
+  border-right-width: 0 !important;
+  border-left-width: 0 !important;
+  box-shadow: none !important;
+}
+body :is(.saoviet-detail-table-wrapper, .clbsv-detail-table-wrapper) table :is(th, td)[data-nmc-rank-edge='left'],
+body :is(.saoviet-detail-table-wrapper, .clbsv-detail-table-wrapper) table :is(th, td)[data-nmc-rank-edge='both'] {
+  border-left: 1px solid rgba(35, 52, 66, .34) !important;
+}
+
+/* A selected detail row must remain visibly green even in achieved/rank cells. */
+body :is(.policy-detail-table-wrapper, .saoviet-detail-table-wrapper, .clbsv-detail-table-wrapper) table.nmc-kpi-v21-table tbody tr:is(.nmc-kpi-row-selected, .policy-row-highlighted, .sv-row-highlighted, .clbsv-row-highlighted) > td {
+  background: #c8f3d8 !important;
+  background-color: #c8f3d8 !important;
+  box-shadow: inset 0 1px 0 #8ed5a7, inset 0 -1px 0 #8ed5a7 !important;
+}
+body :is(.policy-detail-table-wrapper, .saoviet-detail-table-wrapper, .clbsv-detail-table-wrapper) table.nmc-kpi-v21-table tbody tr:is(.nmc-kpi-row-selected, .policy-row-highlighted, .sv-row-highlighted, .clbsv-row-highlighted) > td:first-child {
+  box-shadow: inset 3px 0 0 #22955b, inset 0 1px 0 #8ed5a7, inset 0 -1px 0 #8ed5a7 !important;
+}
+
