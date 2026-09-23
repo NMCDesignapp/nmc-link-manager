@@ -1,0 +1,11 @@
+<resources>
+    <style name="Theme.NCLink" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:colorAccent">#3B82F6</item>
+        <item name="android:navigationBarColor">#0B1119</item>
+        <item name="android:statusBarColor">#0B1119</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>
