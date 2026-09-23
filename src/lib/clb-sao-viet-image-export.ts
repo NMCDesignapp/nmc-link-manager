@@ -97,21 +97,30 @@ const centralHeader = (
   return bytes;
 };
 
-export async function createStoredZip(entries: ZipEntry[]) {
+export async function createStoredZip(
+  entries: ZipEntry[],
+  onProgress?: (completed: number, total: number) => void,
+) {
   const encoder = new TextEncoder();
-  const localParts: Uint8Array[] = [];
+  // Keep the original PNG blobs as Blob parts. Converting every image to a
+  // Uint8Array and retaining those arrays until the end roughly doubled the
+  // archive's memory footprint and could terminate a mobile browser tab.
+  const localParts: Blob[] = [];
   const centralParts: Uint8Array[] = [];
   const { time, date } = zipDateTime();
   let localOffset = 0;
 
-  for (const entry of entries) {
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index];
     const name = encoder.encode(entry.name);
     const data = new Uint8Array(await entry.blob.arrayBuffer());
     const checksum = crc32(data);
     const local = zipHeader(data.byteLength, name.byteLength, checksum, time, date);
-    localParts.push(local, name, data);
+    localParts.push(new Blob([local]), new Blob([name]), entry.blob);
     centralParts.push(centralHeader(data.byteLength, name.byteLength, checksum, localOffset, time, date), name);
     localOffset += local.byteLength + name.byteLength + data.byteLength;
+    onProgress?.(index + 1, entries.length);
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
   }
 
   const central = concatBytes(centralParts);
@@ -123,7 +132,10 @@ export async function createStoredZip(entries: ZipEntry[]) {
   endView.setUint32(12, central.byteLength, true);
   endView.setUint32(16, localOffset, true);
 
-  return new Blob([concatBytes([...localParts, central, end])], { type: 'application/zip' });
+  return new Blob(
+    [...localParts, new Blob([central]), new Blob([end])],
+    { type: 'application/zip' },
+  );
 }
 
 const waitForImage = (image: HTMLImageElement) => new Promise<void>((resolve) => {
@@ -268,7 +280,9 @@ export async function createClbCommunicationImage({
       pixelRatio: 1,
       quality: 1,
       backgroundColor: '#07140f',
-      cacheBust: true,
+      cacheBust: false,
+      skipAutoScale: true,
+      skipFonts: true,
     });
     if (!blob) throw new Error('Không thể tạo ảnh truyền thông');
     return blob;
@@ -282,6 +296,10 @@ export function downloadBlob(blob: Blob, fileName: string) {
   const link = document.createElement('a');
   link.href = url;
   link.download = fileName;
+  link.style.display = 'none';
+  document.body.appendChild(link);
   link.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+  link.remove();
+  // Mobile browsers can start reading a large blob noticeably after click().
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
