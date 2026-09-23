@@ -2647,7 +2647,7 @@ function ThiDuaPageInner() {
             g.leader?.agentName || '',
             tvvPassCount,
             effectiveTier ? formatBonusAmount(effectiveTier, 0, tvvPassCount) : '',
-            !effectiveTier && remaining !== null ? `Cần thêm ${remaining} TVV` : !effectiveTier ? 'Chưa đạt' : '',
+            !effectiveTier && remaining !== null ? `- ${remaining} TVV` : !effectiveTier ? 'Chưa đạt' : '',
           ];
           rows.push(row);
         });
@@ -3217,7 +3217,7 @@ function ThiDuaPageInner() {
           const noteColumnIndex = normalizedHeaders.findIndex(label => label.includes('GHI CHÚ'));
           const emphasisColumns = new Set(
             normalizedHeaders.flatMap((label, index) =>
-              /CHỈ TIÊU|TỶ LỆ|THƯỞNG|GHI CHÚ/u.test(label) ? [index] : [],
+              /CHỈ TIÊU|TỶ LỆ|THƯỞNG/u.test(label) ? [index] : [],
             ),
           );
           tableClone.querySelectorAll<HTMLTableRowElement>('tbody tr').forEach((row) => {
@@ -3226,14 +3226,14 @@ function ThiDuaPageInner() {
                 const textNodes = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
                 while (textNodes.nextNode()) {
                   const node = textNodes.currentNode;
-                  node.textContent = node.textContent?.replace(/(?:Cần thêm|Còn thiếu)\s+(?=[\d.,])/giu, '') || '';
+                  node.textContent = node.textContent?.replace(/(?:Cần thêm|Còn thiếu)\s+(?=[\d.,])/giu, '- ') || '';
                 }
               }
               if (emphasisColumns.has(index)) return;
               [cell, ...Array.from(cell.querySelectorAll<HTMLElement>('*'))].forEach((element) => {
                 element.style.setProperty('font-family', 'Outfit, Arial, sans-serif', 'important');
                 element.style.setProperty('font-size', `${exportBodyFontSize}px`, 'important');
-                element.style.setProperty('font-weight', '600', 'important');
+                element.style.setProperty('font-weight', '400', 'important');
                 element.style.setProperty('font-style', 'normal', 'important');
                 element.style.setProperty('color', '#1f2937', 'important');
               });
@@ -4347,7 +4347,7 @@ function ThiDuaPageInner() {
             )}
             {isTotalMode(conditionType) && targetType !== 'nhom' && (
               <div className="rounded-lg bg-gradient-to-r from-amber-900/40 to-orange-900/40 border border-amber-500/30 p-3">
-                <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-amber-400" /><div className="flex-1"><p className="text-xs font-bold text-amber-300">{conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}: {formatCurrency(totalValue)}</p></div>{matchedTotalTier ? <>{showRateColumn && <div className="text-right border-r border-emerald-500/20 pr-2"><p className="text-sm font-bold text-violet-400">{formatRate(matchedTotalTier)}</p></div>}<div className="text-right"><p className="text-base font-extrabold text-amber-400">{formatBonusAmount(matchedTotalTier, totalValue)}</p></div></> : <div className="text-right"><p className="text-sm font-bold text-orange-400">Chưa đạt mức thấp nhất</p></div>}{totalRemaining !== null && <div className="text-right border-l border-emerald-500/20 pl-2"><p className="text-[10px] text-orange-400/60">Cần thêm</p><p className="text-sm font-bold text-orange-400">{formatCurrency(totalRemaining)}</p></div>}</div>
+                <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-amber-400" /><div className="flex-1"><p className="text-xs font-bold text-amber-300">{conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}: {formatCurrency(totalValue)}</p></div>{matchedTotalTier ? <>{showRateColumn && <div className="text-right border-r border-emerald-500/20 pr-2"><p className="text-sm font-bold text-violet-400">{formatRate(matchedTotalTier)}</p></div>}<div className="text-right"><p className="text-base font-extrabold text-amber-400">{formatBonusAmount(matchedTotalTier, totalValue)}</p></div></> : <div className="text-right"><p className="text-sm font-bold text-orange-400">Chưa đạt mức thấp nhất</p></div>}{totalRemaining !== null && <div className="text-right border-l border-emerald-500/20 pl-2"><p className="text-sm font-bold text-orange-400">- {formatCurrency(totalRemaining)}</p></div>}</div>
               </div>
             )}
             {targetType === 'nyd' && nydData.length > 0 && (
@@ -4845,7 +4845,7 @@ function ThiDuaPageInner() {
                               <span className="text-gray-500 text-xs ml-1">TVV</span>
                             </TableCell>
                             <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : effectiveTier.bonusType === 'money_per_tvv' ? <UserCheck className="w-4 h-4 text-indigo-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, 0, tvvPassCount)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
-                            <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">Cần thêm {remaining} TVV</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
+                            <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">- {remaining} TVV</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
                           </TableRow>
                         );
                       }
@@ -4907,7 +4907,7 @@ function ThiDuaPageInner() {
                           ) : (
                             <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, group.totalFYP, group.activityRounds, group.totalFYP)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                           )}
-                          <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${isActivityRoundMode(conditionType) ? `${remaining} lượt` : formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
+                          <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : isActivityRoundMode(conditionType) ? `- ${String(Math.ceil(remaining)).padStart(2, '0')} lượt` : `- ${formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
                         </TableRow>
                       );
                     }) : isPerContractMode(conditionType) ? perContractDisplayContracts.map((c) => {
@@ -4966,7 +4966,7 @@ function ThiDuaPageInner() {
                           ) : (
                             <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, contract.pdt10DT, undefined, displayContracts.filter(row => row.agentCode === contract.agentCode).reduce((sum, row) => sum + row.pdt10DT, 0))}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                           )}
-                          <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
+                          <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `- ${formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
                         </TableRow>
                       );
                     }) : (() => {
@@ -5008,13 +5008,13 @@ function ThiDuaPageInner() {
                             noteLabel = <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Trophy className="w-4 h-4" />Hạng {qualifierRank + 1}{phongSuffix}</span>;
                           }
                         } else if (isTopNResult && !effectiveTier && remaining !== null) {
-                          noteLabel = <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(remaining)}`}</span>;
+                          noteLabel = <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `- ${formatNumber(remaining)}`}</span>;
                         } else if (isTopNResult && !effectiveTier) {
                           noteLabel = <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span>;
                         }
                         // Cột Ghi chú cho mode KHÔNG phải Top N (giữ nguyên logic cũ)
                         const nonTopNoteCell = !effectiveTier && remaining !== null
-                          ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(remaining)}`}</span>
+                          ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `- ${formatNumber(remaining)}`}</span>
                           : !effectiveTier
                             ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span>
                             : null;

@@ -493,7 +493,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               )}
               <TableCell className="whitespace-nowrap">
                 {!row.effectiveTier && row.remaining !== null ? (
-                  <span className="text-[10px] italic text-gray-400">{!row.secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(row.remaining)}`}</span>
+                  <span className="text-[10px] italic text-gray-400">{!row.secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : `- ${formatNumber(row.remaining)}`}</span>
                 ) : !row.effectiveTier ? (
                   <span className="text-[10px] italic text-gray-400">{!row.secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span>
                 ) : null}
@@ -574,14 +574,14 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                   noteLabel = <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Trophy className="w-4 h-4" />Hạng {qualifierRank + 1}</span>;
                 }
               } else if (row.remaining !== null) {
-                noteLabel = <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(row.remaining)}`}</span>;
+                noteLabel = <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : `- ${formatNumber(row.remaining)}`}</span>;
               } else {
                 noteLabel = <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span>;
               }
             } else {
               // Non-Top N: giữ nguyên logic cột Ghi chú
               noteLabel = !effectiveTier && row.remaining !== null
-                ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : `Cần thêm ${formatNumber(row.remaining)}`}</span>
+                ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : `- ${formatNumber(row.remaining)}`}</span>
                 : !effectiveTier
                   ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span>
                   : null;
@@ -888,7 +888,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                 {!row.effectiveTier && row.tier && !row.secondaryPassed ? (
                   <span className="text-[10px] italic text-gray-400">Chưa đạt ĐKB</span>
                 ) : !row.effectiveTier && row.remaining !== null ? (
-                  <span className="text-[10px] italic text-gray-400">{isActivity ? `Cần thêm ${row.remaining} lượt` : `Cần thêm ${formatNumber(row.remaining)}`}</span>
+                  <span className="text-[10px] italic text-gray-400">{isActivity ? `- ${String(Math.ceil(row.remaining)).padStart(2, '0')} lượt` : `- ${formatNumber(row.remaining)}`}</span>
                 ) : !row.effectiveTier ? (
                   <span className="text-[10px] italic text-gray-400">Chưa đạt</span>
                 ) : null}
