@@ -5564,6 +5564,11 @@ export default function QuanLyPage() {
   // CLB Sao Việt settings modal — quản lý poster cho 3 chương trình CLBSV (ngoài detail tables)
   const [clbsvSettingsOpen, setClbsvSettingsOpen] = useState<boolean>(false);
   const [clbsvImageExporting, setClbsvImageExporting] = useState(false);
+  const [clbsvImageExportProgress, setClbsvImageExportProgress] = useState({
+    completed: 0,
+    total: 7,
+    label: '',
+  });
 
   // Summary tÃ¡ch poster Ä‘á»ƒ app khá»Ÿi Ä‘á»™ng nhanh. Táº£i nháº¹ tá»«ng poster ngay sau
   // khi danh sÃ¡ch card sáºµn sÃ ng, nÃªn card táº¡o tá»« Trang Thi Äua luÃ´n cÃ³ áº£nh.
@@ -11842,6 +11847,7 @@ export default function QuanLyPage() {
     setSaovietNameFilter('');
     setClbsvNhomFilter('');
     setClbsvNameFilter('');
+    setClbsvImageExportProgress({ completed: 0, total: 7, label: 'Đang chuẩn bị dữ liệu...' });
     toast({ title: 'Đang tạo bộ ảnh', description: 'Vui lòng giữ trang đang mở trong giây lát.' });
 
     try {
@@ -11850,11 +11856,12 @@ export default function QuanLyPage() {
       const rowsPerImage = 18;
 
       for (const spec of programs) {
+        setClbsvImageExportProgress((current) => ({ ...current, label: `Đang tạo: ${spec.title}` }));
         setClbsvOpen(spec.target);
         const table = await waitForTable(spec);
         const totalRows = table.querySelectorAll('tbody > tr').length;
         const visibleRows = Math.min(totalRows, rowsPerImage * (spec.splitIntoTwo ? 2 : 1));
-        const ranges = spec.splitIntoTwo && visibleRows >= 2
+        const ranges = spec.splitIntoTwo
           ? [
               [0, Math.ceil(visibleRows / 2)],
               [Math.ceil(visibleRows / 2), visibleRows],
@@ -11880,10 +11887,25 @@ export default function QuanLyPage() {
               : `${spec.fileName}.png`,
             blob,
           });
+          setClbsvImageExportProgress({
+            completed: images.length,
+            total: 7,
+            label: `Đã tạo ${images.length}/7 ảnh`,
+          });
+          // Give the browser a paint/GC opportunity before allocating the next
+          // 1920×1080 canvas, especially important on Android/iOS.
+          await new Promise<void>((resolve) => window.setTimeout(resolve, 80));
         }
       }
 
-      const archive = await createStoredZip(images);
+      setClbsvImageExportProgress({ completed: 7, total: 7, label: 'Đang đóng gói file ZIP...' });
+      const archive = await createStoredZip(images, (completed, total) => {
+        setClbsvImageExportProgress({
+          completed: 7,
+          total: 7,
+          label: `Đang đóng gói ${completed}/${total} ảnh...`,
+        });
+      });
       downloadBlob(archive, `anh-truyen-thong-clb-sao-viet_${new Date().toISOString().slice(0, 10)}.zip`);
       toast({
         title: 'Đã tạo xong bộ ảnh',
@@ -11903,6 +11925,7 @@ export default function QuanLyPage() {
       setClbsvNameFilter(originalState.clbsvNameFilter);
       setClbsvOpen(originalState.clbsvOpen);
       setClbsvImageExporting(false);
+      setClbsvImageExportProgress({ completed: 0, total: 7, label: '' });
     }
   };
 
@@ -12389,6 +12412,35 @@ export default function QuanLyPage() {
 
   return (
     <div className="nmc-management-skin h-screen flex flex-col fixed inset-0 z-50" style={{ backgroundColor: 'transparent' }}>
+      {clbsvImageExporting && (
+        <div
+          className="fixed inset-0 z-[2000] grid place-items-center bg-slate-950/92 px-5 backdrop-blur-sm"
+          role="status"
+          aria-live="polite"
+          aria-label="Đang tạo bộ ảnh CLB Sao Việt"
+        >
+          <div className="w-full max-w-sm rounded-2xl border border-amber-300/40 bg-slate-900 p-6 text-center shadow-2xl">
+            <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-amber-300/10 text-amber-300">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+            <div className="text-lg font-black text-white">ĐANG TẠO BỘ ẢNH</div>
+            <div className="mt-2 min-h-10 text-sm font-semibold leading-5 text-slate-300">
+              {clbsvImageExportProgress.label}
+            </div>
+            <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-700">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-amber-400 to-emerald-400 transition-[width] duration-300"
+                style={{
+                  width: `${Math.round((clbsvImageExportProgress.completed / Math.max(1, clbsvImageExportProgress.total)) * 100)}%`,
+                }}
+              />
+            </div>
+            <div className="mt-3 text-xs font-bold text-amber-200">
+              Vui lòng giữ trang này mở đến khi file ZIP được tải xuống
+            </div>
+          </div>
+        </div>
+      )}
       {/* Sync success indicator - top right corner */}
       {syncSuccessVisible && (
         <div className="fixed top-2 right-2 z-[999] flex items-center gap-1.5 bg-emerald-500/90 text-white px-3 py-1.5 rounded-lg shadow-lg animate-in fade-in slide-in-from-top-2 duration-300" style={{ backdropFilter: 'blur(8px)' }}>
