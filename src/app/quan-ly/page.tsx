@@ -8129,7 +8129,7 @@ export default function QuanLyPage() {
                         {isCascadeAchieved ? (
                           <span className="font-bold italic text-[10px]">ĐẠT</span>
                         ) : (
-                          <span className="text-[11px] font-bold" style={{ color: '#C2723B' }}>{deficit > 0 ? `−${Math.round(deficit / 1_000_000)}` : (tier.needsTVVm && row.tvvmHDC < 1 ? 'thiếu TVVm' : '—')}</span>
+                          <span className="text-[11px] font-bold" style={{ color: '#C2723B' }}>{deficit > 0 ? `- ${Math.round(deficit / 1_000_000)} tr` : (tier.needsTVVm && row.tvvmHDC < 1 ? '- 01 TVVm' : '—')}</span>
                         )}
                       </td>
                     );
@@ -10218,13 +10218,13 @@ export default function QuanLyPage() {
 
   // ---------- Render helper: rank cell (sections 1 & 2) ----------
   // Nếu FYP đạt chỉ tiêu → hiển thị ✓ + số vé (xanh, đậm)
-  // Nếu chưa đạt → hiển thị số tiền CÒN THIẾU để đạt hạng này (ví dụ "-30 tr" hoặc "-1.2 tỷ")
+  // Nếu chưa đạt → hiển thị số tiền còn thiếu ở dạng âm (ví dụ "- 30 tr" hoặc "- 1.2 tỷ")
   // Nguyên tắc giống mốc tỷ lệ thưởng Quý TN: luôn hiển thị tiến độ, không để "—" trống
   const formatDeficit = (deficit: number): string => {
-    // deficit ở đơn vị VND, trả về chuỗi gọn: "-30 tr" hoặc "-1.2 tỷ"
+    // deficit ở đơn vị VND, trả về chuỗi gọn: "- 30 tr" hoặc "- 1.2 tỷ"
     const trieu = deficit / 1_000_000;
-    if (trieu >= 1000) return `-${(trieu / 1000).toFixed(1)} tỷ`;
-    return `-${Math.round(trieu)} tr`;
+    if (trieu >= 1000) return `- ${(trieu / 1000).toFixed(1)} tỷ`;
+    return `- ${Math.round(trieu)} tr`;
   };
   const renderSaoVietRankCell = (fyp: number, threshold: { min: number; vouchers: number; bg: string; fg: string; bodyBg: string }) => {
     const achieved = fyp >= threshold.min;
@@ -11050,7 +11050,7 @@ export default function QuanLyPage() {
   //   • CÁ NHÂN: FYP Tháng = tổng IP tháng HIỆN TẠI từ contracts (auto-switch month).
   //              FYP Lũy Kế = lookup từ saovietManualData['ca-nhan'] theo agentCode (cùng nguồn SV TOÀN CHẶNG).
   //              Điều kiện cần: FYP Tháng >= 12 triệu mới được xét hạng.
-  //                - Nếu FYP Tháng < 12tr và FYP Lũy Kế >= threshold → "thiếu IP tháng" in nghiêng, chữ đỏ.
+  //                - Nếu FYP Tháng < 12tr và FYP Lũy Kế >= threshold → hiện phần IP tháng còn thiếu ở dạng âm.
   //                - Nếu FYP Tháng < 12tr và FYP Lũy Kế < threshold → vẫn hiện deficit (chưa đạt hạng).
   //   • TN TUYỂN DỤNG: FYP TVVm + SL TVVm HĐC = lookup từ saovietManualData['tn-td'] theo agentCode.
   //   • TN KTM: FYP Lũy Kế = lookup từ saovietManualData['tn-ktm'] theo agentCode.
@@ -11448,13 +11448,13 @@ export default function QuanLyPage() {
                   const thresholdVal = rk.values[clbsvCurrentMonthIdx] * 1_000_000; // trđ → VND
                   const wouldAchieve = fypLuyKe >= thresholdVal;
                   // Điều kiện cần: FYP Tháng >= 12tr mới được xét hạng
-                  // - Nếu chưa đủ 12tr → "thiếu IP tháng" (in nghiêng, chữ đỏ)
+                  // - Nếu chưa đủ 12tr → hiển thị số IP tháng còn thiếu ở dạng âm
                   // - Nếu đủ 12tr + đạt threshold → ✓
                   // - Nếu đủ 12tr + chưa đạt → deficit
                   if (!eligible) {
                     return (
                       <TableCell key={rk.label} className="text-[10px] text-center italic align-middle" style={{ backgroundColor: rk.bodyBg, color: '#DC2626', fontWeight: 600 }}>
-                        thiếu IP tháng
+                        {formatDeficit(Math.max(0, CLBSV_FYP_THANG_MIN - fypThang))}
                       </TableCell>
                     );
                   }
@@ -12062,7 +12062,7 @@ export default function QuanLyPage() {
   // ---------- TIẾN ĐỘ GIA NHẬP CLB ----------
   // Bảng: STT - NHÓM - MÃ SỐ - HỌ TÊN - IP T-2 - IP T-1 - IP T - TỔNG IP - KẾT QUẢ XÉT
   // Đối tượng: tất cả TVV từ DS TVV (Cấu trúc), TRỪ TVV đã có trong DS Thành viên CLB
-  // KẾT QUẢ XÉT: Tổng IP >= 60tr → "Gia nhập", < 60tr → "Còn thiếu X IP"
+  // KẾT QUẢ XÉT: Tổng IP >= 60tr → "Gia nhập", < 60tr → số IP còn thiếu ở dạng âm
   const renderCLBSVTienDoGiaNhap = () => {
     const now = new Date();
     const curMonth = now.getMonth() + 1; // T
@@ -12143,7 +12143,7 @@ export default function QuanLyPage() {
               <TableCell className="text-[10px] whitespace-nowrap">
                 {r.datGiaNhap
                   ? <span className="text-emerald-600 font-bold">✓ Gia nhập</span>
-                  : <span className="text-red-500 font-medium">Còn thiếu {formatNumber(THRESHOLD - r.totalIP)} IP</span>
+                  : <span className="text-red-500 font-medium">- {formatNumber(THRESHOLD - r.totalIP)} IP</span>
                 }
               </TableCell>
             </TableRow>
