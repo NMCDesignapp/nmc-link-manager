@@ -3658,15 +3658,16 @@ function ThiDuaPageInner() {
     return nydData.map(n => {
       const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
       const { tier, tierIndex } = calculateBonus(value);
+      const remaining = getRemainingToNextTier(value);
       const entityContracts = n.contracts.filter(c =>
         (c.maDaiLyTD === n.nydCode && c.agentCode !== n.nydCode) ||
         (includeIndividualNTD && c.agentCode === n.nydCode)
       );
       const secondaryCheck = checkSecondaryTotalCondition(entityContracts);
       const effectiveTier = secondaryCheck.passed ? tier : null;
-      return { nyd: n, tier, tierIndex, value, secondaryCheck, effectiveTier };
+      return { nyd: n, tier, tierIndex, remaining, value, secondaryCheck, effectiveTier };
     }).sort((a, b) => b.value - a.value);
-  }, [nydData, conditionType, includeIndividualNTD, calculateBonus, checkSecondaryTotalCondition]);
+  }, [nydData, conditionType, includeIndividualNTD, calculateBonus, getRemainingToNextTier, checkSecondaryTotalCondition]);
 
   const renderSavedContestMenuRow = (contest: SavedContest, showStartDate = false) => (
     <div key={contest.id} className="group flex items-center gap-1 rounded-md">
@@ -4730,7 +4731,7 @@ function ThiDuaPageInner() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {targetType === 'nyd' ? nydResultRows.map(({ nyd, tier, effectiveTier, secondaryCheck, value }, idx) => {
+                    {targetType === 'nyd' ? nydResultRows.map(({ nyd, tier, remaining, effectiveTier, secondaryCheck, value }, idx) => {
                       if (hideNotAchieved && !effectiveTier) return null;
                       if (!nyd.nhom) return null;
                       const phaseBonus = usePhase2 && phase2StartDate ? (() => {
@@ -4755,6 +4756,27 @@ function ThiDuaPageInner() {
                           phase2Bonus: secondaryCheck.passed ? phase2.bonus : 0,
                         };
                       })() : null;
+                      const secondaryRoundDeficit = Math.max(
+                        0,
+                        secondaryLuotHDCMin - secondaryCheck.luotHDC,
+                        secondaryLuotHDMin - secondaryCheck.luotHD,
+                      );
+                      const secondaryValueDeficit = Math.max(
+                        0,
+                        secondaryTotalAFYPMin - secondaryCheck.totalAFYP,
+                        secondaryTotalIPMin - secondaryCheck.totalIP,
+                      );
+                      const nydDeficitNote = tier && !secondaryCheck.passed
+                        ? secondaryRoundDeficit > 0
+                          ? `- ${String(Math.ceil(secondaryRoundDeficit)).padStart(2, '0')} lượt`
+                          : secondaryValueDeficit > 0
+                            ? `- ${formatNumber(secondaryValueDeficit)}`
+                            : 'Chưa đạt ĐKB'
+                        : remaining !== null
+                          ? isActivityRoundMode(conditionType)
+                            ? `- ${String(Math.ceil(remaining)).padStart(2, '0')} lượt`
+                            : `- ${formatNumber(remaining)}`
+                          : 'Chưa đạt';
                       return (
                         <TableRow key={nyd.nydCode} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
                           <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
@@ -4802,7 +4824,7 @@ function ThiDuaPageInner() {
                           ) : (
                             <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, nyd.contracts.filter(contract => (contract.maDaiLyTD === nyd.nydCode && contract.agentCode !== nyd.nydCode) || (includeIndividualNTD && contract.agentCode === nyd.nydCode)).reduce((sum, contract) => sum + contract.pdt10DT, 0), isActivityRoundMode(conditionType) ? value : nyd.recruitCount)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                           )}
-                          <TableCell className="whitespace-nowrap">{!effectiveTier ? <span className="text-[10px] italic text-gray-400">{tier && !secondaryCheck.passed ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
+                          <TableCell className="whitespace-nowrap">{!effectiveTier ? <span className="text-[10px] italic text-gray-400">{nydDeficitNote}</span> : null}</TableCell>
                         </TableRow>
                       );
                     }) : targetType === 'nhom' ? [...groupedData].map((g) => {

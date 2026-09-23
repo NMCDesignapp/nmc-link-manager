@@ -785,6 +785,20 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   const renderNYDTable = () => {
     const isActivity = isActivityRoundMode(config.conditionType);
     const includeIndividualNTD = config.includeIndividualNTD ?? false;
+    const getSecondaryDeficitNote = (row: (typeof nydResultRows)[number]): string => {
+      const roundDeficit = Math.max(
+        0,
+        (config.secondaryLuotHDCMin ?? 0) - row.secondaryCheck.luotHDC,
+        (config.secondaryLuotHDMin ?? 0) - row.secondaryCheck.luotHD,
+      );
+      if (roundDeficit > 0) return `- ${String(Math.ceil(roundDeficit)).padStart(2, '0')} lượt`;
+      const valueDeficit = Math.max(
+        0,
+        (config.secondaryTotalAFYPMin ?? 0) - row.secondaryCheck.totalAFYP,
+        (config.secondaryTotalIPMin ?? 0) - row.secondaryCheck.totalIP,
+      );
+      return valueDeficit > 0 ? `- ${formatNumber(valueDeficit)}` : 'Chưa đạt ĐKB';
+    };
     const filteredRows = nydResultRows.filter((row) => {
       if (hideNotAchieved && !row.effectiveTier) return false;
       if (!row.nyd.nhom) return false;
@@ -886,7 +900,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               )}
               <TableCell className="text-left px-3 whitespace-nowrap">
                 {!row.effectiveTier && row.tier && !row.secondaryPassed ? (
-                  <span className="text-[10px] italic text-gray-400">Chưa đạt ĐKB</span>
+                  <span className="text-[10px] italic text-gray-400">{getSecondaryDeficitNote(row)}</span>
                 ) : !row.effectiveTier && row.remaining !== null ? (
                   <span className="text-[10px] italic text-gray-400">{isActivity ? `- ${String(Math.ceil(row.remaining)).padStart(2, '0')} lượt` : `- ${formatNumber(row.remaining)}`}</span>
                 ) : !row.effectiveTier ? (
