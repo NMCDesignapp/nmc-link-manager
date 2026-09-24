@@ -19,6 +19,8 @@ type ZipEntry = {
 
 const IMAGE_WIDTH = 1920;
 const IMAGE_HEIGHT = 1080;
+const POSTER_LOAD_TIMEOUT_MS = 8_000;
+const IMAGE_RENDER_TIMEOUT_MS = 45_000;
 
 const crcTable = (() => {
   const table = new Uint32Array(256);
@@ -32,9 +34,18 @@ const crcTable = (() => {
   return table;
 })();
 
-const crc32 = (bytes: Uint8Array) => {
+const crc32Blob = async (blob: Blob) => {
   let value = 0xffffffff;
-  for (const byte of bytes) value = crcTable[(value ^ byte) & 0xff] ^ (value >>> 8);
+  const reader = blob.stream().getReader();
+  try {
+    while (true) {
+      const { done, value: chunk } = await reader.read();
+      if (done) break;
+      for (const byte of chunk) value = crcTable[(value ^ byte) & 0xff] ^ (value >>> 8);
+    }
+  } finally {
+    reader.releaseLock();
+  }
   return (value ^ 0xffffffff) >>> 0;
 };
 
@@ -113,12 +124,12 @@ export async function createStoredZip(
   for (let index = 0; index < entries.length; index += 1) {
     const entry = entries[index];
     const name = encoder.encode(entry.name);
-    const data = new Uint8Array(await entry.blob.arrayBuffer());
-    const checksum = crc32(data);
-    const local = zipHeader(data.byteLength, name.byteLength, checksum, time, date);
+    const size = entry.blob.size;
+    const checksum = await crc32Blob(entry.blob);
+    const local = zipHeader(size, name.byteLength, checksum, time, date);
     localParts.push(new Blob([local]), new Blob([name]), entry.blob);
-    centralParts.push(centralHeader(data.byteLength, name.byteLength, checksum, localOffset, time, date), name);
-    localOffset += local.byteLength + name.byteLength + data.byteLength;
+    centralParts.push(centralHeader(size, name.byteLength, checksum, localOffset, time, date), name);
+    localOffset += local.byteLength + name.byteLength + size;
     onProgress?.(index + 1, entries.length);
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
   }
@@ -139,13 +150,35 @@ export async function createStoredZip(
 }
 
 const waitForImage = (image: HTMLImageElement) => new Promise<void>((resolve) => {
-  if (image.complete) {
+  let settled = false;
+  const finish = () => {
+    if (settled) return;
+    settled = true;
+    window.clearTimeout(timeoutId);
+    image.removeEventListener('load', finish);
+    image.removeEventListener('error', finish);
     resolve();
+  };
+  const timeoutId = window.setTimeout(finish, POSTER_LOAD_TIMEOUT_MS);
+  if (image.complete) {
+    finish();
     return;
   }
-  image.onload = () => resolve();
-  image.onerror = () => resolve();
+  image.addEventListener('load', finish, { once: true });
+  image.addEventListener('error', finish, { once: true });
 });
+
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: string) => {
+  let timeoutId = 0;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+};
 
 export async function createClbCommunicationImage({
   table,
@@ -274,16 +307,20 @@ export async function createClbCommunicationImage({
   try {
     if (posterImage) await waitForImage(posterImage);
     if (document.fonts?.ready) await document.fonts.ready;
-    const blob = await toBlob(root, {
-      width: IMAGE_WIDTH,
-      height: IMAGE_HEIGHT,
-      pixelRatio: 1,
-      quality: 1,
-      backgroundColor: '#07140f',
-      cacheBust: false,
-      skipAutoScale: true,
-      skipFonts: true,
-    });
+    const blob = await withTimeout(
+      toBlob(root, {
+        width: IMAGE_WIDTH,
+        height: IMAGE_HEIGHT,
+        pixelRatio: 1,
+        quality: 1,
+        backgroundColor: '#07140f',
+        cacheBust: false,
+        skipAutoScale: true,
+        skipFonts: true,
+      }),
+      IMAGE_RENDER_TIMEOUT_MS,
+      'Tạo ảnh quá thời gian cho phép. Vui lòng thử lại sau khi tải lại trang.',
+    );
     if (!blob) throw new Error('Không thể tạo ảnh truyền thông');
     return blob;
   } finally {
