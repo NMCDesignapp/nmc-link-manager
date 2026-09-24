@@ -264,10 +264,23 @@ export async function createClbCommunicationImage({
 
   const tableFrame = document.createElement('div');
   tableFrame.style.cssText = 'flex:1;min-height:0;margin-top:20px;overflow:hidden;border:2px solid #94a3b8;background:#fff;box-shadow:0 12px 30px rgba(15,23,42,.15)';
-  const tableClone = table.cloneNode(true) as HTMLTableElement;
-  const rows = Array.from(tableClone.querySelectorAll('tbody > tr'));
-  rows.forEach((row, index) => {
-    if (index < startRow || index >= endRow) row.remove();
+  // Some CLB tables contain hundreds of rows. Deep-cloning the complete table
+  // before deleting all but 18 rows briefly duplicates the full DOM twice
+  // (once here and once inside html-to-image), which can terminate a mobile
+  // browser tab. Build a small export-only table from the requested rows.
+  const sourceRows = Array.from(table.querySelectorAll<HTMLTableRowElement>('tbody > tr'));
+  const tableClone = table.cloneNode(false) as HTMLTableElement;
+  Array.from(table.children).forEach((section) => {
+    if (section.tagName !== 'TBODY') {
+      tableClone.appendChild(section.cloneNode(true));
+      return;
+    }
+
+    const bodyClone = section.cloneNode(false) as HTMLTableSectionElement;
+    Array.from(section.children)
+      .slice(startRow, endRow)
+      .forEach((row) => bodyClone.appendChild(row.cloneNode(true)));
+    tableClone.appendChild(bodyClone);
   });
   tableClone.style.cssText = 'width:100%;height:auto;border-collapse:collapse;table-layout:fixed;font-size:17px;background:#fff';
   tableClone.querySelectorAll<HTMLElement>('th,td').forEach((cell) => {
@@ -294,10 +307,10 @@ export async function createClbCommunicationImage({
   tableFrame.appendChild(tableClone);
 
   const footer = document.createElement('div');
-  const shownStart = Math.min(startRow + 1, rows.length);
-  const shownEnd = Math.min(endRow, rows.length);
-  footer.textContent = rows.length > 0
-    ? `Hiển thị dòng ${shownStart}–${shownEnd} / ${rows.length} • Xuất ngày ${new Date().toLocaleDateString('vi-VN')}`
+  const shownStart = Math.min(startRow + 1, sourceRows.length);
+  const shownEnd = Math.min(endRow, sourceRows.length);
+  footer.textContent = sourceRows.length > 0
+    ? `Hiển thị dòng ${shownStart}–${shownEnd} / ${sourceRows.length} • Xuất ngày ${new Date().toLocaleDateString('vi-VN')}`
     : `Chưa có dữ liệu • Xuất ngày ${new Date().toLocaleDateString('vi-VN')}`;
   footer.style.cssText = 'padding:16px 4px 0;text-align:right;font-size:16px;font-weight:700;color:#64748b';
   right.append(tableTitle, tableFrame, footer);
