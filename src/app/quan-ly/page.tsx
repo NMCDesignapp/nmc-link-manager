@@ -11771,40 +11771,40 @@ export default function QuanLyPage() {
         program: 'ca-nhan',
         tableType: 'contest',
         title: 'Sao Việt toàn chặng cá nhân',
-        subtitle: 'Poster chương trình và bảng kết quả chi tiết',
+        subtitle: 'Đối tượng thi đua: Tư vấn viên',
         fileName: '01_sao-viet-toan-chang-ca-nhan',
         posterUrl: saovietPosters['ca-nhan'] || '',
-        accentColor: '#7C3AED',
+        accentColor: '#065F46',
       },
       {
         target: 'toan-chang-tn-td',
         program: 'tn-td',
         tableType: 'contest',
         title: 'Sao Việt toàn chặng – Trưởng nhóm TD',
-        subtitle: 'Poster chương trình và bảng kết quả chi tiết',
+        subtitle: 'Đối tượng thi đua: Trưởng nhóm tuyển dụng',
         fileName: '02_sao-viet-toan-chang-truong-nhom-td',
         posterUrl: saovietPosters['tn-td'] || '',
-        accentColor: '#059669',
+        accentColor: '#065F46',
       },
       {
         target: 'toan-chang-tn-ktm',
         program: 'tn-ktm',
         tableType: 'contest',
         title: 'Sao Việt toàn chặng – Trưởng nhóm KTM',
-        subtitle: 'Poster chương trình và bảng kết quả chi tiết',
+        subtitle: 'Đối tượng thi đua: Trưởng nhóm kinh doanh',
         fileName: '03_sao-viet-toan-chang-truong-nhom-ktm',
         posterUrl: saovietPosters['tn-ktm'] || '',
-        accentColor: '#2563EB',
+        accentColor: '#065F46',
       },
       {
         target: 'ca-nhan',
         program: 'ca-nhan',
         tableType: 'club',
         title: 'Xét danh hiệu CLB Sao Việt cá nhân',
-        subtitle: `Chỉ tiêu ${clbsvThresholdMonthLabel} • Chia 2 phần để bảo đảm dễ đọc`,
+        subtitle: 'Đối tượng thi đua: Tư vấn viên',
         fileName: '04_xet-danh-hieu-clb-sao-viet-ca-nhan',
         posterUrl: clbsvPosters['ca-nhan'] || '',
-        accentColor: '#2563EB',
+        accentColor: '#1E3A8A',
         splitIntoTwo: true,
       },
       {
@@ -11812,17 +11812,17 @@ export default function QuanLyPage() {
         program: 'tn-td',
         tableType: 'club',
         title: 'Xét danh hiệu CLB – Trưởng nhóm TD',
-        subtitle: `Chỉ tiêu ${clbsvThresholdMonthLabel} • Poster và bảng chi tiết`,
+        subtitle: 'Đối tượng thi đua: Trưởng nhóm tuyển dụng',
         fileName: '05_xet-danh-hieu-clb-truong-nhom-td',
         posterUrl: clbsvPosters['tn-td'] || '',
-        accentColor: '#1D4ED8',
+        accentColor: '#1E3A8A',
       },
       {
         target: 'tn-ktm',
         program: 'tn-ktm',
         tableType: 'club',
         title: 'Xét danh hiệu CLB – Trưởng nhóm KTM',
-        subtitle: `Chỉ tiêu ${clbsvThresholdMonthLabel} • Poster và bảng chi tiết`,
+        subtitle: 'Đối tượng thi đua: Trưởng nhóm kinh doanh',
         fileName: '06_xet-danh-hieu-clb-truong-nhom-ktm',
         posterUrl: clbsvPosters['tn-ktm'] || '',
         accentColor: '#1E3A8A',
@@ -11863,7 +11863,7 @@ export default function QuanLyPage() {
       // blocks the main thread on slower mobile devices.
       await waitForBrowserPaint();
       const images: { name: string; blob: Blob }[] = [];
-      const rowsPerImage = 18;
+      const rowsPerImage = 20;
       let activeExportView: string | null = null;
 
       for (const spec of programs) {
@@ -11881,14 +11881,12 @@ export default function QuanLyPage() {
         activeExportView = spec.target;
         const table = await waitForTable(spec);
         await waitForBrowserPaint();
-        const totalRows = table.querySelectorAll('tbody > tr').length;
-        const visibleRows = Math.min(totalRows, rowsPerImage * (spec.splitIntoTwo ? 2 : 1));
         const ranges = spec.splitIntoTwo
           ? [
-              [0, Math.ceil(visibleRows / 2)],
-              [Math.ceil(visibleRows / 2), visibleRows],
+              [0, rowsPerImage],
+              [rowsPerImage, rowsPerImage * 2],
             ]
-          : [[0, Math.max(1, Math.min(rowsPerImage, visibleRows))]];
+          : [[0, rowsPerImage]];
 
         for (let pageIndex = 0; pageIndex < ranges.length; pageIndex += 1) {
           const [startRow, endRow] = ranges[pageIndex];

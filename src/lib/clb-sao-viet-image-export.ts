@@ -19,6 +19,9 @@ type ZipEntry = {
 
 const IMAGE_WIDTH = 1920;
 const IMAGE_HEIGHT = 1080;
+const EXPORT_ROW_COUNT = 20;
+const EXPORT_ROW_HEIGHT = 38;
+const CONDENSED_FONT = "'Arial Narrow','Roboto Condensed','Liberation Sans Narrow','DejaVu Sans Condensed',Arial,sans-serif";
 const POSTER_LOAD_TIMEOUT_MS = 8_000;
 const IMAGE_RENDER_TIMEOUT_MS = 45_000;
 
@@ -208,9 +211,9 @@ export async function createClbCommunicationImage({
     `width:${IMAGE_WIDTH}px`,
     `height:${IMAGE_HEIGHT}px`,
     'display:grid',
-    'grid-template-columns:1fr 2fr',
+    'grid-template-columns:1fr 3fr',
     'overflow:hidden',
-    'font-family:Arial,Helvetica,sans-serif',
+    `font-family:${CONDENSED_FONT}`,
     'background:#07140f',
     'color:#fff',
   ].join(';');
@@ -220,9 +223,9 @@ export async function createClbCommunicationImage({
     'position:relative',
     'display:flex',
     'flex-direction:column',
-    'padding:54px 44px 46px',
+    'padding:54px 36px 0',
     'overflow:hidden',
-    `background:linear-gradient(155deg,${accentColor} 0%,#0f2f27 52%,#07140f 100%)`,
+    `background:${accentColor}`,
     'border-right:6px solid rgba(255,215,0,.8)',
   ].join(';');
 
@@ -239,14 +242,14 @@ export async function createClbCommunicationImage({
   subheading.style.cssText = 'margin-top:18px;font-size:22px;line-height:1.35;font-weight:700;color:#d1fae5';
 
   const posterFrame = document.createElement('div');
-  posterFrame.style.cssText = 'position:relative;flex:1;min-height:0;margin-top:34px;display:flex;align-items:center;justify-content:center;padding:18px;border:2px solid rgba(253,230,138,.72);background:rgba(2,18,13,.48);box-shadow:0 18px 44px rgba(0,0,0,.35);overflow:hidden';
+  posterFrame.style.cssText = 'position:relative;flex:1;min-height:0;margin:26px -36px 0;display:flex;align-items:center;justify-content:center;padding:0;background:rgba(2,18,13,.35);overflow:hidden';
   let posterImage: HTMLImageElement | null = null;
   if (posterUrl) {
     posterImage = document.createElement('img');
     posterImage.crossOrigin = 'anonymous';
     posterImage.src = posterUrl;
     posterImage.alt = title;
-    posterImage.style.cssText = 'display:block;width:100%;height:100%;object-fit:contain;object-position:center';
+    posterImage.style.cssText = 'display:block;width:100%;height:auto;max-height:100%;object-fit:contain;object-position:center';
     posterFrame.appendChild(posterImage);
   } else {
     const placeholder = document.createElement('div');
@@ -269,9 +272,9 @@ export async function createClbCommunicationImage({
   tableTitle.append(tableTitleText, page);
 
   const tableFrame = document.createElement('div');
-  tableFrame.style.cssText = 'flex:1;min-height:0;margin-top:20px;overflow:hidden;border:2px solid #94a3b8;background:#fff;box-shadow:0 12px 30px rgba(15,23,42,.15)';
+  tableFrame.style.cssText = 'flex:1;min-height:0;margin-top:20px;overflow:visible;border:2px solid #94a3b8;background:#fff;box-shadow:0 12px 30px rgba(15,23,42,.15)';
   // Some CLB tables contain hundreds of rows. Deep-cloning the complete table
-  // before deleting all but 18 rows briefly duplicates the full DOM twice
+  // before deleting all but 20 rows briefly duplicates the full DOM twice
   // (once here and once inside html-to-image), which can terminate a mobile
   // browser tab. Build a small export-only table from the requested rows.
   const sourceRows = Array.from(table.querySelectorAll<HTMLTableRowElement>('tbody > tr'));
@@ -286,25 +289,62 @@ export async function createClbCommunicationImage({
     Array.from(section.children)
       .slice(startRow, endRow)
       .forEach((row) => bodyClone.appendChild(row.cloneNode(true)));
+
+    const firstSourceRow = sourceRows[0];
+    const sourceColumnCount = firstSourceRow
+      ? Array.from(firstSourceRow.cells).reduce((total, cell) => total + cell.colSpan, 0)
+      : Array.from(table.querySelectorAll<HTMLTableRowElement>('thead tr'))
+        .at(-1)?.cells.length ?? 1;
+    while (bodyClone.rows.length < EXPORT_ROW_COUNT) {
+      const placeholderRow = document.createElement('tr');
+      placeholderRow.setAttribute('data-export-placeholder', 'true');
+      for (let columnIndex = 0; columnIndex < sourceColumnCount; columnIndex += 1) {
+        const placeholderCell = document.createElement('td');
+        placeholderCell.innerHTML = '&nbsp;';
+        placeholderRow.appendChild(placeholderCell);
+      }
+      bodyClone.appendChild(placeholderRow);
+    }
     tableClone.appendChild(bodyClone);
   });
-  tableClone.style.cssText = 'width:100%;height:auto;border-collapse:collapse;table-layout:fixed;font-size:17px;background:#fff';
+  tableClone.style.cssText = `width:100%;height:auto;border-collapse:collapse;table-layout:auto;font-family:${CONDENSED_FONT};font-stretch:condensed;font-size:18px;background:#fff`;
+  tableClone.querySelectorAll<HTMLElement>('col').forEach((column) => {
+    column.style.setProperty('width', 'auto', 'important');
+    column.style.setProperty('min-width', '0', 'important');
+    column.style.setProperty('max-width', 'none', 'important');
+  });
+  tableClone.querySelectorAll<HTMLElement>('tbody > tr').forEach((row) => {
+    row.style.setProperty('height', `${EXPORT_ROW_HEIGHT}px`, 'important');
+    row.style.setProperty('min-height', `${EXPORT_ROW_HEIGHT}px`, 'important');
+    row.style.setProperty('max-height', `${EXPORT_ROW_HEIGHT}px`, 'important');
+  });
   tableClone.querySelectorAll<HTMLElement>('th,td').forEach((cell) => {
     cell.style.setProperty('width', 'auto', 'important');
     cell.style.setProperty('min-width', '0', 'important');
     cell.style.setProperty('max-width', 'none', 'important');
-    cell.style.setProperty('height', 'auto', 'important');
-    cell.style.setProperty('padding', '7px 5px', 'important');
-    cell.style.setProperty('font-size', '16px', 'important');
-    cell.style.setProperty('line-height', '1.15', 'important');
-    cell.style.setProperty('white-space', 'normal', 'important');
-    cell.style.setProperty('overflow-wrap', 'anywhere', 'important');
+    cell.style.setProperty('height', `${EXPORT_ROW_HEIGHT}px`, 'important');
+    cell.style.setProperty('padding', '4px 5px', 'important');
+    cell.style.setProperty('font-family', CONDENSED_FONT, 'important');
+    cell.style.setProperty('font-size', '18px', 'important');
+    cell.style.setProperty('font-stretch', 'condensed', 'important');
+    cell.style.setProperty('line-height', '1', 'important');
+    cell.style.setProperty('white-space', 'nowrap', 'important');
+    cell.style.setProperty('overflow', 'visible', 'important');
+    cell.style.setProperty('overflow-wrap', 'normal', 'important');
+    cell.style.setProperty('text-overflow', 'clip', 'important');
     cell.style.setProperty('border', '1px solid #cbd5e1', 'important');
     cell.style.setProperty('box-sizing', 'border-box', 'important');
   });
   tableClone.querySelectorAll<HTMLElement>('thead th').forEach((cell) => {
-    cell.style.setProperty('font-size', '15px', 'important');
+    cell.style.setProperty('font-size', '16px', 'important');
     cell.style.setProperty('font-weight', '900', 'important');
+  });
+  tableClone.querySelectorAll<HTMLElement>('th *,td *').forEach((content) => {
+    content.style.setProperty('font-family', CONDENSED_FONT, 'important');
+    content.style.setProperty('font-stretch', 'condensed', 'important');
+    content.style.setProperty('white-space', 'nowrap', 'important');
+    content.style.setProperty('overflow', 'visible', 'important');
+    content.style.setProperty('text-overflow', 'clip', 'important');
   });
   tableClone.querySelectorAll('svg').forEach((svg) => {
     (svg as SVGElement).style.width = '17px';
