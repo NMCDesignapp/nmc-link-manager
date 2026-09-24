@@ -197,8 +197,14 @@ export async function createClbCommunicationImage({
   root.className = 'nmc-clb-communication-export';
   root.style.cssText = [
     'position:fixed',
-    'left:-100000px',
+    // html-to-image preserves positional styles in its SVG clone. Moving the
+    // source far off-screen therefore also moves all content outside the
+    // exported 1920x1080 viewport and produces a solid background image. Keep
+    // it at the capture origin but behind the app so it never flashes on-screen.
+    'left:0',
     'top:0',
+    'z-index:-2147483648',
+    'pointer-events:none',
     `width:${IMAGE_WIDTH}px`,
     `height:${IMAGE_HEIGHT}px`,
     'display:grid',
