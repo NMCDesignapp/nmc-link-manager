@@ -11746,6 +11746,13 @@ export default function QuanLyPage() {
   const handleDownloadClbCommunicationImages = async () => {
     if (!isAdmin || isEmbedded || clbsvImageExporting) return;
 
+    const waitForBrowserPaint = async () => {
+      await new Promise<void>((resolve) => {
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
+      });
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+    };
+
     type ExportProgram = {
       target: string;
       program: 'ca-nhan' | 'tn-td' | 'tn-ktm';
@@ -11851,7 +11858,10 @@ export default function QuanLyPage() {
     toast({ title: 'Đang tạo bộ ảnh', description: 'Vui lòng giữ trang đang mở trong giây lát.' });
 
     try {
-      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      // A single requestAnimationFrame callback runs before paint. Waiting for
+      // two frames ensures the progress card is visible before image rendering
+      // blocks the main thread on slower mobile devices.
+      await waitForBrowserPaint();
       const images: { name: string; blob: Blob }[] = [];
       const rowsPerImage = 18;
 
@@ -11859,6 +11869,7 @@ export default function QuanLyPage() {
         setClbsvImageExportProgress((current) => ({ ...current, label: `Đang tạo: ${spec.title}` }));
         setClbsvOpen(spec.target);
         const table = await waitForTable(spec);
+        await waitForBrowserPaint();
         const totalRows = table.querySelectorAll('tbody > tr').length;
         const visibleRows = Math.min(totalRows, rowsPerImage * (spec.splitIntoTwo ? 2 : 1));
         const ranges = spec.splitIntoTwo
