@@ -11864,10 +11864,21 @@ export default function QuanLyPage() {
       await waitForBrowserPaint();
       const images: { name: string; blob: Blob }[] = [];
       const rowsPerImage = 18;
+      let activeExportView: string | null = null;
 
       for (const spec of programs) {
         setClbsvImageExportProgress((current) => ({ ...current, label: `Đang tạo: ${spec.title}` }));
+        // Do not reconcile one large detail table directly into another. Some
+        // table markup is normalized by the browser, so a direct swap can make
+        // React remove a node that the browser already re-parented and crash
+        // the page with NotFoundError. Fully unmount the previous table first.
+        if (activeExportView !== null) {
+          setClbsvOpen(null);
+          activeExportView = null;
+          await waitForBrowserPaint();
+        }
         setClbsvOpen(spec.target);
+        activeExportView = spec.target;
         const table = await waitForTable(spec);
         await waitForBrowserPaint();
         const totalRows = table.querySelectorAll('tbody > tr').length;
@@ -11934,6 +11945,10 @@ export default function QuanLyPage() {
       setSaovietNameFilter(originalState.saovietNameFilter);
       setClbsvNhomFilter(originalState.clbsvNhomFilter);
       setClbsvNameFilter(originalState.clbsvNameFilter);
+      // Restore through the overview for the same reason as the export loop:
+      // never ask React to diff two different large table structures directly.
+      setClbsvOpen(null);
+      await waitForBrowserPaint();
       setClbsvOpen(originalState.clbsvOpen);
       setClbsvImageExporting(false);
       setClbsvImageExportProgress({ completed: 0, total: 7, label: '' });
