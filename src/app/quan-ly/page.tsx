@@ -11244,6 +11244,11 @@ export default function QuanLyPage() {
             color: #1E3A8A !important;
             font-weight: 700 !important;
           }
+          .clbsv-detail-table-wrapper td.clbsv-missing-monthly-ip {
+            color: #DC2626 !important;
+            font-style: italic !important;
+            font-weight: 400 !important;
+          }
         `}} />
         {tableJsx}
       </div>
@@ -11447,7 +11452,7 @@ export default function QuanLyPage() {
                   });
                   if (rankResult.kind === 'missing-monthly-ip') {
                     return (
-                      <TableCell key={rk.label} className="text-[10px] text-center italic font-normal align-middle whitespace-nowrap" style={{ backgroundColor: rk.bodyBg, color: '#DC2626' }}>
+                      <TableCell key={rk.label} className="clbsv-missing-monthly-ip text-[10px] text-center italic font-normal align-middle whitespace-nowrap" style={{ backgroundColor: rk.bodyBg, color: '#DC2626' }}>
                         {rankResult.label}
                       </TableCell>
                     );
