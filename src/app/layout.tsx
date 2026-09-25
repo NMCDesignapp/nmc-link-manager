@@ -12,6 +12,9 @@ import { KpiEmbeddedSyncBridge } from '@/components/kpi-embedded-sync-bridge'
 import { HonourSpacingFix } from '@/components/honour-spacing-fix'
 import { MaintenanceGate } from '@/components/maintenance-gate'
 import { AppDataProvider } from '@/lib/app-data-context'
+import '@fontsource/roboto-condensed/latin-ext-400.css'
+import '@fontsource/roboto-condensed/latin-ext-700.css'
+import '@fontsource/roboto-condensed/latin-ext-900.css'
 import './globals.css'
 
 export const metadata: Metadata = {
