@@ -11244,7 +11244,7 @@ export default function QuanLyPage() {
             color: #1E3A8A !important;
             font-weight: 700 !important;
           }
-          .clbsv-detail-table-wrapper td.clbsv-missing-monthly-ip {
+          body table.nmc-kpi-v21-table tbody td.clbsv-missing-monthly-ip.clbsv-missing-monthly-ip {
             color: #DC2626 !important;
             font-style: italic !important;
             font-weight: 400 !important;
