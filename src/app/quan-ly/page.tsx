@@ -33,6 +33,7 @@ import {
   createStoredZip,
   downloadBlob,
 } from '@/lib/clb-sao-viet-image-export';
+import { evaluateClbsvPersonalRank } from '@/lib/clb-sao-viet-personal-rank';
 
 // nmc-sao-viet-exclude-chot-v1
 // Chuẩn hóa dấu và hoa/thường để "Chốt", "CHỐT" hoặc "Chot" đều được xem như nhau.
@@ -11052,11 +11053,11 @@ export default function QuanLyPage() {
 
   // ========== CLB SAO VIỆT: Lookup maps từ các section Sao Việt Toàn Chặng ==========
   // User yêu cầu (2026-07-01):
-  //   • CÁ NHÂN: FYP Tháng = tổng IP tháng HIỆN TẠI từ contracts (auto-switch month).
+  //   • CÁ NHÂN: IP Tháng = tổng IP tháng HIỆN TẠI từ contracts (auto-switch month).
   //              FYP Lũy Kế = lookup từ saovietManualData['ca-nhan'] theo agentCode (cùng nguồn SV TOÀN CHẶNG).
-  //              Điều kiện cần: FYP Tháng >= 12 triệu mới được xét hạng.
-  //                - Nếu FYP Tháng < 12tr và FYP Lũy Kế >= threshold → hiện phần IP tháng còn thiếu ở dạng âm.
-  //                - Nếu FYP Tháng < 12tr và FYP Lũy Kế < threshold → vẫn hiện deficit (chưa đạt hạng).
+  //              Xét từng hạng theo thứ tự: FYP lũy kế trước, rồi mới kiểm tra IP tháng >= 12 triệu.
+  //                - Nếu FYP Lũy Kế chưa đạt threshold → hiện deficit FYP lũy kế.
+  //                - Nếu FYP Lũy Kế đã đạt nhưng IP tháng < 12tr → hiện "Thiếu IP Tn".
   //   • TN TUYỂN DỤNG: FYP TVVm + SL TVVm HĐC = lookup từ saovietManualData['tn-td'] theo agentCode.
   //   • TN KTM: FYP Lũy Kế = lookup từ saovietManualData['tn-ktm'] theo agentCode.
   const CLBSV_FYP_THANG_MIN = 12_000_000; // 12 triệu — điều kiện cần để được xét hạng
@@ -11096,13 +11097,13 @@ export default function QuanLyPage() {
     return !isNaN(d.getTime()) && d.getMonth() === clbsvCurMonth && d.getFullYear() === clbsvCurYear;
   });
 
-  // Helper: FYP tháng hiện tại của 1 agentCode (từ contracts tháng hiện tại)
-  const getClbsvFypThang = (agentCode: string): number => {
+  // Helper: IP tháng hiện tại của 1 agentCode (IP + 10% PĐT từ contracts tháng hiện tại)
+  const getClbsvIpThang = (agentCode: string): number => {
     const ac = (agentCode || '').trim().toLowerCase();
     if (!ac) return 0;
     return clbsvCurrentMonthContracts
       .filter(c => (c.agentCode || '').trim().toLowerCase() === ac)
-      .reduce((s, c) => s + (c.fyp || 0), 0);
+      .reduce((s, c) => s + (c.pdt10DT || 0), 0);
   };
 
   // Helper: FYP lũy kế từ SV Cá Nhân (cho CLB CÁ NHÂN)
@@ -11121,19 +11122,6 @@ export default function QuanLyPage() {
   const getClbsvTNTDData = (agentCode: string): { fypTVVm: number; slTvvmHDC: number } => {
     const ac = (agentCode || '').trim().toLowerCase();
     return svTNTDMap.get(ac) || { fypTVVm: 0, slTvvmHDC: 0 };
-  };
-
-  // Helper: kiểm tra điều kiện cần (FYP tháng >= 12tr)
-  const isClbsvEligibleForRank = (agentCode: string): boolean => {
-    return getClbsvFypThang(agentCode) >= CLBSV_FYP_THANG_MIN;
-  };
-
-  // Helper: format FYP cell (triệu VND) — gọn, dễ đọc
-  const formatFypShort = (vnd: number): string => {
-    if (!vnd) return '0';
-    const trieu = vnd / 1_000_000;
-    if (trieu >= 1000) return `${(trieu / 1000).toFixed(2)} tỷ`;
-    return `${trieu.toFixed(1)} tr`;
   };
 
   // Helper: convert rank header bg (đậm) sang rank body bg (siêu mờ — alpha 8%)
@@ -11403,7 +11391,7 @@ export default function QuanLyPage() {
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>MÃ SỐ</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>HỌ TÊN TVV</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
-              TỔNG FYP THÁNG<br /><span className="italic font-normal text-[9px]">{clbsvCurrentMonthLabel}</span>
+              TỔNG IP THÁNG<br /><span className="italic font-normal text-[9px]">{clbsvCurrentMonthLabel}</span>
             </TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: CLBSV_HEADER_FG, backgroundColor: CLBSV_HEADER_BG }}>
               TỔNG FYP LŨY KẾ<br /><span className="italic font-normal text-[9px]">01/12/25 - nay</span>
@@ -11432,48 +11420,48 @@ export default function QuanLyPage() {
               </TableCell>
             </TableRow>
           ) : sortedMembers.map((m, idx) => {
-            // FYP Tháng = tổng IP tháng hiện tại từ contracts (auto-switch tháng)
+            // IP Tháng = tổng IP tháng hiện tại từ contracts (auto-switch tháng)
             // FYP Lũy Kế = lookup từ saovietManualData['ca-nhan'] theo agentCode
-            const fypThang = getClbsvFypThang(m.agentCode);
+            const ipThang = getClbsvIpThang(m.agentCode);
             const fypLuyKe = getClbsvFypLuyKeCaNhan(m.agentCode);
-            const eligible = isClbsvEligibleForRank(m.agentCode); // FYP Tháng >= 12tr
             return (
               <TableRow key={m.id} className="bg-white hover:bg-blue-50 border-b border-gray-200">
                 <TableCell className="text-[10px] text-gray-500 text-center align-middle">{idx + 1}</TableCell>
                 <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap">{m.nhom || '—'}</TableCell>
                 <TableCell className="text-[10px] text-gray-700 align-middle whitespace-nowrap font-mono">{m.agentCode || '—'}</TableCell>
                 <TableCell className="text-[10px] text-gray-900 font-bold align-middle whitespace-nowrap">{m.agentName || '—'}</TableCell>
-                <TableCell className="text-[10px] text-center align-middle whitespace-nowrap" style={{ color: eligible ? '#047857' : '#DC2626', fontWeight: 700 }}>
-                  {formatFypShort(fypThang)}
+                <TableCell className="text-[10px] text-center align-middle whitespace-nowrap font-bold text-gray-900">
+                  {formatCurrency(ipThang)}
                 </TableCell>
                 <TableCell className="text-[10px] text-center align-middle whitespace-nowrap font-bold text-gray-900">
                   {formatCurrency(fypLuyKe)}
                 </TableCell>
                 {ranks.map(rk => {
                   const thresholdVal = rk.values[clbsvCurrentMonthIdx] * 1_000_000; // trđ → VND
-                  const wouldAchieve = fypLuyKe >= thresholdVal;
-                  // Điều kiện cần: FYP Tháng >= 12tr mới được xét hạng
-                  // - Nếu chưa đủ 12tr → hiển thị số IP tháng còn thiếu ở dạng âm
-                  // - Nếu đủ 12tr + đạt threshold → ✓
-                  // - Nếu đủ 12tr + chưa đạt → deficit
-                  if (!eligible) {
+                  const rankResult = evaluateClbsvPersonalRank({
+                    cumulativeFyp: fypLuyKe,
+                    monthlyIp: ipThang,
+                    threshold: thresholdVal,
+                    minimumMonthlyIp: CLBSV_FYP_THANG_MIN,
+                    month: clbsvCurMonth + 1,
+                  });
+                  if (rankResult.kind === 'missing-monthly-ip') {
                     return (
-                      <TableCell key={rk.label} className="text-[10px] text-center italic align-middle" style={{ backgroundColor: rk.bodyBg, color: '#DC2626', fontWeight: 600 }}>
-                        {formatDeficit(Math.max(0, CLBSV_FYP_THANG_MIN - fypThang))}
+                      <TableCell key={rk.label} className="text-[10px] text-center italic font-normal align-middle whitespace-nowrap" style={{ backgroundColor: rk.bodyBg, color: '#DC2626' }}>
+                        {rankResult.label}
                       </TableCell>
                     );
                   }
-                  if (wouldAchieve) {
+                  if (rankResult.kind === 'achieved') {
                     return (
                       <TableCell key={rk.label} className="text-[10px] text-center align-middle" style={{ backgroundColor: rk.bodyBg }}>
                         <CheckBadge size={13} />
                       </TableCell>
                     );
                   }
-                  const deficit = Math.max(0, thresholdVal - fypLuyKe);
                   // Số âm (deficit): in nghiêng, KHÔNG in đậm, nền light yellow/gainsboro/light cyan
                   return (
-                    <TableCell key={rk.label} className="text-[10px] text-center italic font-normal align-middle" style={{ backgroundColor: rk.bodyBg, color: '#1E3A8A' }}>{formatDeficit(deficit)}</TableCell>
+                    <TableCell key={rk.label} className="text-[10px] text-center italic font-normal align-middle" style={{ backgroundColor: rk.bodyBg, color: '#1E3A8A' }}>{formatDeficit(rankResult.amount)}</TableCell>
                   );
                 })}
               </TableRow>
