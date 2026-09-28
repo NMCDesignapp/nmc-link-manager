@@ -257,7 +257,7 @@ export function HomeContestShortcuts() {
       </Dialog>
 
       <Dialog open={selectedContest !== null} onOpenChange={(open) => { if (!open) setSelectedContest(null) }}>
-        <DialogContent showCloseButton={false} className="h-[96dvh] w-[98vw] max-w-[1400px] gap-0 overflow-hidden border-[#527589] bg-[#0a1d28] p-0 shadow-[0_30px_100px_rgba(0,0,0,.7)] sm:h-[94dvh] sm:w-[96vw] sm:max-w-[1400px]">
+        <DialogContent showCloseButton={false} className="flex h-[96dvh] w-[98vw] max-w-[1400px] flex-col gap-0 overflow-hidden border-[#527589] bg-[#0a1d28] p-0 shadow-[0_30px_100px_rgba(0,0,0,.7)] sm:h-[94dvh] sm:w-[96vw] sm:max-w-[1400px]">
           <DialogHeader className="flex h-11 shrink-0 flex-row items-center justify-between gap-2 border-b border-[#345365] bg-[#153342] px-3 py-0 text-left sm:px-4">
             <DialogTitle className="min-w-0 truncate text-[12px] font-black text-white sm:text-sm">
               {selectedContest?.title || 'Kết quả chi tiết'}
@@ -272,7 +272,7 @@ export function HomeContestShortcuts() {
               <X className="h-4 w-4" />
             </button>
           </DialogHeader>
-          <div className="relative min-h-0 flex-1 bg-white">
+          <div className="relative h-full min-h-0 flex-1 overflow-hidden bg-white">
             {resultLoading && (
               <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#edf2f4] text-sm font-bold text-[#315164]">
                 <Loader2 className="mr-2 h-5 w-5 animate-spin text-emerald-600" /> Đang tính kết quả...
