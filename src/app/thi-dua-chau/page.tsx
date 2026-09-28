@@ -4441,9 +4441,16 @@ function ThiDuaPageInner() {
               .contest-result-toolbar {
                 gap: 4px;
                 padding: 6px 34px 6px 8px;
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow: hidden;
               }
               .contest-result-toolbar-title {
+                flex: 1 1 auto;
                 min-width: 0;
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
                 gap: 4px;
                 font-size: 12px;
                 line-height: 1.15;
