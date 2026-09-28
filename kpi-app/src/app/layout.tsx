@@ -71,7 +71,7 @@ export default function RootLayout({
         <link rel="stylesheet" href={MAIN_APP_URL + "/kpi-rank-column-contrast-v25.css?v=20260909-1"} />
         <link rel="stylesheet" href={MAIN_APP_URL + "/kpi-rank-header-structure-v26.css?v=20260909-1"} />
         <link rel="stylesheet" href={MAIN_APP_URL + "/kpi-table-runtime-v27.css?v=20260922-1"} />
-        <script src={MAIN_APP_URL + "/kpi-table-runtime-v27.js?v=20260910-1"} defer></script>
+        <script src={MAIN_APP_URL + "/kpi-table-runtime-v27.js?v=20260928-1"} defer></script>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />

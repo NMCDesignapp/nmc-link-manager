@@ -401,7 +401,9 @@
             cell.dataset.nmcNegative = '1';
             delete cell.dataset.nmcNumeric;
           }
-          if (isPositiveAchieved(value)) cell.dataset.nmcAchieved = '1';
+          // The first four columns are identity fields (STT, group, code, name).
+          // Do not interpret names such as "Ngô Tấn Đạt" as an achieved status.
+          if (columnIndex >= 4 && isPositiveAchieved(value)) cell.dataset.nmcAchieved = '1';
 
           const cellStart = columnIndex;
           const cellEnd = columnIndex + span - 1;
