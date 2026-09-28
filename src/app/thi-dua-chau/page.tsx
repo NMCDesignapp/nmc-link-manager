@@ -4388,7 +4388,7 @@ function ThiDuaPageInner() {
       {/* Result Dialog Popup - White theme, only poster + detail table
           In embed mode: always open + CSS .embed-mode biến Dialog thành full-page (KHÔNG còn là popup) */}
       <Dialog open={isEmbedMode || isResultDialogOpen} onOpenChange={(open) => { if (!isEmbedMode) { setIsResultDialogOpen(open); if (!open) setIsResultExpanded(false); } }}>
-        <DialogContent showCloseButton={!isEmbedMode} className={`${isEmbedMode ? '' : `${isResultExpanded ? 'sm:max-w-5xl max-h-[95dvh]' : 'sm:max-w-xl max-h-[92dvh] sm:max-h-[76vh]'} contest-result-dialog overflow-x-hidden`} overflow-y-auto bg-white border-emerald-500/30 p-0 transition-all duration-300`}>
+        <DialogContent showCloseButton={!isEmbedMode} className={`${isEmbedMode ? 'contest-result-embed' : `${isResultExpanded ? 'sm:max-w-5xl max-h-[95dvh]' : 'sm:max-w-xl max-h-[92dvh] sm:max-h-[76vh]'} contest-result-dialog overflow-x-hidden`} overflow-y-auto bg-white border-emerald-500/30 p-0 transition-all duration-300`}>
           <style dangerouslySetInnerHTML={{ __html: `
             .contest-result-table-wrapper {
               width: 100%;
@@ -4492,12 +4492,12 @@ function ThiDuaPageInner() {
             }
           `}} />
           {/* Action bar */}
-          <div className={`${isEmbedMode ? '' : 'contest-result-toolbar'} sticky top-0 z-10 bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between`}>
-            <DialogTitle className={`${isEmbedMode ? '' : 'contest-result-toolbar-title'} text-emerald-600 text-base font-bold flex items-center gap-2`}>
+          <div className="contest-result-toolbar sticky top-0 z-10 bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between">
+            <DialogTitle className="contest-result-toolbar-title text-emerald-600 text-base font-bold flex items-center gap-2">
               <Trophy className="w-5 h-5 text-emerald-600" />
               {isEmbedMode ? (contestTitle || 'Kết quả chi tiết') : 'Kết quả chi tiết'}
             </DialogTitle>
-            <div className={`${isEmbedMode ? '' : 'contest-result-toolbar-actions'} flex shrink-0 items-center gap-1`}>
+            <div className="contest-result-toolbar-actions flex shrink-0 items-center gap-1">
               {!isEmbedMode && (
                 <Button variant="outline" size="sm" onClick={() => setIsResultExpanded(!isResultExpanded)} className="border-gray-300 text-gray-700 h-7 w-7 p-0 hover:bg-gray-100">
                   {isResultExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}

@@ -599,6 +599,25 @@ html[data-kpi-embed="1"] nav[class*="border-emerald-500/30"] {
   gap: 0 !important;
   box-shadow: none !important;
 }
+.contest-result-embed {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  transform: none !important;
+  translate: none !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  box-shadow: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
 .embed-mode [data-slot="dialog-close"] {
   display: none !important;
 }
