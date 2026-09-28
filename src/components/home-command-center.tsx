@@ -26,6 +26,7 @@ import { AddLinkModal } from '@/components/add-link-modal'
 import { SettingsPanel } from '@/components/settings-panel'
 import { StatsPanel } from '@/components/stats-panel'
 import { VerticalAgenda } from '@/components/vertical-agenda'
+import { HomeContestShortcuts } from '@/components/home-contest-shortcuts'
 
 const MAINTENANCE_KEY = 'nmc-maintenance-mode'
 const ADMIN_PWD = '123456'
@@ -360,6 +361,8 @@ export default function HomeCommandCenter() {
           <FunctionButton label="KPI" icon={<BarChart3 className="h-5 w-5" />} background="#2777a7" border="#4b9bc5" shadow="#184b68" onClick={() => router.push('/kpi')} />
           <FunctionButton label="CLB Sao Việt" shortLabel="CLB SV" icon={<Star className="h-5 w-5" />} background="#9b7827" border="#c7a94d" shadow="#5d4818" onClick={() => router.push('/clb-sao-viet')} />
         </nav>
+
+        <HomeContestShortcuts />
 
         <main className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,.92fr)_minmax(420px,1.08fr)] lg:items-stretch">
           <section className="nmc-home-links-panel rounded-[22px] border border-[#35566a] bg-[#122a38] p-3 shadow-[0_18px_45px_rgba(0,0,0,.32),inset_0_1px_0_rgba(255,255,255,.05)] sm:p-4">
