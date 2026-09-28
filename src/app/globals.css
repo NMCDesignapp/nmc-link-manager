@@ -597,6 +597,7 @@ html[data-kpi-embed="1"] nav[class*="border-emerald-500/30"] {
   border-radius: 0 !important;
   padding: 0 !important;
   gap: 0 !important;
+  grid-template-columns: minmax(0, 1fr) !important;
   box-shadow: none !important;
 }
 .contest-result-embed {
