@@ -29,6 +29,7 @@ const observerCount = (runtime.match(/new MutationObserver/g) || []).length;
 if (observerCount !== 1) throw new Error(`runtime: expected exactly 1 MutationObserver, found ${observerCount}`);
 if (!runtime.includes('isPositiveAchieved')) throw new Error('runtime: achieved-state guard missing');
 if (!runtime.includes('CHUA DAT|KHONG DAT|CHUA DU|KHONG DU')) throw new Error('runtime: negative-state exclusions missing');
+if (!runtime.includes("columnIndex >= 4 && isPositiveAchieved(value)")) throw new Error('runtime: first four identity columns must be excluded from achieved-state detection');
 if (!runtime.includes('nmc-header-subline-v27')) throw new Error('runtime: header subline formatting missing');
 if (!css.includes("data-nmc-program='quy-tvv'")) throw new Error('css: quy-tvv scope missing');
 if (!css.includes("data-nmc-program='quy-tn'")) throw new Error('css: quy-tn scope missing');
