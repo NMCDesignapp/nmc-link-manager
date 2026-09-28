@@ -604,6 +604,7 @@ html[data-kpi-embed="1"] nav[class*="border-emerald-500/30"] {
   --tw-translate-x: 0px !important;
   --tw-translate-y: 0px !important;
   position: fixed !important;
+  display: block !important;
   inset: 0 !important;
   top: 0 !important;
   left: 0 !important;
