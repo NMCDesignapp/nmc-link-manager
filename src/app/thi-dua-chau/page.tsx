@@ -603,6 +603,7 @@ function ThiDuaPageInner() {
   const isEmbedMode = searchParams.get('embed') === '1';
   const embedContestId = searchParams.get('contest');
   const isAutocalc = searchParams.get('autocalc') === '1';
+  const showEmbedActions = searchParams.get('actions') === '1';
   // Data sourced from Quản lý page — no CSV sync
 
   const [startDate, setStartDate] = useState(''); // Ngày hiệu lực từ
@@ -4502,12 +4503,12 @@ function ThiDuaPageInner() {
                   {isResultExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
                 </Button>
               )}
-              {!isEmbedMode && (
+              {(!isEmbedMode || showEmbedActions) && (
                 <Button variant="outline" size="sm" onClick={handleShareImage} disabled={isDownloadingImage} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100">
                   {isDownloadingImage ? <Loader2 className="w-3 h-3 sm:mr-1 animate-spin" /> : <ImageIcon className="w-3 h-3 sm:mr-1" />}<span className="hidden sm:inline">Chia sẻ ảnh</span>
                 </Button>
               )}
-              {!isEmbedMode && (
+              {(!isEmbedMode || showEmbedActions) && (
                 <Button variant="outline" size="sm" onClick={handleDownloadImage} disabled={isDownloadingImage} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100">
                   {isDownloadingImage ? <Loader2 className="w-3 h-3 sm:mr-1 animate-spin" /> : <Camera className="w-3 h-3 sm:mr-1" />}<span className="hidden sm:inline">Tải ảnh</span>
                 </Button>
