@@ -3,6 +3,7 @@ import './globals.css'
 import { SpaceBackground } from '@/components/space-bg'
 import { MaintenanceGate } from '@/components/maintenance-gate'
 import { KpiEmbeddedSyncBridge } from '@/components/kpi-embedded-sync-bridge'
+import { HonourSpacingFix } from '@/components/honour-spacing-fix'
 import { AppDataProvider } from '@/lib/app-data-context'
 
 // KPI standalone dùng domain Main production cố định. Tránh env migration cũ
@@ -82,6 +83,7 @@ export default function RootLayout({
         <AppDataProvider>
           {children}
           <MaintenanceGate standalone />
+          <HonourSpacingFix />
         </AppDataProvider>
       </body>
     </html>
