@@ -76,6 +76,11 @@ const sharedCopies = [
     label: 'kpi-app/src/components/maintenance-gate.tsx',
   },
   {
+    source: path.join(root, 'src', 'components', 'honour-spacing-fix.tsx'),
+    target: path.join(root, 'kpi-app', 'src', 'components', 'honour-spacing-fix.tsx'),
+    label: 'kpi-app/src/components/honour-spacing-fix.tsx',
+  },
+  {
     source: path.join(root, 'public', 'kpi-tech-bg.webp'),
     target: path.join(root, 'kpi-app', 'public', 'kpi-tech-bg.webp'),
     label: 'kpi-app/public/kpi-tech-bg.webp',
