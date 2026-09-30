@@ -1192,3 +1192,12 @@ Work Log:
 - Đổi cả popup khi bấm tên nhân viên/AD và bảng “Chi tiết nhóm” sang các cột IP tháng 6, 7, 8, 9, 10, 11, 12.
 - Quy ước lâu dài: từ sau lần này, mọi yêu cầu sửa KPI thực hiện tại nguồn chuẩn `src/app/kpi/page.tsx`; KPI tách phải tự đồng bộ từ nguồn này và chỉ giữ khác biệt hợp lệ về chế độ standalone/điều hướng/quản trị.
 - Sau mọi thay đổi KPI phải chạy `bash scripts/sync-kpi-app.sh`, `bash scripts/sync-kpi-app.sh --check`, build Main App và build `kpi-app` trước khi triển khai cả hai project Vercel.
+
+## 2026-10-01 — Excel Chi tiết ban nhóm theo kỳ (Main App admin)
+
+- Thêm nút Tải Excel dưới bộ chọn kỳ trong `src/app/kpi/page.tsx`, chỉ hiện khi `!standalone && adminAuthed`; handler cũng kiểm tra quyền/chế độ và chặn tải khi không có dòng.
+- Xuất đúng danh sách đang hiển thị theo kỳ và bộ lọc AD, giữ thứ tự tỷ lệ hoàn thành. Cột: STT, NHÓM, MÃ TN, HỌ TÊN TN, KẾ HOẠCH [kỳ], THỰC HIỆN [kỳ], TỶ LỆ HT (%).
+- Mã/tên TN lấy cùng bản ghi DS TB/TN đang dùng trên trang. Kế hoạch/thực hiện là số tiền đầy đủ (đồng), tỷ lệ là ô số định dạng 0.0%; không thay đổi tính toán/hiển thị hiện tại và không ghi dữ liệu production.
+- Đồng bộ `kpi-app/src/app/page.tsx` bằng script chuẩn; KPI tách không hiển thị nút tải Excel này.
+- Kiểm tra: build Main/KPI tách đạt; sync --check đạt; 12 kiểm tra từ mã thật và round-trip XLSX đạt, bao gồm kỳ, mã có số 0 đầu, dữ liệu 0, bộ lọc AD, quyền, lỗi tải module và hồi quy AFYP.
+- Lint toàn repository còn lỗi có sẵn (132 errors, 77 warnings trong checkout build). Chưa xác minh UI bằng trình duyệt: Playwright runtime có nhưng thiếu executable Chromium.
