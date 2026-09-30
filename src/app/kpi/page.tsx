@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
   Trophy, RotateCw, CalendarDays, BarChart3, Flag, BookOpen, Star,
-  ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check, X, Settings, LockKeyhole
+  ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check, X, Settings, LockKeyhole, Download
 } from 'lucide-react';
 import { BackButton } from '@/components/back-button';
 import { AppLoader } from '@/components/app-loader';
@@ -3624,7 +3624,7 @@ function isTBorTNPosition(position: string | null | undefined): boolean {
 interface ADData { ten: string; managerKey: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; activeTvv: number; }
 interface PhongData { ten: string; afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; activeTvv: number; ads: ADData[]; noAds: boolean; tvvCount?: number; }
 interface TotalData { afyp: number; kh: number; lhd: number; td: number; hdChuan: number; tyTrong: number; totalIP: number; slHD: number; nangSuat: number; doLonHD: number; }
-interface GroupDetail { name: string; maBanNhom: string; tenAD: string; maAD: string; tenPhong: string; maPhong: string; afyp: number; kh: number; pct: number; tnName: string; }
+interface GroupDetail { name: string; maBanNhom: string; tenAD: string; maAD: string; tenPhong: string; maPhong: string; afyp: number; kh: number; pct: number; tnName: string; tnCode: string; afypAmount: number; planAmount: number; }
 
 /* ================= CONSTANTS ================= */
 const MONTHS = ['01','02','03','04','05','06','07','08','09','10','11','12'];
@@ -4121,6 +4121,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const [detailMonth, setDetailMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
   const [detailAdFilter, setDetailAdFilter] = useState<string>('all'); // AD filter for detail view
   const [detailAdDropdownOpen, setDetailAdDropdownOpen] = useState(false);
+  const [detailExporting, setDetailExporting] = useState(false);
   // nmc-kpi-calendar-rooms-v4
   const [calMonth, setCalMonth] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
   const [calScope, setCalScope] = useState<string>('Công ty');
@@ -5456,6 +5457,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             kh: khTrd,
             pct,
             tnName,
+            tnCode: tnLeader?.agentCode || '',
+            afypAmount: afyp,
+            planAmount: periodKh,
           });
         }
       }
@@ -5902,6 +5906,52 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     if (detailAdFilter === 'all') return detailData;
     return detailData.filter(item => item.maAD === detailAdFilter);
   }, [detailData, detailAdFilter]);
+
+  const exportGroupDetailExcel = async () => {
+    if (standalone || !adminAuthed || detailExporting || filteredDetailData.length === 0) return;
+    setDetailExporting(true);
+    // Snapshot the visible period/filter before loading the Excel module.
+    const rows = filteredDetailData;
+    const period = detailMonth === 'Y' ? `NĂM ${CUR_YEAR}`
+      : detailMonth === 'H1' ? `6T ĐẦU ${CUR_YEAR}`
+      : detailMonth.startsWith('Q') ? `${detailMonth}/${CUR_YEAR}`
+      : `T${parseInt(detailMonth, 10)}/${CUR_YEAR}`;
+    try {
+      const XLSX = await import('xlsx-js-style');
+      const sheet = XLSX.utils.aoa_to_sheet([
+        ['STT', 'NHÓM', 'MÃ TN', 'HỌ TÊN TN', `KẾ HOẠCH ${period}`, `THỰC HIỆN ${period}`, 'TỶ LỆ HT (%)'],
+        ...rows.map((item, index) => [
+          index + 1, item.name, item.tnCode, item.tnName,
+          item.planAmount, item.afypAmount, item.pct / 100,
+        ]),
+      ]);
+      sheet['!cols'] = [8, 28, 18, 32, 26, 26, 18].map(wch => ({ wch }));
+      sheet['!autofilter'] = { ref: `A1:G${rows.length + 1}` };
+      sheet['!rows'] = [{ hpt: 32 }];
+      for (let row = 0; row <= rows.length; row++) {
+        for (let col = 0; col < 7; col++) {
+          const cell = sheet[XLSX.utils.encode_cell({ r: row, c: col })];
+          if (!cell) continue;
+          cell.s = {
+            font: { name: 'Arial', sz: 11, bold: row === 0, color: { rgb: row === 0 ? 'FFFFFF' : '16324F' } },
+            fill: { fgColor: { rgb: row === 0 ? '16324F' : row % 2 ? 'EFF6FC' : 'FFFFFF' } },
+            alignment: { vertical: 'center', horizontal: row === 0 || col === 0 || col === 2 ? 'center' : col >= 4 ? 'right' : 'left', wrapText: row === 0 },
+            border: { bottom: { style: 'thin', color: { rgb: 'D7E3EF' } } },
+          };
+          if (row > 0 && (col === 4 || col === 5)) cell.z = '#,##0.##';
+          if (row > 0 && col === 6) cell.z = '0.0%';
+        }
+      }
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, sheet, 'Chi tiet ban nhom');
+      XLSX.writeFile(workbook, `ChiTietBanNhom_${period.replace(/[ /]+/g, '_')}.xlsx`);
+    } catch (error) {
+      console.error('Group detail Excel export failed', error);
+      alert('Không thể tải Excel. Vui lòng thử lại.');
+    } finally {
+      setDetailExporting(false);
+    }
+  };
 
   return (
     <div className="kpi-app">
@@ -6852,6 +6902,16 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 </button>
               ))}
             </div>
+
+            {!standalone && adminAuthed && (
+              <div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0 16px' }}>
+                <button type="button" onClick={exportGroupDetailExcel}
+                  disabled={detailExporting || loading || filteredDetailData.length === 0}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 10, border: '1px solid #2bbfa5', background: '#0e554d', color: '#eafff8', fontSize: 13, fontWeight: 800, cursor: detailExporting ? 'wait' : 'pointer', opacity: detailExporting || loading || filteredDetailData.length === 0 ? 0.5 : 1 }}>
+                  <Download size={16} />{detailExporting ? 'Đang tải Excel…' : 'Tải Excel'}
+                </button>
+              </div>
+            )}
 
             {/* Top 3 Podium */}
             {top3Items.length > 0 && (
