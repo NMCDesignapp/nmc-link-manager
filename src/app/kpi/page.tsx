@@ -4031,8 +4031,26 @@ const BANCA_IMG_POSITIONS: Array<{ left: number; top: number; size: number; z: n
 ];
 
 function getGoldHonourRows(indices: number[]): number[][] {
-  // Hạng Vàng có 20 vị trí, chia cố định thành 4 dòng, mỗi dòng tối đa 5 ảnh.
+  // Hạng Vàng giữ cố định theo số ô: 03-07, 08-12, 13-17, 18-22.
   return [indices.slice(0, 5), indices.slice(5, 10), indices.slice(10, 15), indices.slice(15, 20)]
+    .filter((row) => row.length > 0);
+}
+
+function getVisibleHonourRows(
+  indices: number[],
+  tier: 'platinum' | 'gold',
+  adminAuthed: boolean,
+  bancaImages: Record<string, string>,
+): number[][] {
+  const fixedRows = tier === 'gold' ? getGoldHonourRows(indices) : [indices];
+
+  // Lọc ô trống sau khi đã chia dòng để ảnh không bị dồn sang dòng khác.
+  // Mỗi dòng còn ảnh sẽ tự căn giữa; dòng không có ảnh được ẩn hoàn toàn.
+  return fixedRows
+    .map((row) => row.filter((imageIndex) => {
+      const imageKey = `kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`;
+      return adminAuthed || Boolean(bancaImages[imageKey]);
+    }))
     .filter((row) => row.length > 0);
 }
 
@@ -6299,14 +6317,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   { id: 'platinum', label: 'Sao Việt Bạch Kim', start: 0, count: 2 },
   { id: 'gold', label: 'Sao Việt Hạng Vàng', start: 2, count: BANCA_IMG_COUNT - 2 },
 ].map(({ id, label, start, count }) => {
-  const indices = Array.from({ length: count }, (_, offset) => start + offset)
-    .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
-  if (indices.length === 0) return null;
+  const indices = Array.from({ length: count }, (_, offset) => start + offset);
+  const rows = getVisibleHonourRows(indices, id as 'platinum' | 'gold', adminAuthed, bancaImages);
+  if (rows.length === 0) return null;
   return (
     <section className={`honour-tier ${id}`} key={id}>
       <div className="honour-tier-title">{label}</div>
       <div className={`honour-image-grid${id === 'gold' ? ' honour-gold-pyramid' : ''}`}>
-        {(id === 'gold' ? getGoldHonourRows(indices) : [indices]).map((row, rowIndex) => (
+        {rows.map((row, rowIndex) => (
           <div className={id === 'gold' ? `honour-gold-row honour-gold-row-${row.length}` : 'honour-platinum-row'} key={`${id}-row-${rowIndex}`}>
           {row.map((i) => {
           const idx = String(i + 1).padStart(2, '0');
@@ -6456,14 +6474,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   { id: 'platinum', label: 'Sao Việt Bạch Kim', start: 0, count: 2 },
   { id: 'gold', label: 'Sao Việt Hạng Vàng', start: 2, count: BANCA_IMG_COUNT - 2 },
 ].map(({ id, label, start, count }) => {
-  const indices = Array.from({ length: count }, (_, offset) => start + offset)
-    .filter((imageIndex) => adminAuthed || Boolean(bancaImages[`kpi-banca-img-${String(imageIndex + 1).padStart(2, '0')}`]));
-  if (indices.length === 0) return null;
+  const indices = Array.from({ length: count }, (_, offset) => start + offset);
+  const rows = getVisibleHonourRows(indices, id as 'platinum' | 'gold', adminAuthed, bancaImages);
+  if (rows.length === 0) return null;
   return (
     <section className={`honour-tier ${id}`} key={id}>
       <div className="honour-tier-title">{label}</div>
       <div className={`honour-image-grid${id === 'gold' ? ' honour-gold-pyramid' : ''}`}>
-        {(id === 'gold' ? getGoldHonourRows(indices) : [indices]).map((row, rowIndex) => (
+        {rows.map((row, rowIndex) => (
           <div className={id === 'gold' ? `honour-gold-row honour-gold-row-${row.length}` : 'honour-platinum-row'} key={`${id}-row-${rowIndex}`}>
           {row.map((i) => {
           const idx = String(i + 1).padStart(2, '0');
