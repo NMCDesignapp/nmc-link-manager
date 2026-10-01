@@ -9366,7 +9366,7 @@ export default function QuanLyPage() {
           >
             <span className="truncate flex items-center gap-1.5">
               <DollarSign className="w-3.5 h-3.5 flex-shrink-0" />
-              {revenueSub === 'all' ? 'Cả năm' : `Tháng ${revenueSub.replace('0', '')}`}
+              {revenueSub === 'all' ? 'Cả năm' : `Tháng ${Number(revenueSub)}`}
             </span>
             <ChevronDown className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${mobileRevenuePopupOpen ? 'rotate-180' : ''}`} />
           </button>
@@ -9414,7 +9414,7 @@ export default function QuanLyPage() {
                   : 'bg-white border border-gray-200 text-gray-600 hover:bg-amber-50 shadow-sm'
               }`}
             >
-              {m.key === 'all' ? m.label : `T${m.key.replace('0', '')}`}
+              {m.key === 'all' ? m.label : `T${Number(m.key)}`}
               {hasSectionLink(`revenue-${m.key}`) && <Link2 className="w-2.5 h-2.5" />}
             </button>
           ))}
