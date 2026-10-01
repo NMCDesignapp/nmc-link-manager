@@ -16,6 +16,12 @@ const force = process.argv.includes('--force') || process.argv.includes('--once'
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+const REVENUE_HISTORY_HEADERS = [
+  'STT', 'Ban', 'Nhóm', 'Mã Ban/Nhóm', 'Mã ĐL', 'Tên', 'Chức vụ',
+  'Ngày bắt đầu làm việc', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành',
+  'PĐT + 10% ĐT', 'AFYP', 'AD', 'TÍNH LƯỢT 3 tr', 'MÃ ĐL TD',
+];
+
 async function readJson(file, fallback) {
   try { return JSON.parse(await fs.readFile(file, 'utf8')); }
   catch { return fallback; }
@@ -77,17 +83,25 @@ function historicalRevenueFromWorkbook(file) {
   for (const name of workbook.SheetNames) {
     if (!/^(?:[1-9]|1[0-2])$/.test(name)) continue;
     const month = `${year}-${name.padStart(2, '0')}`;
-    if (month === currentMonth) continue;
+    // Doanhso owns only completed months. The presence of a numbered sheet is
+    // authoritative even when it is empty, so stale app rows for that month
+    // can be removed. Tamthu remains the sole source of the current month.
+    if (month >= currentMonth) continue;
+    months.push(month);
     const values = compactWorksheetValues(workbook.Sheets[name]);
-    if (values.length < 2) continue;
+    if (values.length === 0) continue;
     const csv = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet(values), { FS: ',', RS: '\n', forceQuotes: true });
     const lines = csv.split(/\r?\n/).filter(line => line.trim() !== '');
     if (!header) header = lines[0];
     rows.push(...lines.slice(1));
-    months.push(month);
   }
 
-  return { csv: header ? [header, ...rows].join('\n') : '', months };
+  if (!header) {
+    header = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet([REVENUE_HISTORY_HEADERS]), {
+      FS: ',', RS: '\n', forceQuotes: true,
+    }).trimEnd();
+  }
+  return { csv: [header, ...rows].join('\n'), months };
 }
 
 function rowsFromWorkbook(file, sheetName) {
@@ -117,6 +131,9 @@ async function inputFromSource(source) {
 
 function hasData(input, source) {
   if (source.kind === 'structure' || source.kind === 'tamthu-detail') return Array.isArray(input) && input.length > 0;
+  if (source.kind === 'revenue-history') {
+    return Array.isArray(input?.months) && input.months.length > 0 && typeof input?.csv === 'string';
+  }
   const csv = source.kind === 'revenue-history' ? input?.csv : input;
   if (typeof csv !== 'string') return false;
   const rows = csv.split(/\r?\n/).filter(line => line.trim() !== '');

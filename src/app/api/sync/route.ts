@@ -215,7 +215,12 @@ export async function POST(request: NextRequest) {
             const month = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
             return requestedSet.has(month);
           });
-          if (importRows.length === 0) throw new Error('Nguồn đồng bộ không có HĐ hợp lệ cho các tháng cần cập nhật; dữ liệu app không bị xóa.');
+          // An empty completed-month sheet from the authenticated Data Hub is
+          // still authoritative: delete stale rows for that month and import
+          // nothing. Other import channels keep the existing non-empty guard.
+          if (importRows.length === 0 && !fromDataHub) {
+            throw new Error('Nguồn đồng bộ không có HĐ hợp lệ cho các tháng cần cập nhật; dữ liệu app không bị xóa.');
+          }
           const numbers = new Set<string>();
           const duplicates = new Set<string>();
           for (const { row } of importRows) {
