@@ -40,14 +40,14 @@ function normalizeSource(source) {
 
 function readWorkbook(file) {
   try {
-    return XLSX.readFile(file, { raw: false, cellDates: false });
+    return XLSX.readFile(file, { raw: true, cellDates: true });
   } catch (error) {
     throw new Error(`Không đọc được file ${file}: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
 function compactWorksheetValues(sheet) {
-  return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false, blankrows: false })
+  return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: true, blankrows: false })
     .filter(row => row.some(cell => String(cell ?? '').trim() !== ''));
 }
 

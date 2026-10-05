@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 import { parseBusinessNumber } from '../src/lib/parse-business-number.ts';
 
@@ -18,4 +19,10 @@ test('giữ số nguyên, số âm và giá trị rỗng', () => {
   assert.equal(parseBusinessNumber(12_580_540), 12_580_540);
   assert.equal(parseBusinessNumber('- 1.250,5 đ'), -1_250.5);
   assert.equal(parseBusinessNumber(''), 0);
+});
+
+test('Data Hub giữ giá trị số gốc của Excel thay vì chuỗi đã làm tròn', () => {
+  const source = fs.readFileSync(new URL('../data-hub/index.mjs', import.meta.url), 'utf8');
+  assert.match(source, /XLSX\.readFile\(file, \{ raw: true, cellDates: true \}\)/);
+  assert.match(source, /sheet_to_json\(sheet, \{ header: 1, defval: '', raw: true, blankrows: false \}\)/);
 });
