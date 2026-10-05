@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { isAuthorizedDataHubRequest, isDataHubImport, isGoogleSyncImport } from '@/lib/data-hub-auth';
+import { parseBusinessNumber } from '@/lib/parse-business-number';
 import { getSyncSource } from '@/lib/sync-source';
 
 // Parse date string (supports dd/mm/yyyy, yyyy-mm-dd, ISO) - UTC safe
@@ -67,10 +68,7 @@ function parseCSV(csv: string): string[][] {
 }
 
 function parseNumber(numStr: string): number {
-  if (!numStr || numStr.trim() === '') return 0;
-  const cleaned = numStr.trim().replace(/\./g, '').replace(/,/g, '.');
-  const val = parseFloat(cleaned);
-  return isNaN(val) ? 0 : val;
+  return parseBusinessNumber(numStr);
 }
 
 // Helper: tìm giá trị theo tên header (hỗ trợ nhiều tên khác nhau)
