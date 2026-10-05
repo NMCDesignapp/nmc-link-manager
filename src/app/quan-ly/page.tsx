@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { BackButton } from '@/components/back-button';
@@ -4111,19 +4112,26 @@ export default function QuanLyPage() {
                       <ChevronDown className={`w-3 h-3 transition-transform ${mobileMenuPopup === sheet.key ? 'rotate-180' : ''}`} />
                     </span>
                   )}
-                  {/* Popup sub-items (for revenue/report) — FIXED overlay centered, narrow on mobile, no rounded corners, divider lines between items */}
-                  {sheet.hasSub && mobileMenuPopup === sheet.key && (
+                  {/* Render outside the animated overview panel so the fixed popup
+                      stays viewport-centered and above the following KPI panels. */}
+                  {sheet.hasSub && mobileMenuPopup === sheet.key && typeof document !== 'undefined' && createPortal(
                     <>
-                      <div className="fixed inset-0 z-[400] bg-black/40" onClick={() => setMobileMenuPopup(null)} />
-                      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[500] bg-[#1a2332] border-2 border-emerald-500/60 max-h-[60vh] w-[72vw] max-w-[280px] overflow-y-auto shadow-2xl" style={{ borderRadius: 0 }}>
-                        <div className="sticky top-0 bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1.5 border-b-2 border-emerald-500/60 flex items-center justify-between">
+                      <div className="fixed inset-0 z-[999] bg-slate-950/70 backdrop-blur-[2px]" onClick={() => setMobileMenuPopup(null)} />
+                      <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={`Chọn ${sheet.label}`}
+                        className="fixed left-1/2 top-1/2 z-[1000] max-h-[calc(100dvh-96px)] w-[calc(100vw-32px)] max-w-[340px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border border-emerald-400/70 bg-[#111c2c] shadow-[0_24px_70px_rgba(0,0,0,0.7)]"
+                      >
+                        <div className="flex items-center justify-between border-b border-emerald-400/40 bg-emerald-700 px-3 py-2.5 text-xs font-extrabold text-white">
                           <span className="flex items-center gap-1.5">
-                            <Icon className="w-3 h-3" /> Chọn {sheet.label}
+                            <Icon className="h-3.5 w-3.5" /> Chọn {sheet.label}
                           </span>
-                          <button onClick={() => setMobileMenuPopup(null)} className="text-white/70 hover:text-white active:scale-90 transition-transform">
-                            <X className="w-3.5 h-3.5" />
+                          <button onClick={() => setMobileMenuPopup(null)} className="flex h-7 w-7 items-center justify-center rounded-md bg-black/20 text-white/80 transition-transform active:scale-90" aria-label="Đóng">
+                            <X className="h-4 w-4" />
                           </button>
                         </div>
+                        <div className={`${sheet.key === 'revenue' ? 'grid grid-cols-2 gap-1.5 p-2' : 'max-h-[calc(100dvh-145px)] overflow-y-auto p-1.5'}`}>
                         {(sheet.key === 'revenue'
                           ? MONTHS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar }))
                           : sheet.key === 'report'
@@ -4154,7 +4162,7 @@ export default function QuanLyPage() {
                                 }
                                 setMobileMenuPopup(null);
                               }}
-                              className={`w-full flex items-center gap-2 px-2.5 py-2 text-[11px] font-bold text-left hover:bg-emerald-500/20 active:scale-95 active:bg-emerald-500/30 transition-all border-b border-emerald-900/40 last:border-b-0 ${subActive ? 'text-emerald-300 bg-emerald-500/10' : 'text-emerald-100/80'}`}
+                              className={`flex min-h-10 w-full items-center gap-2 rounded-md border px-2.5 py-2 text-left text-[11px] font-bold transition-all active:scale-[0.97] ${sheet.key === 'revenue' && s.key === 'all' ? 'col-span-2' : ''} ${subActive ? 'border-emerald-400/70 bg-emerald-500/20 text-emerald-200' : 'border-white/10 bg-white/[0.04] text-emerald-50/90 hover:bg-emerald-500/15'}`}
                             >
                               <s.Icon className="w-3.5 h-3.5 flex-shrink-0" />
                               <span className="truncate flex-1">{s.label}</span>
@@ -4162,8 +4170,10 @@ export default function QuanLyPage() {
                             </button>
                           );
                         })}
+                        </div>
                       </div>
-                    </>
+                    </>,
+                    document.body,
                   )}
                 </div>
               );
