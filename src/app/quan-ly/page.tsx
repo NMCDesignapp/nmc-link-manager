@@ -35,6 +35,7 @@ import {
   downloadBlob,
 } from '@/lib/clb-sao-viet-image-export';
 import { evaluateClbsvPersonalRank } from '@/lib/clb-sao-viet-personal-rank';
+import { calculateRevenueTVVmAFYP } from '@/lib/revenue-tvvm';
 
 // nmc-sao-viet-exclude-chot-v1
 // Chuẩn hóa dấu và hoa/thường để "Chốt", "CHỐT" hoặc "Chot" đều được xem như nhau.
@@ -9331,6 +9332,9 @@ export default function QuanLyPage() {
     const soLuongHD = sortedContracts.length;
     const tongIP = sortedContracts.reduce((s, c) => s + c.pdt10DT, 0);
     const tongAFYP = sortedContracts.reduce((s, c) => s + c.afyp, 0);
+    // AFYP TVVm: lấy trực tiếp Ngày BĐLV + Ngày hiệu lực trên từng dòng doanh số.
+    // Cả năm dùng cùng quy tắc trên toàn bộ hợp đồng của 12 tháng đã lọc ở trên.
+    const tongAFYPTVVm = calculateRevenueTVVmAFYP(sortedContracts);
     const luotHoatDong = sortedContracts.filter(c => c.tinhLuot3tr >= 3000000).length;
     const luotChuan = sortedContracts.filter(c => c.tinhLuot3tr >= 12000000).length;
     // SL tuyển dụng trong tháng/năm (từ cấu trúc TVV)
@@ -9438,6 +9442,7 @@ export default function QuanLyPage() {
               { label: 'SL HĐ', value: formatNumber(soLuongHD), bg: '#D97706' },
               { label: 'IP + 10% PĐT', value: formatKpiCurrency(tongIP), bg: '#059669' },
               { label: 'AFYP', value: formatKpiCurrency(tongAFYP), bg: '#2563EB' },
+              { label: 'AFYP TVVm', value: formatKpiCurrency(tongAFYPTVVm), bg: '#EA580C' },
               { label: 'Lượt HĐ', value: formatNumber(luotHoatDong), bg: '#7C3AED' },
               { label: 'Lượt chuẩn', value: formatNumber(luotChuan), bg: '#DC2626' },
               { label: 'IP/AFYP', value: String(Math.round(ipAfypMonth)) + '%', bg: '#0891B2' },
