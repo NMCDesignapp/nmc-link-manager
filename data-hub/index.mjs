@@ -5,7 +5,7 @@ import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import XLSX from 'xlsx';
 
-const AGENT_VERSION = '2.1.1-20260818';
+const AGENT_VERSION = '2.1.2-20261007';
 const root = path.dirname(fileURLToPath(import.meta.url));
 const configPath = process.env.NMC_DATA_HUB_CONFIG || path.join(root, 'data-hub.config.json');
 const statePath = path.join(root, '.nmc-data-hub-state.json');
@@ -51,7 +51,42 @@ function compactWorksheetValues(sheet) {
     .filter(row => row.some(cell => String(cell ?? '').trim() !== ''));
 }
 
-function csvFromWorkbook(file, sheetName) {
+function normalizedHeader(value) {
+  return String(value ?? '').trim().toLocaleLowerCase('vi-VN');
+}
+
+function findHeaderIndex(headers, candidates) {
+  const accepted = new Set(candidates.map(normalizedHeader));
+  return headers.findIndex(value => accepted.has(normalizedHeader(value)));
+}
+
+function revenueWorksheetValues(sheet) {
+  const values = compactWorksheetValues(sheet);
+  if (values.length === 0) return values;
+
+  const headers = values[0];
+  const contractNumberIndex = findHeaderIndex(headers, ['Số hợp đồng', 'Số HĐ', 'contractNumber']);
+  const effectiveDateIndex = findHeaderIndex(headers, ['Ngày hiệu lực', 'Ngày HL', 'effectiveDate']);
+
+  const rows = values.slice(1)
+    // API chỉ nhận hợp đồng có ngày hiệu lực. Loại các ô tổng/ghi chú nằm xa
+    // bảng dữ liệu để bộ đếm Data Hub khớp đúng số hợp đồng được nhập.
+    .filter(row => effectiveDateIndex < 0 || String(row[effectiveDateIndex] ?? '').trim() !== '')
+    .map(row => {
+      const next = [...row];
+      // Số hợp đồng là mã định danh. Khi Excel lưu mã 14 chữ số dưới dạng số,
+      // SheetJS sẽ đổi thành 1E+13 nếu dựng lại CSV với định dạng General.
+      // Ép riêng cột này thành chuỗi, giữ nguyên toàn bộ chữ số đang lưu.
+      if (contractNumberIndex >= 0 && typeof next[contractNumberIndex] === 'number') {
+        next[contractNumberIndex] = String(next[contractNumberIndex]);
+      }
+      return next;
+    });
+
+  return [headers, ...rows];
+}
+
+function csvFromWorkbook(file, sheetName, options = {}) {
   const workbook = readWorkbook(file);
   const name = sheetName || workbook.SheetNames[0];
   const sheet = workbook.Sheets[name];
@@ -60,7 +95,7 @@ function csvFromWorkbook(file, sheetName) {
   // Excel có thể giữ used-range tới hàng nghìn dòng chỉ vì định dạng cũ.
   // Nếu sheet_to_csv trực tiếp, các hàng trống vẫn thành CSV có dấu phẩy và
   // bị bộ đếm hiểu nhầm là dữ liệu. Chỉ xuất các hàng thực sự có giá trị.
-  const values = compactWorksheetValues(sheet);
+  const values = options.revenueRowsOnly ? revenueWorksheetValues(sheet) : compactWorksheetValues(sheet);
   if (values.length === 0) return '';
   return XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet(values), { FS: ',', RS: '\n', forceQuotes: true });
 }
@@ -88,7 +123,7 @@ function historicalRevenueFromWorkbook(file) {
     // can be removed. Tamthu remains the sole source of the current month.
     if (month >= currentMonth) continue;
     months.push(month);
-    const values = compactWorksheetValues(workbook.Sheets[name]);
+    const values = revenueWorksheetValues(workbook.Sheets[name]);
     if (values.length === 0) continue;
     const csv = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet(values), { FS: ',', RS: '\n', forceQuotes: true });
     const lines = csv.split(/\r?\n/).filter(line => line.trim() !== '');
@@ -125,7 +160,9 @@ async function inputFromSource(source) {
 
   const extension = path.extname(source.file).toLowerCase();
   if (extension === '.csv') return fs.readFile(source.file, 'utf8');
-  if (extension === '.xlsx' || extension === '.xls' || extension === '.xlsm') return csvFromWorkbook(source.file, source.sheet);
+  if (extension === '.xlsx' || extension === '.xls' || extension === '.xlsm') {
+    return csvFromWorkbook(source.file, source.sheet, { revenueRowsOnly: source.kind === 'revenue' });
+  }
   throw new Error(`Định dạng chưa hỗ trợ: ${extension}. Hãy dùng CSV hoặc Excel.`);
 }
 
@@ -382,7 +419,13 @@ async function main() {
   }
 }
 
-main().catch(error => {
-  console.error('Không thể khởi động Data Hub:', error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-});
+const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isMainModule) {
+  main().catch(error => {
+    console.error('Không thể khởi động Data Hub:', error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });
+}
+
+export { csvDataRowCount, revenueWorksheetValues };
