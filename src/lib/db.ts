@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
+  schemaPrisma: PrismaClient | undefined
 }
 
 // Vercel serverless functions must use Supavisor transaction mode. If the
@@ -72,7 +73,25 @@ export const db = globalForPrisma.prisma ?? new PrismaClient({
   },
 })
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+// Schema changes must use the non-pooled owner connection. The Supabase
+// transaction-pool user used by normal requests can read/write rows but does
+// not own the tables, so ALTER TABLE through `db` fails in production.
+const schemaUrl = process.env.POSTGRES_URL_NON_POOLING || process.env.DIRECT_URL || ''
+const schemaDb = globalForPrisma.schemaPrisma ?? (schemaUrl ? new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  datasources: { db: { url: schemaUrl } },
+}) : db)
+
+export async function ensureTVVStructGhiChuColumn() {
+  await schemaDb.$executeRawUnsafe(
+    'ALTER TABLE "TVVStruct" ADD COLUMN IF NOT EXISTS "ghiChu" TEXT NOT NULL DEFAULT \'\'',
+  )
+}
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = db
+  globalForPrisma.schemaPrisma = schemaDb
+}
 
 export async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   let lastError: any

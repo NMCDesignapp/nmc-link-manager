@@ -1,8 +1,8 @@
-import { db } from '@/lib/db';
+import { db, ensureTVVStructGhiChuColumn } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 async function ensureGhiChuColumn() {
-  await db.$executeRawUnsafe('ALTER TABLE "TVVStruct" ADD COLUMN IF NOT EXISTS "ghiChu" TEXT NOT NULL DEFAULT \'\'');
+  await ensureTVVStructGhiChuColumn();
 }
 
 // Helper: chuyển Excel serial number thành Date

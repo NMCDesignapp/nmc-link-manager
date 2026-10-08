@@ -1,4 +1,4 @@
-import { db } from '@/lib/db';
+import { db, ensureTVVStructGhiChuColumn } from '@/lib/db';
 import { isAuthorizedDataHubRequest, isDataHubImport } from '@/lib/data-hub-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSyncSource } from '@/lib/sync-source';
@@ -44,7 +44,7 @@ function assertNoDuplicate(rows: Array<{ agentCode: string }>) {
 // of its corresponding local Excel sheet; rows removed from Excel are removed here too.
 export async function POST(request: NextRequest) {
   try {
-    await db.$executeRawUnsafe('ALTER TABLE "TVVStruct" ADD COLUMN IF NOT EXISTS "ghiChu" TEXT NOT NULL DEFAULT \'\'');
+    await ensureTVVStructGhiChuColumn();
     const body = await request.json();
     if (!isDataHubImport(body) || !isAuthorizedDataHubRequest(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

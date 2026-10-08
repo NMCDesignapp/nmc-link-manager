@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db, ensureTVVStructGhiChuColumn } from '@/lib/db';
 
 // Helper: safe date parse
 function safeDate(v: any): Date | null {
@@ -15,7 +15,7 @@ function safeDate(v: any): Date | null {
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await db.$executeRawUnsafe('ALTER TABLE "TVVStruct" ADD COLUMN IF NOT EXISTS "ghiChu" TEXT NOT NULL DEFAULT \'\'');
+    await ensureTVVStructGhiChuColumn();
     const { id } = await params;
     const body = await req.json();
     const data: Record<string, unknown> = {};
