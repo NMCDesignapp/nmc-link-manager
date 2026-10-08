@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, ensureTVVStructGhiChuColumn } from '@/lib/db';
+import { db } from '@/lib/db';
+import { removeTVVStructureNote, setTVVStructureNote } from '@/lib/tvv-structure-notes';
 
 // Helper: safe date parse
 function safeDate(v: any): Date | null {
@@ -15,9 +16,9 @@ function safeDate(v: any): Date | null {
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await ensureTVVStructGhiChuColumn();
     const { id } = await params;
     const body = await req.json();
+    const existing = await db.tVVStruct.findUniqueOrThrow({ where: { id }, select: { agentCode: true } });
     const data: Record<string, unknown> = {};
     if (body.agentCode !== undefined) data.agentCode = body.agentCode;
     if (body.agentName !== undefined) data.agentName = body.agentName;
@@ -26,9 +27,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.ngayBatDau !== undefined) data.ngayBatDau = body.ngayBatDau ? safeDate(body.ngayBatDau) : null;
     if (body.maTVVTuyendung !== undefined) data.maTVVTuyendung = body.maTVVTuyendung;
     if (body.note !== undefined) data.note = body.note;
-    if (body.ghiChu !== undefined) data.ghiChu = body.ghiChu;
     const item = await db.tVVStruct.update({ where: { id }, data });
-    return NextResponse.json(item);
+    const nextCode = String(body.agentCode ?? existing.agentCode);
+    if (nextCode !== existing.agentCode) await removeTVVStructureNote(existing.agentCode);
+    if (body.ghiChu !== undefined) await setTVVStructureNote(nextCode, body.ghiChu);
+    return NextResponse.json({ ...item, ghiChu: body.ghiChu ?? '' });
   } catch (error) {
     console.error('PATCH /api/structure/tvv/[id] error:', error);
     return NextResponse.json({ error: 'Không thể cập nhật TVV' }, { status: 500 });
@@ -38,7 +41,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    await db.tVVStruct.delete({ where: { id } });
+    const deleted = await db.tVVStruct.delete({ where: { id }, select: { agentCode: true } });
+    await removeTVVStructureNote(deleted.agentCode);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('DELETE /api/structure/tvv/[id] error:', error);

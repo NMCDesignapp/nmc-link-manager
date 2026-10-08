@@ -1,7 +1,8 @@
-import { db, ensureTVVStructGhiChuColumn } from '@/lib/db';
+import { db } from '@/lib/db';
 import { isAuthorizedDataHubRequest, isDataHubImport } from '@/lib/data-hub-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSyncSource } from '@/lib/sync-source';
+import { saveTVVStructureNotes } from '@/lib/tvv-structure-notes';
 
 type Collection = 'tvv' | 'leaders' | 'recruiters' | 'clb-members' | 'tuyen-ngang';
 type Row = Record<string, unknown>;
@@ -44,7 +45,6 @@ function assertNoDuplicate(rows: Array<{ agentCode: string }>) {
 // of its corresponding local Excel sheet; rows removed from Excel are removed here too.
 export async function POST(request: NextRequest) {
   try {
-    await ensureTVVStructGhiChuColumn();
     const body = await request.json();
     if (!isDataHubImport(body) || !isAuthorizedDataHubRequest(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -68,7 +68,9 @@ export async function POST(request: NextRequest) {
         .filter(row => row.agentCode && row.agentName);
       if (!rows.length) return NextResponse.json({ error: 'Không có TVV hợp lệ' }, { status: 400 });
       assertNoDuplicate(rows);
-      await db.$transaction([db.tVVStruct.deleteMany({}), db.tVVStruct.createMany({ data: rows })]);
+      const dbRows = rows.map(({ ghiChu: _ghiChu, ...row }) => row);
+      await db.$transaction([db.tVVStruct.deleteMany({}), db.tVVStruct.createMany({ data: dbRows })]);
+      await saveTVVStructureNotes(Object.fromEntries(rows.map(row => [row.agentCode, row.ghiChu])));
       return NextResponse.json({ collection, count: rows.length });
     }
 

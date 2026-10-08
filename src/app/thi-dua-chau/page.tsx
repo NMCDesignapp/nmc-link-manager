@@ -1239,11 +1239,7 @@ function ThiDuaPageInner() {
       }
       return contractsFiltered.filter(c => allowedMaNhom.has(c.maNhom) && !norm(c.nhom || '').toLowerCase().includes('dso'));
     }
-    if (targetType === 'nyd' && isRecruitmentMode(conditionType)) {
-      recruitmentRows.forEach((row, idx) => {
-        text += `${idx + 1}. ${row.recruiter.nhom || '—'} | ${row.recruiter.agentCode} | ${row.recruiter.agentName} | ${row.recruitCount} TVVm | Thưởng chính: ${formatCurrency(row.baseBonus)}${recruitmentConfig.activityEnabled ? ` | ${row.activityQualifiedCount} TVVm đạt hoạt động | Thưởng thêm: ${formatCurrency(row.activityBonus)}` : ''} | Tổng: ${formatCurrency(row.totalBonus)}\n`;
-      });
-    } else if (targetType === 'nyd') {
+    if (targetType === 'nyd') {
       // NTD: xác định tập mã NTD từ Recruiter table
       // Bỏ NTD thuộc nhóm DSO
       const ntdNoDSO = ntdCandidates;
@@ -2475,9 +2471,13 @@ function ThiDuaPageInner() {
     if (perContractDisplayContracts.length === 0 && nydData.length === 0 && recruitmentRows.length === 0 && tvvTotalRows.length === 0 && groupedData.length === 0) return;
     const sTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
     let text = `🏆 ${contestTitle}\n📅 Từ ${startDate ? formatDate(startDate) : '...'} đến ${endDate ? formatDate(endDate) : '...'}\n🎯 ${getTargetLabel(targetType)}\n━━━━━━━━━━━━━━━━━━━━\n📊 Mức thưởng:\n`;
-    sTiers.forEach((t, i) => { text += `  Mức ${i + 1}: ${isActivityRoundMode(conditionType) ? `${t.minFYP}${t.maxFYP ? ` - ${t.maxFYP}` : ' ↑'} lượt` : `${formatCurrency(t.minFYP)}${t.maxFYP ? ` - ${formatCurrency(t.maxFYP)}` : ' ↑'}`} → ${formatBonus(t)}\n`; });
+    sTiers.forEach((t, i) => { text += `  Mức ${i + 1}: ${isActivityRoundMode(conditionType) || isRecruitmentMode(conditionType) ? `${t.minFYP}${t.maxFYP ? ` - ${t.maxFYP}` : ' ↑'} ${isRecruitmentMode(conditionType) ? 'TVVm' : 'lượt'}` : `${formatCurrency(t.minFYP)}${t.maxFYP ? ` - ${formatCurrency(t.maxFYP)}` : ' ↑'}`} → ${formatBonus(t)}\n`; });
     text += `━━━━━━━━━━━━━━━━━━━━\n`;
-    if (targetType === 'nyd') {
+    if (targetType === 'nyd' && isRecruitmentMode(conditionType)) {
+      recruitmentRows.forEach((row, idx) => {
+        text += `${idx + 1}. ${row.recruiter.nhom || '—'} | ${row.recruiter.agentCode} | ${row.recruiter.agentName} | ${row.recruitCount} TVVm | Thưởng chính: ${formatCurrency(row.baseBonus)}${recruitmentConfig.activityEnabled ? ` | ${row.activityQualifiedCount} TVVm đạt hoạt động | Thưởng thêm: ${formatCurrency(row.activityBonus)}` : ''} | Tổng: ${formatCurrency(row.totalBonus)}\n`;
+      });
+    } else if (targetType === 'nyd') {
       nydData.map(n => {
         const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
         const { tier } = calculateBonus(value);

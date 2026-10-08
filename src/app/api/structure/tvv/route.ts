@@ -1,9 +1,8 @@
-import { db, ensureTVVStructGhiChuColumn } from '@/lib/db';
+import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { getTVVStructureNotes, removeTVVStructureNote, saveTVVStructureNotes, setTVVStructureNote } from '@/lib/tvv-structure-notes';
 
-async function ensureGhiChuColumn() {
-  await ensureTVVStructGhiChuColumn();
-}
+const tvvSelect = { id: true, agentCode: true, agentName: true, maBanNhom: true, chucVu: true, ngayBatDau: true, maTVVTuyendung: true, note: true, createdAt: true, updatedAt: true } as const;
 
 // Helper: chuyển Excel serial number thành Date
 function excelSerialToDate(serial: number): Date {
@@ -50,9 +49,11 @@ function datesEqual(a: Date | null, b: Date | null): boolean {
 // GET /api/structure/tvv
 export async function GET() {
   try {
-    await ensureGhiChuColumn();
-    const list = await db.tVVStruct.findMany({ orderBy: { agentName: 'asc' } });
-    return NextResponse.json(list);
+    const [list, notes] = await Promise.all([
+      db.tVVStruct.findMany({ orderBy: { agentName: 'asc' }, select: tvvSelect }),
+      getTVVStructureNotes(),
+    ]);
+    return NextResponse.json(list.map(item => ({ ...item, ghiChu: notes[item.agentCode] || '' })));
   } catch (error) {
     console.error('Error fetching TVV:', error);
     return NextResponse.json({ error: 'Không thể tải danh sách TVV' }, { status: 500 });
@@ -64,7 +65,6 @@ export async function GET() {
 // ?upsert=true → cập nhật thông minh: giữ nguyên nếu không đổi, cập nhật nếu thay đổi, thêm mới nếu chưa có, xoá nếu không còn trong DS mới
 export async function POST(request: NextRequest) {
   try {
-    await ensureGhiChuColumn();
     const replaceAll = request.nextUrl.searchParams.get('replaceAll') === 'true';
     const upsertMode = request.nextUrl.searchParams.get('upsert') === 'true';
     const body = await request.json();
@@ -124,7 +124,10 @@ export async function POST(request: NextRequest) {
       // ═══════════════════════════════════════════
       if (upsertMode) {
         // Lấy toàn bộ TVV hiện tại trong DB
-        const existingList = await db.tVVStruct.findMany();
+        const [existingList, existingNotes] = await Promise.all([
+          db.tVVStruct.findMany({ select: tvvSelect }),
+          getTVVStructureNotes(),
+        ]);
         const existingMap = new Map(existingList.map(t => [t.agentCode, t]));
 
         let created = 0;
@@ -153,7 +156,8 @@ export async function POST(request: NextRequest) {
 
           if (!existing) {
             // TVV mới → tạo mới
-            await db.tVVStruct.create({ data: rec });
+            const { ghiChu: _ghiChu, ...recordData } = rec;
+            await db.tVVStruct.create({ data: recordData });
             created++;
           } else {
             // TVV đã có → so sánh từng trường
@@ -163,7 +167,7 @@ export async function POST(request: NextRequest) {
               existing.chucVu === rec.chucVu &&
               existing.maTVVTuyendung === rec.maTVVTuyendung &&
               existing.note === rec.note &&
-              existing.ghiChu === rec.ghiChu &&
+              (existingNotes[rec.agentCode] || '') === rec.ghiChu &&
               datesEqual(existing.ngayBatDau, rec.ngayBatDau);
 
             if (isSame) {
@@ -180,7 +184,6 @@ export async function POST(request: NextRequest) {
                   ngayBatDau: rec.ngayBatDau,
                   maTVVTuyendung: rec.maTVVTuyendung,
                   note: rec.note,
-                  ghiChu: rec.ghiChu,
                 },
               });
               updated++;
@@ -195,6 +198,7 @@ export async function POST(request: NextRequest) {
         if (skipped > 0) parts.push(`giữ nguyên ${skipped}`);
         if (deleted > 0) parts.push(`xoá ${deleted}`);
 
+        await saveTVVStructureNotes(Object.fromEntries(records.map(rec => [rec.agentCode, rec.ghiChu])));
         return NextResponse.json({
           message: `Đã cập nhật DS TVV: ${parts.join(', ')}`,
           created,
@@ -226,10 +230,11 @@ export async function POST(request: NextRequest) {
       const batchSize = 500;
       let totalImported = 0;
       for (let i = 0; i < records.length; i += batchSize) {
-        const batch = records.slice(i, i + batchSize);
+        const batch = records.slice(i, i + batchSize).map(({ ghiChu: _ghiChu, ...record }) => record);
         const result = await db.tVVStruct.createMany({ data: batch });
         totalImported += result.count;
       }
+      await saveTVVStructureNotes(Object.fromEntries(records.map(rec => [rec.agentCode, rec.ghiChu])));
       return NextResponse.json({ message: `Đã nhập ${totalImported} TVV`, count: totalImported });
     }
 
@@ -246,10 +251,11 @@ export async function POST(request: NextRequest) {
 
     const item = await db.tVVStruct.upsert({
       where: { agentCode },
-      update: { agentName, maBanNhom: maBanNhom || '', chucVu: chucVu || '', ngayBatDau: safeDate(ngayBatDau), maTVVTuyendung: maTVVTuyendung || '', note: note || '', ghiChu: ghiChu || '' },
-      create: { agentCode, agentName, maBanNhom: maBanNhom || '', chucVu: chucVu || '', ngayBatDau: safeDate(ngayBatDau), maTVVTuyendung: maTVVTuyendung || '', note: note || '', ghiChu: ghiChu || '' },
+      update: { agentName, maBanNhom: maBanNhom || '', chucVu: chucVu || '', ngayBatDau: safeDate(ngayBatDau), maTVVTuyendung: maTVVTuyendung || '', note: note || '' },
+      create: { agentCode, agentName, maBanNhom: maBanNhom || '', chucVu: chucVu || '', ngayBatDau: safeDate(ngayBatDau), maTVVTuyendung: maTVVTuyendung || '', note: note || '' },
     });
-    return NextResponse.json(item, { status: 201 });
+    await setTVVStructureNote(agentCode, ghiChu || '');
+    return NextResponse.json({ ...item, ghiChu: ghiChu || '' }, { status: 201 });
   } catch (error: any) {
     if (error?.code === 'P2002') return NextResponse.json({ error: 'Mã TVV đã tồn tại' }, { status: 409 });
     console.error('Error creating TVV:', error);
@@ -265,11 +271,13 @@ export async function DELETE(request: NextRequest) {
     const deleteAll = request.nextUrl.searchParams.get('deleteAll');
     if (deleteAll === 'true') {
       const result = await db.tVVStruct.deleteMany({});
+      await saveTVVStructureNotes({});
       return NextResponse.json({ success: true, deleted: result.count });
     }
     const id = request.nextUrl.searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'Thiếu id' }, { status: 400 });
-    await db.tVVStruct.delete({ where: { id } });
+    const deleted = await db.tVVStruct.delete({ where: { id }, select: { agentCode: true } });
+    await removeTVVStructureNote(deleted.agentCode);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting TVV:', error);
