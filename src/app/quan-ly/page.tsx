@@ -48,6 +48,7 @@ const isSaoVietTrackingContest = (contest: any) => {
   return !normalizedTitle.startsWith('chot');
 };
 
+// nmc-multi-group-filter-v1
 // ==================== TYPES ====================
 interface LeaderInfo {
   id: string; agentCode: string; agentName: string; position: string;
@@ -134,7 +135,7 @@ interface PendingMemberItem {
 interface PhongItem { id: string; maPhong: string; tenPhong: string; note: string; }
 interface ADItem { id: string; maAD: string; tenAD: string; maPhong: string; note: string; }
 interface BanNhomItem { id: string; maBanNhom: string; tenBanNhom: string; maAD: string; ngayBatDau: string | null; note: string; }
-interface TVVStructItem { id: string; agentCode: string; agentName: string; maBanNhom: string; chucVu: string; ngayBatDau: string | null; maTVVTuyendung: string; note: string; }
+interface TVVStructItem { id: string; agentCode: string; agentName: string; maBanNhom: string; chucVu: string; ngayBatDau: string | null; maTVVTuyendung: string; note: string; ghiChu: string; }
 
 // Merge range for spreadsheet
 interface MergeRange {
@@ -418,7 +419,7 @@ const TEMPLATES: Record<string, { headers: string[]; sampleData: Record<string, 
   // QUAN TRỌNG: cột 'Mã TVV TD' phải khớp CHÍNH XÁC với getVal() trong /api/structure/tvv/route.ts
   // API chấp nhận: 'maTVVTuyendung' | 'Mã TVV tuyển dụng' | 'Mã TVV TD' (case-sensitive)
   'structure-tvv': {
-    headers: ['Mã TVV', 'Tên TVV', 'Mã Ban/Nhóm', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Mã TVV TD', 'Trạng thái'],
+    headers: ['Mã TVV', 'Tên TVV', 'Mã Ban/Nhóm', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Mã TVV TD', 'Trạng thái', 'Ghi chú'],
     sampleData: [
       { 'Mã TVV': 'D104132784', 'Tên TVV': 'Nguyễn Văn A', 'Mã Ban/Nhóm': 'U104102122', 'Chức vụ': 'Trưởng nhóm', 'Ngày bắt đầu làm việc': '01/01/2026', 'Mã TVV TD': 'D104102154', 'Trạng thái': 'Hoạt động' },
       { 'Mã TVV': 'D104132785', 'Tên TVV': 'Trần Thị B', 'Mã Ban/Nhóm': 'U104102122', 'Chức vụ': 'TVV', 'Ngày bắt đầu làm việc': '15/02/2026', 'Mã TVV TD': 'D104132784', 'Trạng thái': 'PA' },
@@ -1784,8 +1785,35 @@ export default function QuanLyPage() {
   // CLB Sao Việt — same navigation pattern as Sao Việt (overview + 3 detail sub-pages)
   const [clbsvOpen, setClbsvOpen] = useState<string | null>(null); // null = show list, key = sub-page
   const [clbsvExpanded, setClbsvExpanded] = useState(false); // desktop sidebar expand/collapse
-  const [clbsvNhomFilter, setClbsvNhomFilter] = useState<string>('');
+  const [clbsvNhomFilter, setClbsvNhomFilter] = useState<string[]>([]);
   const [clbsvNameFilter, setClbsvNameFilter] = useState<string>('');
+
+  // nmc-multi-group-filter-ux-v1
+  useEffect(() => {
+    const closeMultiGroupMenus = () => {
+      document.querySelectorAll<HTMLElement>('[data-nmc-multi-group-menu="1"]').forEach((menu) => {
+        menu.classList.add('hidden');
+      });
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      document.querySelectorAll<HTMLElement>('[data-nmc-multi-group-menu="1"]').forEach((menu) => {
+        const root = menu.parentElement;
+        if (root && !root.contains(target)) menu.classList.add('hidden');
+      });
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    // KPI tách hiển thị /quan-ly trong iframe. Nếu người dùng bấm ra vùng header
+    // của iframe cha, window con mất focus; đóng menu luôn để hành vi vẫn tự nhiên.
+    window.addEventListener('blur', closeMultiGroupMenus);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('blur', closeMultiGroupMenus);
+    };
+  }, []);
 
   // ===== TÔN VINH — 4 bảng Top 5 (H1) =====
   const [vinhdanhSub, setVinhDanhSub] = useState<VinhDanhSubKey>('top5-tvv');
@@ -2290,7 +2318,7 @@ export default function QuanLyPage() {
   const [newPhong, setNewPhong] = useState({ maPhong: '', tenPhong: '', note: '' });
   const [newAD, setNewAD] = useState({ maAD: '', tenAD: '', maPhong: '', note: '' });
   const [newBanNhom, setNewBanNhom] = useState({ maBanNhom: '', tenBanNhom: '', maAD: '', ngayBatDau: '', note: '' });
-  const [newTvv, setNewTvv] = useState({ agentCode: '', agentName: '', maBanNhom: '', chucVu: '', ngayBatDau: '', maTVVTuyendung: '', note: '' });
+  const [newTvv, setNewTvv] = useState({ agentCode: '', agentName: '', maBanNhom: '', chucVu: '', ngayBatDau: '', maTVVTuyendung: '', note: '', ghiChu: '' });
 
   // Edit state
   const [editingPhong, setEditingPhong] = useState<PhongItem | null>(null);
@@ -3147,7 +3175,7 @@ export default function QuanLyPage() {
   }, [newBanNhom, fetchBanNhom]);
   const handleAddTvv = useCallback(async () => {
     if (!newTvv.agentCode || !newTvv.agentName) return;
-    try { const res = await fetch('/api/structure/tvv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newTvv) }); if (res.ok) { setAddTvvOpen(false); setNewTvv({ agentCode: '', agentName: '', maBanNhom: '', chucVu: '', ngayBatDau: '', maTVVTuyendung: '', note: '' }); fetchTvvStruct(); toast({ title: 'Đã thêm TVV' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+    try { const res = await fetch('/api/structure/tvv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newTvv) }); if (res.ok) { setAddTvvOpen(false); setNewTvv({ agentCode: '', agentName: '', maBanNhom: '', chucVu: '', ngayBatDau: '', maTVVTuyendung: '', note: '', ghiChu: '' }); fetchTvvStruct(); toast({ title: 'Đã thêm TVV' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, [newTvv, fetchTvvStruct]);
 
   const handleDeletePhong = useCallback(async (id: string) => {
@@ -3253,7 +3281,7 @@ export default function QuanLyPage() {
   }, [editingBanNhom, fetchBanNhom]);
   const handleEditTvv = useCallback(async () => {
     if (!editingTvv) return;
-    try { const res = await fetch(`/api/structure/tvv/${editingTvv.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentCode: editingTvv.agentCode, agentName: editingTvv.agentName, maBanNhom: editingTvv.maBanNhom, chucVu: editingTvv.chucVu, ngayBatDau: editingTvv.ngayBatDau || '', maTVVTuyendung: editingTvv.maTVVTuyendung || '', note: editingTvv.note }) }); if (res.ok) { setEditingTvv(null); fetchTvvStruct(); toast({ title: 'Đã cập nhật' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
+    try { const res = await fetch(`/api/structure/tvv/${editingTvv.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agentCode: editingTvv.agentCode, agentName: editingTvv.agentName, maBanNhom: editingTvv.maBanNhom, chucVu: editingTvv.chucVu, ngayBatDau: editingTvv.ngayBatDau || '', maTVVTuyendung: editingTvv.maTVVTuyendung || '', note: editingTvv.note, ghiChu: editingTvv.ghiChu }) }); if (res.ok) { setEditingTvv(null); fetchTvvStruct(); toast({ title: 'Đã cập nhật' }); } } catch { toast({ title: 'Lỗi', variant: 'destructive' }); }
   }, [editingTvv, fetchTvvStruct]);
 
   // Helper: chuyển Excel serial number thành chuỗi ngày YYYY-MM-DD
@@ -3385,7 +3413,7 @@ export default function QuanLyPage() {
       else if (sheetName === 'staff') data = staff.map(s => ({ 'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position, 'Nhóm': s.nhom, 'Mã nhóm': s.maNhom, 'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'recruiters') data = recruiters.map(r => ({ 'Mã số': r.agentCode, 'Họ tên': r.agentName, 'Chức vụ': r.position, 'Nhóm': r.nhom, 'Ngày bắt đầu': r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '', 'Ngày hiệu lực chức vụ': r.ngayHieuLuc ? new Date(r.ngayHieuLuc).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'tuyen-ngang') data = tuyenNgangList.map((t, i) => ({ 'STT': i + 1, 'NHÓM': t.nhom, 'MÃ TVV': t.agentCode, 'HỌ TÊN': t.agentName, 'Ngày bắt đầu làm việc': t.ngayBatDau ? new Date(t.ngayBatDau).toLocaleDateString('vi-VN') : '', 'Ngày hiệu lực chức vụ': t.ngayHieuLuc ? new Date(t.ngayHieuLuc).toLocaleDateString('vi-VN') : '', 'MÃ NGƯỜI TUYỂN DỤNG': t.maNguoiTuyenDung, 'TÊN NGƯỜI TUYỂN DỤNG': t.tenNguoiTuyenDung }));
-      else if (sheetName === 'structure-tvv') data = tvvStructList.map(t => ({ 'Mã TVV': t.agentCode, 'Tên TVV': t.agentName, 'Mã Ban/Nhóm': t.maBanNhom, 'Chức vụ': t.chucVu, 'Ngày bắt đầu làm việc': t.ngayBatDau ? new Date(t.ngayBatDau).toLocaleDateString('vi-VN') : '', 'Mã TVV TD': t.maTVVTuyendung, 'Trạng thái': t.note }));
+      else if (sheetName === 'structure-tvv') data = tvvStructList.map(t => ({ 'Mã TVV': t.agentCode, 'Tên TVV': t.agentName, 'Mã Ban/Nhóm': t.maBanNhom, 'Chức vụ': t.chucVu, 'Ngày bắt đầu làm việc': t.ngayBatDau ? new Date(t.ngayBatDau).toLocaleDateString('vi-VN') : '', 'Mã TVV TD': t.maTVVTuyendung, 'Trạng thái': t.note, 'Ghi chú': t.ghiChu }));
 
       if (data.length === 0) { toast({ title: 'Không có dữ liệu', variant: 'destructive' }); return; }
 
@@ -5067,7 +5095,7 @@ export default function QuanLyPage() {
   // Đây là nguồn đối tượng CHÍNH cho các chính sách TVV (TVVm, NS-TVV, Quý-TVV)
   // Columns: Mã TVV - Tên TVV - Mã Ban/Nhóm - Tên Ban/Nhóm - Chức vụ - Ngày bắt đầu LV - Mã TVV Tuyển dụng - Tên TVV Tuyển dụng - Trạng thái
   const renderTvvList = () => {
-    const filtered = getFiltered(getSorted(tvvStructList), ['agentCode', 'agentName', 'maBanNhom', 'chucVu', 'maTVVTuyendung', 'note']);
+    const filtered = getFiltered(getSorted(tvvStructList), ['agentCode', 'agentName', 'maBanNhom', 'chucVu', 'maTVVTuyendung', 'note', 'ghiChu']);
     // Resolve tên Ban/Nhóm + tên TVV Tuyển dụng từ mã
     const resolveTenBanNhom = (maBanNhom: string) => {
       if (!maBanNhom) return '';
@@ -5149,6 +5177,7 @@ export default function QuanLyPage() {
                 { f: 'maTVVTuyendung', l: 'Mã TVV TD' },
                 { f: '_tenTVVTuyendung', l: 'Tên TVV TD' },
                 { f: 'note', l: 'Trạng thái' },
+                { f: 'ghiChu', l: 'Ghi chú' },
               ].map(col => (
                 <TableHead key={col.f} className="text-yellow-100 text-xs font-bold uppercase cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
               ))}
@@ -5166,6 +5195,7 @@ export default function QuanLyPage() {
                   <TableCell className="text-xs p-0"><EditableCell value={t.maTVVTuyendung || ''} onSave={(v) => updateTvvInline(t.id, 'maTVVTuyendung', v)} /></TableCell>
                   <TableCell className="text-xs text-violet-700 whitespace-nowrap p-2">{resolveTenTVVTuyendung(t.maTVVTuyendung) || '—'}</TableCell>
                   <TableCell className="text-xs p-0"><EditableCell value={t.note} onSave={(v) => updateTvvInline(t.id, 'note', v)} /></TableCell>
+                  <TableCell className="text-xs p-0"><EditableCell value={t.ghiChu || ''} onSave={(v) => updateTvvInline(t.id, 'ghiChu', v)} /></TableCell>
                   <TableCell className="text-xs p-1 flex items-center gap-0.5">
                     <Button variant="ghost" size="sm" onClick={() => setEditingTvv(t)} className="h-6 w-6 p-0 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"><Edit2 className="w-3 h-3" /></Button>
                     <Button variant="ghost" size="sm" onClick={() => handleDeleteTvv(t.id)} className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"><Trash2 className="w-3 h-3" /></Button>
@@ -5487,25 +5517,25 @@ export default function QuanLyPage() {
   // (policyOpen state đã khai báo ở trên cùng — dùng chung cho navigateTo/back button)
 
   // Thưởng Quý TVV filters
-  const [quyTvvNhomFilter, setQuyTvvNhomFilter] = useState<string>('');
+  const [quyTvvNhomFilter, setQuyTvvNhomFilter] = useState<string[]>([]);
   const [quyTvvNameFilter, setQuyTvvNameFilter] = useState<string>('');
   // Thưởng TVVm filters
-  const [tvvmNhomFilter, setTvvmNhomFilter] = useState<string>('');
+  const [tvvmNhomFilter, setTvvmNhomFilter] = useState<string[]>([]);
   const [tvvmNameFilter, setTvvmNameFilter] = useState<string>('');
   // Thưởng NS tháng TVV filters
-  const [nsTvvNhomFilter, setNsTvvNhomFilter] = useState<string>('');
+  const [nsTvvNhomFilter, setNsTvvNhomFilter] = useState<string[]>([]);
   const [nsTvvNameFilter, setNsTvvNameFilter] = useState<string>('');
   // Thưởng Tuyển Luyện filters
-  const [tuyenLuyenNhomFilter, setTuyenLuyenNhomFilter] = useState<string>('');
+  const [tuyenLuyenNhomFilter, setTuyenLuyenNhomFilter] = useState<string[]>([]);
   const [tuyenLuyenNameFilter, setTuyenLuyenNameFilter] = useState<string>('');
   // Thưởng Đồng Hành filters
-  const [dongHanhNhomFilter, setDongHanhNhomFilter] = useState<string>('');
+  const [dongHanhNhomFilter, setDongHanhNhomFilter] = useState<string[]>([]);
   const [dongHanhNameFilter, setDongHanhNameFilter] = useState<string>('');
   // Thưởng Quý TN filters
-  const [quyTnNhomFilter, setQuyTnNhomFilter] = useState<string>('');
+  const [quyTnNhomFilter, setQuyTnNhomFilter] = useState<string[]>([]);
   const [quyTnNameFilter, setQuyTnNameFilter] = useState<string>('');
   // Thưởng PTKD TN filters
-  const [ptkdNhomFilter, setPtkdNhomFilter] = useState<string>('');
+  const [ptkdNhomFilter, setPtkdNhomFilter] = useState<string[]>([]);
   const [ptkdNameFilter, setPtkdNameFilter] = useState<string>('');
   // Policy image link — per policy item, persisted via Settings API
   const [policyImageLinks, setPolicyImageLinks] = useState<Record<string, string>>({});
@@ -5569,7 +5599,7 @@ export default function QuanLyPage() {
   }, [activeSheet, appDataVersion]);
   const [clbsvPosterUploading, setClbsvPosterUploading] = useState<Record<string, boolean>>({});
   // Filters for Sao Việt detail pages (shared, applies to whichever detail page is open)
-  const [saovietNhomFilter, setSaovietNhomFilter] = useState<string>('');
+  const [saovietNhomFilter, setSaovietNhomFilter] = useState<string[]>([]);
   const [saovietNameFilter, setSaovietNameFilter] = useState<string>('');
   // Settings modal toggle (overview page only) — contains all sync/upload panels
   const [saovietSettingsOpen, setSaovietSettingsOpen] = useState<boolean>(false);
@@ -6694,7 +6724,7 @@ export default function QuanLyPage() {
 
     // Apply filters (TVVm)
     const filteredTvvmRows = tvvmRows.filter(row => {
-      if (tvvmNhomFilter && row.nhom !== tvvmNhomFilter) return false;
+      if (tvvmNhomFilter.length > 0 && !tvvmNhomFilter.includes(row.nhom)) return false;
       if (tvvmNameFilter && !row.hoTen.toLowerCase().includes(tvvmNameFilter.toLowerCase()) && !row.maTVV.toLowerCase().includes(tvvmNameFilter.toLowerCase())) return false;
       return true;
     });
@@ -6778,7 +6808,7 @@ export default function QuanLyPage() {
           </div>
           <div className="flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
             <button
-              onClick={() => setTvvmNhomFilter('')}
+              onClick={() => setTvvmNhomFilter([])}
               className={`px-2 py-1 text-[10px] font-bold transition-colors whitespace-nowrap flex-shrink-0 ${
                 !tvvmNhomFilter
                   ? 'bg-emerald-700 text-white shadow-sm'
@@ -6791,9 +6821,9 @@ export default function QuanLyPage() {
             {uniqueTvvmNhomList.map(nhom => (
               <button
                 key={nhom}
-                onClick={() => setTvvmNhomFilter(tvvmNhomFilter === nhom ? '' : nhom)}
+                onClick={() => setTvvmNhomFilter(prev => prev.includes(nhom) ? prev.filter(value => value !== nhom) : [...prev, nhom])}
                 className={`px-2 py-1 text-[10px] font-bold transition-colors whitespace-nowrap flex-shrink-0 ${
-                  tvvmNhomFilter === nhom
+                  tvvmNhomFilter.includes(nhom)
                     ? 'bg-emerald-700 text-white shadow-sm'
                     : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'
                 }`}
@@ -6977,7 +7007,7 @@ export default function QuanLyPage() {
 
     // Apply NHÓM filter
     const filteredRows = tvvRows.filter(row => {
-      if (quyTvvNhomFilter && row.nhom !== quyTvvNhomFilter) return false;
+      if (quyTvvNhomFilter.length > 0 && !quyTvvNhomFilter.includes(row.nhom)) return false;
       if (quyTvvNameFilter && !row.hoTen.toLowerCase().includes(quyTvvNameFilter.toLowerCase()) && !row.maTVV.toLowerCase().includes(quyTvvNameFilter.toLowerCase())) return false;
       return true;
     });
@@ -7035,7 +7065,7 @@ export default function QuanLyPage() {
           </div>
           <div className="flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
             <button
-              onClick={() => setQuyTvvNhomFilter('')}
+              onClick={() => setQuyTvvNhomFilter([])}
               className={`px-2 py-1 text-[10px] font-bold transition-colors whitespace-nowrap flex-shrink-0 ${
                 !quyTvvNhomFilter
                   ? 'bg-emerald-700 text-white shadow-sm'
@@ -7048,9 +7078,9 @@ export default function QuanLyPage() {
             {uniqueNhomList.map(nhom => (
               <button
                 key={nhom}
-                onClick={() => setQuyTvvNhomFilter(quyTvvNhomFilter === nhom ? '' : nhom)}
+                onClick={() => setQuyTvvNhomFilter(prev => prev.includes(nhom) ? prev.filter(value => value !== nhom) : [...prev, nhom])}
                 className={`px-2 py-1 text-[10px] font-bold transition-colors whitespace-nowrap flex-shrink-0 ${
-                  quyTvvNhomFilter === nhom
+                  quyTvvNhomFilter.includes(nhom)
                     ? 'bg-emerald-700 text-white shadow-sm'
                     : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'
                 }`}
@@ -7245,7 +7275,7 @@ export default function QuanLyPage() {
 
     // Apply filters
     const filteredRows = tvvRows.filter(row => {
-      if (nsTvvNhomFilter && row.nhom !== nsTvvNhomFilter) return false;
+      if (nsTvvNhomFilter.length > 0 && !nsTvvNhomFilter.includes(row.nhom)) return false;
       if (nsTvvNameFilter && !row.hoTen.toLowerCase().includes(nsTvvNameFilter.toLowerCase()) && !row.maTVV.toLowerCase().includes(nsTvvNameFilter.toLowerCase())) return false;
       return true;
     });
@@ -7312,7 +7342,7 @@ export default function QuanLyPage() {
           </div>
           <div className="flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
             <button
-              onClick={() => setNsTvvNhomFilter('')}
+              onClick={() => setNsTvvNhomFilter([])}
               className={`px-2 py-1 text-[10px] font-bold transition-colors whitespace-nowrap flex-shrink-0 ${
                 !nsTvvNhomFilter
                   ? 'bg-emerald-700 text-white shadow-sm'
@@ -7325,9 +7355,9 @@ export default function QuanLyPage() {
             {uniqueNhomList.map(nhom => (
               <button
                 key={nhom}
-                onClick={() => setNsTvvNhomFilter(nsTvvNhomFilter === nhom ? '' : nhom)}
+                onClick={() => setNsTvvNhomFilter(prev => prev.includes(nhom) ? prev.filter(value => value !== nhom) : [...prev, nhom])}
                 className={`px-2 py-1 text-[10px] font-bold transition-colors whitespace-nowrap flex-shrink-0 ${
-                  nsTvvNhomFilter === nhom
+                  nsTvvNhomFilter.includes(nhom)
                     ? 'bg-emerald-700 text-white shadow-sm'
                     : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'
                 }`}
@@ -7478,13 +7508,52 @@ export default function QuanLyPage() {
           });
           tongIPChang = changContracts.reduce((s, c) => s + c.pdt10DT, 0);
         }
-        let thuongChang = 0;
-        if (changInfo.chang === 1) {
-          if (tongIPChang >= 100_000_000) thuongChang = 6_000_000;
-          else if (tongIPChang >= 50_000_000) thuongChang = 3_000_000;
-        } else if (changInfo.chang >= 2 && changInfo.chang <= 4) {
-          if (tongIPChang >= 100_000_000) thuongChang = 3_000_000;
-        }
+        // nmc-tvvm-stage-reward-once-policy-v1
+
+        // Thưởng chặng chỉ ghi nhận phần MỚI phát sinh ở tháng hiện tại.
+
+        // Nếu phần thưởng của cùng chặng đã được ghi nhận ở tháng trước thì không cộng lại.
+
+        const currentMonthStartForStage = new Date(currentYear, currentMonth - 1, 1);
+
+        const previousStageIP = contracts.filter(c => {
+
+          if (c.agentCode !== tvv.agentCode) return false;
+
+          const d = getDoanhSoMonth(c);
+
+          return !isNaN(d.getTime()) && d >= changInfo.rangeStart && d < currentMonthStartForStage;
+
+        }).reduce((s, c) => s + c.pdt10DT, 0);
+
+        const stageRewardEntitlement = (stage: number, stageIP: number): number => {
+
+          if (stage === 1) {
+
+            if (stageIP >= 100_000_000) return 6_000_000;
+
+            if (stageIP >= 50_000_000) return 3_000_000;
+
+            return 0;
+
+          }
+
+          if (stage >= 2 && stage <= 4 && stageIP >= 100_000_000) return 3_000_000;
+
+          return 0;
+
+        };
+
+        const thuongChang = Math.max(
+
+          0,
+
+          stageRewardEntitlement(changInfo.chang, tongIPChang)
+
+            - stageRewardEntitlement(changInfo.chang, previousStageIP),
+
+        );
+
         tongThuongTVVm += thuongThang + thuongChang;
       });
 
@@ -7523,7 +7592,7 @@ export default function QuanLyPage() {
     // NGUYÊN TẮC: hiển thị TẤT CẢ đối tượng NTD từ cấu trúc
     // File doanh số chỉ để tính toán, không filter đối tượng
     const filteredRows = ntdRows.filter(row => {
-      if (tuyenLuyenNhomFilter && row.nhom !== tuyenLuyenNhomFilter) return false;
+      if (tuyenLuyenNhomFilter.length > 0 && !tuyenLuyenNhomFilter.includes(row.nhom)) return false;
       if (tuyenLuyenNameFilter && !row.hoTen.toLowerCase().includes(tuyenLuyenNameFilter.toLowerCase()) && !row.maNTD.toLowerCase().includes(tuyenLuyenNameFilter.toLowerCase())) return false;
       return true;
     });
@@ -7579,9 +7648,9 @@ export default function QuanLyPage() {
             {tuyenLuyenNameFilter && <button onClick={() => setTuyenLuyenNameFilter('')} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>}
           </div>
           <div className="flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-            <button onClick={() => setTuyenLuyenNhomFilter('')} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${!tuyenLuyenNhomFilter ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>Tất cả</button>
+            <button onClick={() => setTuyenLuyenNhomFilter([])} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${tuyenLuyenNhomFilter.length === 0 ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>Tất cả</button>
             {uniqueNhomList.map(nhom => (
-              <button key={nhom} onClick={() => setTuyenLuyenNhomFilter(tuyenLuyenNhomFilter === nhom ? '' : nhom)} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${tuyenLuyenNhomFilter === nhom ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>{nhom}</button>
+              <button key={nhom} onClick={() => setTuyenLuyenNhomFilter(prev => prev.includes(nhom) ? prev.filter(value => value !== nhom) : [...prev, nhom])} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${tuyenLuyenNhomFilter.includes(nhom) ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>{nhom}</button>
             ))}
           </div>
         </div>
@@ -7715,14 +7784,52 @@ export default function QuanLyPage() {
           });
           tongIPChang = changContracts.reduce((s, c) => s + c.pdt10DT, 0);
         }
-        // Thưởng chặng
-        let thuongChang = 0;
-        if (changInfo.chang === 1) {
-          if (tongIPChang >= 100_000_000) thuongChang = 6_000_000;
-          else if (tongIPChang >= 50_000_000) thuongChang = 3_000_000;
-        } else if (changInfo.chang >= 2 && changInfo.chang <= 4) {
-          if (tongIPChang >= 100_000_000) thuongChang = 3_000_000;
-        }
+        // nmc-tvvm-stage-reward-once-policy-v1
+
+        // Thưởng chặng chỉ ghi nhận phần MỚI phát sinh ở tháng hiện tại.
+
+        // Nếu phần thưởng của cùng chặng đã được ghi nhận ở tháng trước thì không cộng lại.
+
+        const currentMonthStartForStage = new Date(currentYear, currentMonth - 1, 1);
+
+        const previousStageIP = contracts.filter(c => {
+
+          if (c.agentCode !== tvv.agentCode) return false;
+
+          const d = getDoanhSoMonth(c);
+
+          return !isNaN(d.getTime()) && d >= changInfo.rangeStart && d < currentMonthStartForStage;
+
+        }).reduce((s, c) => s + c.pdt10DT, 0);
+
+        const stageRewardEntitlement = (stage: number, stageIP: number): number => {
+
+          if (stage === 1) {
+
+            if (stageIP >= 100_000_000) return 6_000_000;
+
+            if (stageIP >= 50_000_000) return 3_000_000;
+
+            return 0;
+
+          }
+
+          if (stage >= 2 && stage <= 4 && stageIP >= 100_000_000) return 3_000_000;
+
+          return 0;
+
+        };
+
+        const thuongChang = Math.max(
+
+          0,
+
+          stageRewardEntitlement(changInfo.chang, tongIPChang)
+
+            - stageRewardEntitlement(changInfo.chang, previousStageIP),
+
+        );
+
         tongThuongTVVm += thuongThang + thuongChang;
       });
 
@@ -7767,7 +7874,7 @@ export default function QuanLyPage() {
     const filteredRows = ttnRows.filter(row => {
       // NGUYÊN TẮC: hiển thị TẤT CẢ đối tượng TTN (trưởng nhóm từ cấu trúc)
       // File doanh số chỉ để tính toán, không filter đối tượng
-      if (dongHanhNhomFilter && row.nhom !== dongHanhNhomFilter) return false;
+      if (dongHanhNhomFilter.length > 0 && !dongHanhNhomFilter.includes(row.nhom)) return false;
       if (dongHanhNameFilter && !row.hoTen.toLowerCase().includes(dongHanhNameFilter.toLowerCase()) && !row.maTTN.toLowerCase().includes(dongHanhNameFilter.toLowerCase())) return false;
       return true;
     });
@@ -7823,9 +7930,9 @@ export default function QuanLyPage() {
             {dongHanhNameFilter && <button onClick={() => setDongHanhNameFilter('')} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>}
           </div>
           <div className="flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-            <button onClick={() => setDongHanhNhomFilter('')} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${!dongHanhNhomFilter ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>Tất cả</button>
+            <button onClick={() => setDongHanhNhomFilter([])} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${dongHanhNhomFilter.length === 0 ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>Tất cả</button>
             {uniqueNhomList.map(nhom => (
-              <button key={nhom} onClick={() => setDongHanhNhomFilter(dongHanhNhomFilter === nhom ? '' : nhom)} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${dongHanhNhomFilter === nhom ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>{nhom}</button>
+              <button key={nhom} onClick={() => setDongHanhNhomFilter(prev => prev.includes(nhom) ? prev.filter(value => value !== nhom) : [...prev, nhom])} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${dongHanhNhomFilter.includes(nhom) ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>{nhom}</button>
             ))}
           </div>
         </div>
@@ -8017,7 +8124,7 @@ export default function QuanLyPage() {
       // NGUYÊN TẮC: hiển thị TẤT CẢ đối tượng TN từ DS TB/TN
       // File doanh số chỉ để tính toán (FYP, tiền thưởng), KHÔNG dùng để filter đối tượng
       // Chỉ filter theo NHÓM và search — không filter theo FYP/IP/SLTVVm
-      if (quyTnNhomFilter && row.nhom !== quyTnNhomFilter) return false;
+      if (quyTnNhomFilter.length > 0 && !quyTnNhomFilter.includes(row.nhom)) return false;
       if (quyTnNameFilter && !row.hoTen.toLowerCase().includes(quyTnNameFilter.toLowerCase()) && !row.maTN.toLowerCase().includes(quyTnNameFilter.toLowerCase())) return false;
       return true;
     });
@@ -8067,9 +8174,9 @@ export default function QuanLyPage() {
             {quyTnNameFilter && <button onClick={() => setQuyTnNameFilter('')} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>}
           </div>
           <div className="flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-            <button onClick={() => setQuyTnNhomFilter('')} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${!quyTnNhomFilter ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>Tất cả</button>
+            <button onClick={() => setQuyTnNhomFilter([])} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${quyTnNhomFilter.length === 0 ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>Tất cả</button>
             {uniqueNhomList.map(nhom => (
-              <button key={nhom} onClick={() => setQuyTnNhomFilter(quyTnNhomFilter === nhom ? '' : nhom)} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${quyTnNhomFilter === nhom ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>{nhom}</button>
+              <button key={nhom} onClick={() => setQuyTnNhomFilter(prev => prev.includes(nhom) ? prev.filter(value => value !== nhom) : [...prev, nhom])} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${quyTnNhomFilter.includes(nhom) ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>{nhom}</button>
             ))}
           </div>
         </div>
@@ -8283,7 +8390,7 @@ export default function QuanLyPage() {
 
     const filteredRows = tnRows.filter(row => {
       // NGUYÊN TẮC: hiển thị TẤT CẢ đối tượng TN từ DS TB/TN
-      if (ptkdNhomFilter && row.nhom !== ptkdNhomFilter) return false;
+      if (ptkdNhomFilter.length > 0 && !ptkdNhomFilter.includes(row.nhom)) return false;
       if (ptkdNameFilter && !row.hoTen.toLowerCase().includes(ptkdNameFilter.toLowerCase()) && !row.maTN.toLowerCase().includes(ptkdNameFilter.toLowerCase())) return false;
       return true;
     });
@@ -8336,9 +8443,9 @@ export default function QuanLyPage() {
             {ptkdNameFilter && <button onClick={() => setPtkdNameFilter('')} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>}
           </div>
           <div className="flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-            <button onClick={() => setPtkdNhomFilter('')} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${!ptkdNhomFilter ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>Tất cả</button>
+            <button onClick={() => setPtkdNhomFilter([])} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${ptkdNhomFilter.length === 0 ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>Tất cả</button>
             {Array.from(new Set(tnRows.map(r => r.nhom).filter(Boolean))).sort().map(nhom => (
-              <button key={nhom} onClick={() => setPtkdNhomFilter(ptkdNhomFilter === nhom ? '' : nhom)} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${ptkdNhomFilter === nhom ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>{nhom}</button>
+              <button key={nhom} onClick={() => setPtkdNhomFilter(prev => prev.includes(nhom) ? prev.filter(value => value !== nhom) : [...prev, nhom])} className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap flex-shrink-0 ${ptkdNhomFilter.includes(nhom) ? 'bg-emerald-700 text-white' : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} style={{ borderRadius: 0 }}>{nhom}</button>
             ))}
           </div>
         </div>
@@ -8939,7 +9046,7 @@ export default function QuanLyPage() {
       policyOpen === 'tvvm' ? tvvmNhomFilter :
       policyOpen === 'ns-tvv' ? nsTvvNhomFilter :
       quyTvvNhomFilter
-    ) : '';
+    ) : [];
     const setNhomFilter = isTvvPolicy ? (
       policyOpen === 'tvvm' ? setTvvmNhomFilter :
       policyOpen === 'ns-tvv' ? setNsTvvNhomFilter :
@@ -9007,21 +9114,21 @@ export default function QuanLyPage() {
                 >
                   <span className="truncate flex items-center gap-1">
                     <span className="text-emerald-700/70 text-[8px] uppercase tracking-wider">Nhóm</span>
-                    <span className="truncate">{nhomFilter || 'Tất cả'}</span>
+                    <span className="truncate">{nhomFilter.length === 0 ? 'Tất cả' : nhomFilter.length === 1 ? nhomFilter[0] : `${nhomFilter.length} nhóm`}</span>
                   </span>
                   <ChevronDown className="w-3 h-3 flex-shrink-0" />
                 </button>
-                <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
+                <div data-nmc-multi-group-menu="1" aria-multiselectable="true" className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
                   <button
-                    onClick={(e) => { setNhomFilter(''); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }}
-                    className={`w-full text-left px-2 py-1 text-[10px] hover:bg-emerald-500/20 ${!nhomFilter ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}
+                    onClick={(e) => { setNhomFilter([]); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }}
+                    className={`w-full flex items-center justify-between gap-2 text-left px-2 py-1 text-[10px] hover:bg-emerald-500/20 ${nhomFilter.length === 0 ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}
                   >Tất cả nhóm</button>
                   {uniqueNhomList.map(n => (
                     <button
-                      key={n}
-                      onClick={(e) => { setNhomFilter(n); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }}
-                      className={`w-full text-left px-2 py-1 text-[10px] hover:bg-emerald-500/20 ${nhomFilter === n ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}
-                    >{n}</button>
+                      key={n} aria-pressed={nhomFilter.includes(n)}
+                      onClick={(e) => { setNhomFilter(prev => prev.includes(n) ? prev.filter(value => value !== n) : [...prev, n]); }}
+                      className={`w-full flex items-center justify-between gap-2 text-left px-2 py-1 text-[10px] hover:bg-emerald-500/20 ${nhomFilter.includes(n) ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}
+                    ><span className="flex-1 truncate">{n}</span>{nhomFilter.includes(n) && <span aria-hidden="true" className="ml-2 flex-shrink-0 text-[11px] font-black leading-none">✓</span>}</button>
                   ))}
                 </div>
               </div>
@@ -9204,13 +9311,13 @@ export default function QuanLyPage() {
                       className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] font-bold"
                       style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
                     >
-                      <span className="truncate">{nhomFilter || 'Tất cả nhóm'}</span>
+                      <span className="truncate">{nhomFilter.length === 0 ? 'Tất cả nhóm' : nhomFilter.length === 1 ? nhomFilter[0] : `${nhomFilter.length} nhóm`}</span>
                       <ChevronDown className="w-3 h-3 flex-shrink-0" />
                     </button>
-                    <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
-                      <button onClick={(e) => { setNhomFilter(''); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }} className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${!nhomFilter ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}>Tất cả nhóm</button>
+                    <div data-nmc-multi-group-menu="1" aria-multiselectable="true" className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
+                      <button onClick={(e) => { setNhomFilter([]); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }} className={`w-full flex items-center justify-between gap-2 text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${nhomFilter.length === 0 ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}>Tất cả nhóm</button>
                       {uniqueNhomList.map(n => (
-                        <button key={n} onClick={(e) => { setNhomFilter(n); e.currentTarget.closest('.relative')?.querySelector('.absolute')?.classList.add('hidden'); }} className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${nhomFilter === n ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}>{n}</button>
+                        <button key={n} aria-pressed={nhomFilter.includes(n)} onClick={(e) => { setNhomFilter(prev => prev.includes(n) ? prev.filter(value => value !== n) : [...prev, n]); }} className={`w-full flex items-center justify-between gap-2 text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${nhomFilter.includes(n) ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}><span className="flex-1 truncate">{n}</span>{nhomFilter.includes(n) && <span aria-hidden="true" className="ml-2 flex-shrink-0 text-[11px] font-black leading-none">✓</span>}</button>
                       ))}
                     </div>
                   </div>
@@ -9503,7 +9610,7 @@ export default function QuanLyPage() {
           {sortedContracts.length === 0 && (
             <div className="text-center text-gray-500 text-sm py-6">Chưa có dữ liệu hợp đồng tháng này</div>
           )}
-          {sortedContracts.slice(0, 200).map((c, idx) => (
+          {sortedContracts.slice(0, 60).map((c, idx) => (
             <div key={c.id} className="bg-[#1a2332]/80 border border-emerald-500/20 rounded-lg p-2.5 space-y-1.5">
               {/* Header row: name + position */}
               <div className="flex items-start justify-between gap-2">
@@ -9562,7 +9669,7 @@ export default function QuanLyPage() {
               </tr>
             </thead>
             <tbody>
-              {sortedContracts.slice(0, 500).map((c, idx) => (
+              {sortedContracts.slice(0, 120).map((c, idx) => (
                 <tr key={c.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-emerald-50 border-b border-gray-200 transition-colors`}>
                   {/* Auto STT */}
                   <td className="text-[10px] py-1 px-2 text-gray-400 text-center">{idx + 1}</td>
@@ -9616,7 +9723,7 @@ export default function QuanLyPage() {
 
         {/* Footer summary */}
         <p className="text-[9px] text-gray-500 mt-1.5 hidden md:block">
-          IP + 10% PĐT: {formatKpiCurrency(tongIP)} • AFYP: {formatKpiCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = {String(Math.round(ipAfypMonth))}% • Năng suất: {String(Math.round(nangSuatMonth))} • ĐLHĐ: {formatKpiCurrency(dlhdMonth)}
+          {sortedContracts.length > 120 ? `Đang hiển thị 120/${sortedContracts.length} dòng để ứng dụng hoạt động mượt • ` : ''}IP + 10% PĐT: {formatKpiCurrency(tongIP)} • AFYP: {formatKpiCurrency(tongAFYP)} • Lượt HĐ: TÍNH LƯỢT ≥ 3tr ({luotHoatDong}) • Lượt chuẩn: ≥ 12tr ({luotChuan}) • IP/AFYP = {String(Math.round(ipAfypMonth))}% • Năng suất: {String(Math.round(nangSuatMonth))} • ĐLHĐ: {formatKpiCurrency(dlhdMonth)}
         </p>
       </div>
           </div>
@@ -9918,6 +10025,7 @@ export default function QuanLyPage() {
             <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={newTvv.ngayBatDau} onChange={e => setNewTvv(p => ({ ...p, ngayBatDau: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" /></div>
             <div><Label className="text-xs text-emerald-200/70">Mã TVV tuyển dụng</Label><Input value={newTvv.maTVVTuyendung} onChange={e => setNewTvv(p => ({ ...p, maTVVTuyendung: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="Mã TVV đã tuyển dụng mình" /></div>
             <div><Label className="text-xs text-emerald-200/70">Trạng thái</Label><Input value={newTvv.note} onChange={e => setNewTvv(p => ({ ...p, note: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: Hoạt động, PA" /></div>
+            <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={newTvv.ghiChu} onChange={e => setNewTvv(p => ({ ...p, ghiChu: e.target.value }))} className="bg-white/5 border-emerald-500/20 text-white" placeholder="Nhập x để loại khỏi thi đua tuyển dụng" /></div>
           </div>
           <DialogFooter><Button onClick={handleAddTvv} className="bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 text-violet-300">Thêm</Button></DialogFooter>
         </DialogContent>
@@ -9984,6 +10092,7 @@ export default function QuanLyPage() {
               <div><Label className="text-xs text-emerald-200/70">Ngày bắt đầu</Label><Input type="date" value={editingTvv.ngayBatDau ? toInputDate(editingTvv.ngayBatDau) : ''} onChange={e => setEditingTvv(t => t ? { ...t, ngayBatDau: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" /></div>
               <div><Label className="text-xs text-emerald-200/70">Mã TVV tuyển dụng</Label><Input value={editingTvv.maTVVTuyendung || ''} onChange={e => setEditingTvv(t => t ? { ...t, maTVVTuyendung: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" placeholder="Mã TVV đã tuyển dụng mình" /></div>
               <div><Label className="text-xs text-emerald-200/70">Trạng thái</Label><Input value={editingTvv.note} onChange={e => setEditingTvv(t => t ? { ...t, note: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" placeholder="VD: Hoạt động, PA" /></div>
+              <div><Label className="text-xs text-emerald-200/70">Ghi chú</Label><Input value={editingTvv.ghiChu || ''} onChange={e => setEditingTvv(t => t ? { ...t, ghiChu: e.target.value } : t)} className="bg-white/5 border-emerald-500/20 text-white" placeholder="Nhập x để loại khỏi thi đua tuyển dụng" /></div>
             </div>
           )}
           <DialogFooter><Button onClick={handleEditTvv} className="bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 text-violet-300">Lưu</Button></DialogFooter>
@@ -10057,7 +10166,7 @@ export default function QuanLyPage() {
                 importTier === 'phong' ? 'maPhong\ttenPhong\tnote\nP001\tPhòng KD\tGhi chú'
                 : importTier === 'ad' ? 'maAD\ttenAD\tmaPhong\tnote\nAD001\tNguyễn Văn A\tP001\tGhi chú'
                 : importTier === 'bannhom' ? 'maBanNhom\ttenBanNhom\tmaAD\tnote\nBN001\tBan 1\tAD001\tGhi chú'
-                : 'agentCode\tagentName\tmaBanNhom\tchucVu\tngayBatDau\tmaTVVTuyendung\tnote\nTV001\tTrần B\tBN001\tTVV\t2024-01-01\tTV099\tHoạt động'
+                : 'agentCode\tagentName\tmaBanNhom\tchucVu\tngayBatDau\tmaTVVTuyendung\tnote\tghiChu\nTV001\tTrần B\tBN001\tTVV\t2024-01-01\tTV099\tHoạt động\t'
               } />
             </details>
           </div>
@@ -10472,21 +10581,21 @@ export default function QuanLyPage() {
           >
             <span className="truncate flex items-center gap-1">
               <span className="text-amber-700/70 text-[8px] uppercase tracking-wider">Nhóm</span>
-              <span className="truncate">{saovietNhomFilter || 'Tất cả'}</span>
+              <span className="truncate">{saovietNhomFilter.length === 0 ? 'Tất cả' : saovietNhomFilter.length === 1 ? saovietNhomFilter[0] : `${saovietNhomFilter.length} nhóm`}</span>
             </span>
             <ChevronDown className="w-3 h-3 flex-shrink-0" />
           </button>
-          <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-amber-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
+          <div data-nmc-multi-group-menu="1" aria-multiselectable="true" className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-amber-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
             <button
-              onClick={(e) => { setSaovietNhomFilter(''); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
-              className={`w-full text-left px-2 py-1 text-[10px] hover:bg-amber-500/20 ${!saovietNhomFilter ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
+              onClick={(e) => { setSaovietNhomFilter([]); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
+              className={`w-full flex items-center justify-between gap-2 text-left px-2 py-1 text-[10px] hover:bg-amber-500/20 ${saovietNhomFilter.length === 0 ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
             >Tất cả nhóm</button>
             {uniqueNhomList.map(n => (
               <button
-                key={n}
-                onClick={(e) => { setSaovietNhomFilter(n); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
-                className={`w-full text-left px-2 py-1 text-[10px] hover:bg-amber-500/20 ${saovietNhomFilter === n ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
-              >{n}</button>
+                key={n} aria-pressed={saovietNhomFilter.includes(n)}
+                onClick={(e) => { setSaovietNhomFilter(prev => prev.includes(n) ? prev.filter(value => value !== n) : [...prev, n]); }}
+                className={`w-full flex items-center justify-between gap-2 text-left px-2 py-1 text-[10px] hover:bg-amber-500/20 ${saovietNhomFilter.includes(n) ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
+              ><span className="flex-1 truncate">{n}</span>{saovietNhomFilter.includes(n) && <span aria-hidden="true" className="ml-2 flex-shrink-0 text-[11px] font-black leading-none">✓</span>}</button>
             ))}
           </div>
         </div>
@@ -10663,20 +10772,20 @@ export default function QuanLyPage() {
                     className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] font-bold"
                     style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
                   >
-                    <span className="truncate">{saovietNhomFilter || 'Tất cả nhóm'}</span>
+                    <span className="truncate">{saovietNhomFilter.length === 0 ? 'Tất cả nhóm' : saovietNhomFilter.length === 1 ? saovietNhomFilter[0] : `${saovietNhomFilter.length} nhóm`}</span>
                     <ChevronDown className="w-3 h-3 flex-shrink-0" />
                   </button>
-                  <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-amber-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
+                  <div data-nmc-multi-group-menu="1" aria-multiselectable="true" className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-amber-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
                     <button
-                      onClick={(e) => { setSaovietNhomFilter(''); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
-                      className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-amber-500/20 ${!saovietNhomFilter ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
+                      onClick={(e) => { setSaovietNhomFilter([]); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
+                      className={`w-full flex items-center justify-between gap-2 text-left px-2 py-0.5 text-[9px] hover:bg-amber-500/20 ${saovietNhomFilter.length === 0 ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
                     >Tất cả nhóm</button>
                     {uniqueNhomList.map(n => (
                       <button
-                        key={n}
-                        onClick={(e) => { setSaovietNhomFilter(n); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
-                        className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-amber-500/20 ${saovietNhomFilter === n ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
-                      >{n}</button>
+                        key={n} aria-pressed={saovietNhomFilter.includes(n)}
+                        onClick={(e) => { setSaovietNhomFilter(prev => prev.includes(n) ? prev.filter(value => value !== n) : [...prev, n]); }}
+                        className={`w-full flex items-center justify-between gap-2 text-left px-2 py-0.5 text-[9px] hover:bg-amber-500/20 ${saovietNhomFilter.includes(n) ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
+                      ><span className="flex-1 truncate">{n}</span>{saovietNhomFilter.includes(n) && <span aria-hidden="true" className="ml-2 flex-shrink-0 text-[11px] font-black leading-none">✓</span>}</button>
                     ))}
                   </div>
                 </div>
@@ -10722,7 +10831,7 @@ export default function QuanLyPage() {
     // Apply filter nhóm + search name
     const q = saovietNameFilter.trim().toLowerCase();
     const filteredRows = allRows.filter(r => {
-      if (saovietNhomFilter && r.nhomKD !== saovietNhomFilter) return false;
+      if (saovietNhomFilter.length > 0 && !saovietNhomFilter.includes(r.nhomKD)) return false;
       if (q && !((r.agentName || '').toLowerCase().includes(q) || (r.agentCode || '').toLowerCase().includes(q))) return false;
       return true;
     });
@@ -10791,7 +10900,7 @@ export default function QuanLyPage() {
     // Apply filter nhóm + search name
     const q = saovietNameFilter.trim().toLowerCase();
     const filteredRows = allRows.filter(r => {
-      if (saovietNhomFilter && r.nhomKD !== saovietNhomFilter) return false;
+      if (saovietNhomFilter.length > 0 && !saovietNhomFilter.includes(r.nhomKD)) return false;
       if (q && !((r.agentName || '').toLowerCase().includes(q) || (r.agentCode || '').toLowerCase().includes(q))) return false;
       return true;
     });
@@ -10867,7 +10976,7 @@ export default function QuanLyPage() {
     // Apply filter nhóm + search name
     const q = saovietNameFilter.trim().toLowerCase();
     const filteredRows = allRows.filter(r => {
-      if (saovietNhomFilter && r.nhomKD !== saovietNhomFilter) return false;
+      if (saovietNhomFilter.length > 0 && !saovietNhomFilter.includes(r.nhomKD)) return false;
       if (q && !((r.agentName || '').toLowerCase().includes(q) || (r.agentCode || '').toLowerCase().includes(q))) return false;
       return true;
     });
@@ -11185,21 +11294,21 @@ export default function QuanLyPage() {
           >
             <span className="truncate flex items-center gap-1">
               <span className="text-blue-700/70 text-[8px] uppercase tracking-wider">Nhóm</span>
-              <span className="truncate">{clbsvNhomFilter || 'Tất cả'}</span>
+              <span className="truncate">{clbsvNhomFilter.length === 0 ? 'Tất cả' : clbsvNhomFilter.length === 1 ? clbsvNhomFilter[0] : `${clbsvNhomFilter.length} nhóm`}</span>
             </span>
             <ChevronDown className="w-3 h-3 flex-shrink-0" />
           </button>
-          <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-white border border-blue-400 max-h-[140px] overflow-y-auto rounded shadow-2xl">
+          <div data-nmc-multi-group-menu="1" aria-multiselectable="true" className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-white border border-blue-400 max-h-[140px] overflow-y-auto rounded shadow-2xl">
             <button
-              onClick={(e) => { setClbsvNhomFilter(''); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
-              className={`w-full text-left px-2 py-1 text-[10px] hover:bg-blue-100 ${!clbsvNhomFilter ? 'text-blue-700 font-bold' : 'text-gray-700'}`}
+              onClick={(e) => { setClbsvNhomFilter([]); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
+              className={`w-full flex items-center justify-between gap-2 text-left px-2 py-1 text-[10px] hover:bg-blue-100 ${clbsvNhomFilter.length === 0 ? 'text-blue-700 font-bold' : 'text-gray-700'}`}
             >Tất cả nhóm</button>
             {uniqueNhomList.map(n => (
               <button
-                key={n}
-                onClick={(e) => { setClbsvNhomFilter(n); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
-                className={`w-full text-left px-2 py-1 text-[10px] hover:bg-blue-100 ${clbsvNhomFilter === n ? 'text-blue-700 font-bold' : 'text-gray-700'}`}
-              >{n}</button>
+                key={n} aria-pressed={clbsvNhomFilter.includes(n)}
+                onClick={(e) => { setClbsvNhomFilter(prev => prev.includes(n) ? prev.filter(value => value !== n) : [...prev, n]); }}
+                className={`w-full flex items-center justify-between gap-2 text-left px-2 py-1 text-[10px] hover:bg-blue-100 ${clbsvNhomFilter.includes(n) ? 'text-blue-700 font-bold' : 'text-gray-700'}`}
+              ><span className="flex-1 truncate">{n}</span>{clbsvNhomFilter.includes(n) && <span aria-hidden="true" className="ml-2 flex-shrink-0 text-[11px] font-black leading-none">✓</span>}</button>
             ))}
           </div>
         </div>
@@ -11385,7 +11494,7 @@ export default function QuanLyPage() {
     const uniqueNhomList = Array.from(new Set(sourceMembers.map(m => m.nhom).filter(Boolean))).sort();
     // Apply user filters (nhóm + tên/mã)
     const filteredMembers = sourceMembers.filter(m => {
-      if (clbsvNhomFilter && m.nhom !== clbsvNhomFilter) return false;
+      if (clbsvNhomFilter.length > 0 && !clbsvNhomFilter.includes(m.nhom)) return false;
       if (clbsvNameFilter) {
         const q = clbsvNameFilter.toLowerCase().trim();
         if (!String(m.agentCode || '').toLowerCase().includes(q) &&
@@ -11508,7 +11617,7 @@ export default function QuanLyPage() {
     const uniqueNhomList = Array.from(new Set(sourceMembers.map(m => m.nhom).filter(Boolean))).sort();
     // Apply user filters
     const filteredMembers = sourceMembers.filter(m => {
-      if (clbsvNhomFilter && m.nhom !== clbsvNhomFilter) return false;
+      if (clbsvNhomFilter.length > 0 && !clbsvNhomFilter.includes(m.nhom)) return false;
       if (clbsvNameFilter) {
         const q = clbsvNameFilter.toLowerCase().trim();
         if (!String(m.agentCode || '').toLowerCase().includes(q) &&
@@ -11659,7 +11768,7 @@ export default function QuanLyPage() {
     const uniqueNhomList = Array.from(new Set(sourceMembers.map(m => m.nhom).filter(Boolean))).sort();
     // Apply user filters
     const filteredMembers = sourceMembers.filter(m => {
-      if (clbsvNhomFilter && m.nhom !== clbsvNhomFilter) return false;
+      if (clbsvNhomFilter.length > 0 && !clbsvNhomFilter.includes(m.nhom)) return false;
       if (clbsvNameFilter) {
         const q = clbsvNameFilter.toLowerCase().trim();
         if (!String(m.agentCode || '').toLowerCase().includes(q) &&
@@ -11858,9 +11967,9 @@ export default function QuanLyPage() {
     };
 
     setClbsvImageExporting(true);
-    setSaovietNhomFilter('');
+    setSaovietNhomFilter([]);
     setSaovietNameFilter('');
-    setClbsvNhomFilter('');
+    setClbsvNhomFilter([]);
     setClbsvNameFilter('');
     setClbsvImageExportProgress({ completed: 0, total: 7, label: 'Đang chuẩn bị dữ liệu...' });
     toast({ title: 'Đang tạo bộ ảnh', description: 'Vui lòng giữ trang đang mở trong giây lát.' });
@@ -12165,7 +12274,7 @@ export default function QuanLyPage() {
     // Apply filters
     const q = clbsvNameFilter.toLowerCase().trim();
     const filteredRows = allRows.filter(r => {
-      if (clbsvNhomFilter && r.nhomName !== clbsvNhomFilter) return false;
+      if (clbsvNhomFilter.length > 0 && !clbsvNhomFilter.includes(r.nhomName)) return false;
       if (q && !((r.tvv.agentName || '').toLowerCase().includes(q) || (r.tvv.agentCode || '').toLowerCase().includes(q))) return false;
       return true;
     });
@@ -12407,10 +12516,10 @@ export default function QuanLyPage() {
   };
 
   const renderSheet = () => {
-    if (isLoading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
+    if (isLoading) return <div className="nmc-kpi-embedded-internal-loader flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
     // Mounted guard: khi chưa mounted (SSR hoặc hydration đầu tiên) → render skeleton
     // tránh flash bug hiện overview rồi mới switch sang sheet từ URL (?sheet=xxx)
-    if (!mounted) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
+    if (!mounted) return <div className="nmc-kpi-embedded-internal-loader flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
     switch (activeSheet) {
       case 'overview': return renderOverview();
       case 'leaders': return renderLeaders();

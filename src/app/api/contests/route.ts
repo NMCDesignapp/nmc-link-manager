@@ -17,7 +17,7 @@ const contestSummarySelect = {
   hideNotAchieved: true, includeIndividualNTD: true, includeIndividualTN: true,
   luotHDThreshold: true, luotHDCTThreshold: true, tvv90MaxMonths: true,
   tvv90MinIP: true, referenceContestId: true, includeTNInPassCount: true,
-  topN: true, topNMinIP: true, topNValueType: true, filterByEffectiveDate: true,
+  topN: true, topNMinIP: true, topNValueType: true, useTopRanking: true, topRewardAmounts: true, filterByEffectiveDate: true,
   csvContractUrl: true, csvStaffUrl: true, csvRecruiterUrl: true,
   createdAt: true, updatedAt: true,
 } as const;
@@ -38,6 +38,7 @@ const contestCompatSelect = {
 } as const;
 
 const recruitedAgentScopeKey = (id: string) => `contest-recruited-agent-scope-${id}`;
+const recruitmentConfigKey = (id: string) => `contest-recruitment-config-${id}`;
 
 async function loadRecruitedAgentScopes<T extends { id: string }>(contests: T[]): Promise<Array<T & { recruitedAgentScope: string }>> {
   if (!contests.length) return [];
@@ -53,6 +54,26 @@ async function loadRecruitedAgentScopes<T extends { id: string }>(contests: T[])
     ...contest,
     recruitedAgentScope: byKey.get(recruitedAgentScopeKey(contest.id)) === 'tvvm' ? 'tvvm' : 'all',
   }));
+}
+
+async function loadRecruitmentConfigs<T extends { id: string }>(contests: T[]): Promise<Array<T & { recruitmentConfig: unknown }>> {
+  if (!contests.length) return [];
+  const keys = contests.map(contest => recruitmentConfigKey(contest.id));
+  const settings: Array<{ key: string; value: string | null }> = await db.setting.findMany({ where: { key: { in: keys } }, select: { key: true, value: true } }).catch(() => []);
+  const byKey = new Map<string, string | null>(settings.map(item => [item.key, item.value] as const));
+  return contests.map(contest => {
+    const raw = byKey.get(recruitmentConfigKey(contest.id));
+    try { return { ...contest, recruitmentConfig: raw ? JSON.parse(raw) : null }; }
+    catch { return { ...contest, recruitmentConfig: null }; }
+  });
+}
+
+async function saveRecruitmentConfig(id: string, value: unknown): Promise<void> {
+  await db.setting.upsert({
+    where: { key: recruitmentConfigKey(id) },
+    update: { value: JSON.stringify(value || null) },
+    create: { key: recruitmentConfigKey(id), value: JSON.stringify(value || null) },
+  });
 }
 
 async function saveRecruitedAgentScope(id: string, value: unknown): Promise<void> {
@@ -155,6 +176,16 @@ async function ensureTopNValueTypeColumn(): Promise<void> {
   }
 }
 
+// nmc-contest-combined-top-ranking-v1
+async function ensureCombinedTopRankingColumns(): Promise<void> {
+  try {
+    await db.$executeRawUnsafe('ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "useTopRanking" BOOLEAN NOT NULL DEFAULT false');
+    await db.$executeRawUnsafe('ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "topRewardAmounts" TEXT NOT NULL DEFAULT \'[]\'');
+  } catch (e) {
+    console.warn('[ensureCombinedTopRankingColumns] Skipped:', (e as Error)?.message);
+  }
+}
+
 async function ensureRecruitedAgentScopeColumn(): Promise<void> {
   try {
     await db.$executeRawUnsafe('ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "recruitedAgentScope" TEXT NOT NULL DEFAULT \'all\'');
@@ -174,7 +205,8 @@ async function readContests(request: NextRequest) {
     const contest = await db.contest.findUnique({ where: { id }, select: contestCompatSelect });
     if (!contest) return NextResponse.json({ error: 'Không tìm thấy chương trình thi đua' }, { status: 404 });
     const [withScope] = await loadRecruitedAgentScopes([contest]);
-    return NextResponse.json(await normalizePoster(withScope), { headers: noStore });
+    const [withRecruitment] = await loadRecruitmentConfigs([withScope]);
+    return NextResponse.json(await normalizePoster(withRecruitment), { headers: noStore });
   }
   const contests = await db.contest.findMany({
     orderBy: { createdAt: 'desc' },
@@ -192,10 +224,11 @@ async function readContests(request: NextRequest) {
     return true;
   });
   const scopedWithScope = await loadRecruitedAgentScopes(scopedContests as any[]);
+  const scopedWithRecruitment = await loadRecruitmentConfigs(scopedWithScope);
   if (summary) {
-    return NextResponse.json(scopedWithScope.map(summaryWithPosterUrl), { headers: noStore });
+    return NextResponse.json(scopedWithRecruitment.map(summaryWithPosterUrl), { headers: noStore });
   }
-  const normalized = await Promise.all(scopedWithScope.map((contest: any) => normalizePoster(contest)));
+  const normalized = await Promise.all(scopedWithRecruitment.map((contest: any) => normalizePoster(contest)));
   return NextResponse.json(normalized, { headers: noStore });
 }
 
@@ -204,7 +237,7 @@ export async function GET(request: NextRequest) {
     return await readContests(request);
   } catch (error) {
     console.warn('[GET /api/contests] First attempt failed, trying self-heal:', (error as Error)?.message);
-    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn(), ensureRecruitedAgentScopeColumn()]);
+    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn(), ensureCombinedTopRankingColumns(), ensureRecruitedAgentScopeColumn()]);
     try {
       return await readContests(request);
     } catch (retryError) {
@@ -229,14 +262,14 @@ export async function POST(request: NextRequest) {
       hideNotAchieved, includeIndividualNTD, includeIndividualTN,
       luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
       referenceContestId, includeTNInPassCount,
-      topN, topNMinIP, topNValueType, filterByEffectiveDate, recruitedAgentScope,
+      topN, topNMinIP, topNValueType, useTopRanking, topRewardAmounts, filterByEffectiveDate, recruitedAgentScope, recruitmentConfig,
     } = body as any;
 
     if (!title || !startDate || !endDate) {
       return NextResponse.json({ error: 'Thiếu thông tin bắt buộc' }, { status: 400 });
     }
 
-    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn(), ensureRecruitedAgentScopeColumn()]);
+    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn(), ensureCombinedTopRankingColumns(), ensureRecruitedAgentScopeColumn()]);
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
     if (isNaN(parsedStart.getTime()) || isNaN(parsedEnd.getTime())) {
@@ -284,6 +317,8 @@ export async function POST(request: NextRequest) {
       topN: topN ?? 3,
       topNMinIP: topNMinIP ?? 50_000_000,
       topNValueType: topNValueType === 'afyp' ? 'afyp' : 'ip',
+      useTopRanking: useTopRanking ?? false,
+      topRewardAmounts: typeof topRewardAmounts === 'string' ? topRewardAmounts : JSON.stringify(topRewardAmounts || []),
       filterByEffectiveDate: filterByEffectiveDate ?? false,
     };
 
@@ -292,6 +327,7 @@ export async function POST(request: NextRequest) {
       : await db.contest.create({ data, select: contestCompatSelect });
 
     await saveRecruitedAgentScope(contest.id, recruitedAgentScope);
+    await saveRecruitmentConfig(contest.id, recruitmentConfig);
 
     if (rawPoster.startsWith('data:')) {
       const storedUrl = await persistContestPoster(contest.id, rawPoster);
@@ -301,7 +337,7 @@ export async function POST(request: NextRequest) {
     console.log('[POST /api/contests] Saved', contest.id, `${Date.now() - startTime}ms`);
     return NextResponse.json({
       message: existing ? 'Đã cập nhật chương trình thi đua' : 'Đã lưu chương trình thi đua',
-      contest: { ...contest, recruitedAgentScope: recruitedAgentScope === 'tvvm' ? 'tvvm' : 'all', posterUrl: posterPublicUrl(contest) },
+      contest: { ...contest, recruitedAgentScope: recruitedAgentScope === 'tvvm' ? 'tvvm' : 'all', recruitmentConfig: recruitmentConfig || null, posterUrl: posterPublicUrl(contest) },
     });
   } catch (error: any) {
     console.error('[POST /api/contests] Error:', error);
@@ -319,6 +355,7 @@ export async function DELETE(request: NextRequest) {
     } catch {}
     try {
       await db.setting.deleteMany({ where: { key: recruitedAgentScopeKey(id) } });
+      await db.setting.deleteMany({ where: { key: recruitmentConfigKey(id) } });
     } catch {}
     return NextResponse.json({ message: 'Đã xóa chương trình thi đua', deleted: result.count > 0, alreadyDeleted: result.count === 0 }, { headers: noStore });
   } catch (error: any) {
@@ -332,14 +369,18 @@ export async function PATCH(request: NextRequest) {
     const { id, ...updates } = body as { id: string; [key: string]: any };
     if (!id) return NextResponse.json({ error: 'Thiếu ID chương trình thi đua' }, { status: 400 });
     const recruitedAgentScopeUpdate = updates.recruitedAgentScope;
+    const recruitmentConfigUpdate = updates.recruitmentConfig;
     delete updates.recruitedAgentScope;
+    delete updates.recruitmentConfig;
     if (typeof updates.posterUrl === 'string' && updates.posterUrl.startsWith('data:')) {
       updates.posterUrl = await persistContestPoster(id, updates.posterUrl);
     }
     const contest = await db.contest.update({ where: { id }, data: updates, select: contestCompatSelect });
     if (recruitedAgentScopeUpdate !== undefined) await saveRecruitedAgentScope(id, recruitedAgentScopeUpdate);
+    if (recruitmentConfigUpdate !== undefined) await saveRecruitmentConfig(id, recruitmentConfigUpdate);
     const [withScope] = await loadRecruitedAgentScopes([contest]);
-    return NextResponse.json({ message: 'Đã cập nhật chương trình thi đua', contest: { ...withScope, posterUrl: posterPublicUrl(contest) } });
+    const [withRecruitment] = await loadRecruitmentConfigs([withScope]);
+    return NextResponse.json({ message: 'Đã cập nhật chương trình thi đua', contest: { ...withRecruitment, posterUrl: posterPublicUrl(contest) } });
   } catch (error: any) {
     return NextResponse.json({ error: 'Không thể cập nhật chương trình thi đua', details: error?.message }, { status: 500 });
   }

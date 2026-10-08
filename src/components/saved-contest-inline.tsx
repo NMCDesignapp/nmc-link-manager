@@ -1,5 +1,11 @@
 'use client';
 
+// nmc-contest-top-eligibility-v1
+
+// nmc-contest-combined-top-ranking-v2
+
+// nmc-contest-combined-top-ranking-v1
+
 /**
  * SavedContestInline — Hiển thị kết quả chi tiết của 1 saved contest
  * trực tiếp trong trang Quản Lý (mục Sao Việt), KHÔNG dùng iframe.
@@ -27,6 +33,7 @@ import {
 } from '@/components/ui/table';
 import { Trophy, Search, ChevronDown, ChevronRight, X, Award, Gift, Percent, FileDown, Crown, Medal, LoaderCircle } from 'lucide-react';
 import { useAppData } from '@/lib/app-data-context';
+import { buildCombinedTopRanking, passesCombinedTopEligibility, supportsCombinedTopRanking } from '@/lib/contest-combined-top-ranking';
 import {
   ContestConfig,
   Contract,
@@ -94,7 +101,10 @@ interface SavedContestInlineProps {
 // ============================================================
 export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest }) => {
   const { data: appData, isLoading, isReloading } = useAppData();
-  const [nhomFilter, setNhomFilter] = useState('');
+  // nmc-multi-group-filter-v1
+  // nmc-multi-group-filter-ux-v1
+  const [nhomFilter, setNhomFilter] = useState<string[]>([]);
+  // nmc-saved-contest-multigroup-filter-fix-v1
   const [nameFilter, setNameFilter] = useState('');
   // Danh sáº¡ch card táº£i nhanh khÃ´ng kÃ¨m base64 poster. Khi má»Ÿ chi tiáº¿t,
   // láº¥y poster cá»§a Ä‘Ãºng chÆ°Æ¡ng trÃ¬nh nÃ y tá»« server Ä‘á»ƒ khÃ´ng bao giá» máº¥t áº£nh.
@@ -142,6 +152,56 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     return new Set(tvvStructList.filter((tvv: any) => banNhomCodes.has(tvv.maBanNhom)).map((tvv: any) => tvv.agentCode).filter(Boolean));
   }, [appData.structurePhong, appData.structureAd, appData.structureBanNhom, tvvStructList]);
 
+  // Dùng cùng nguồn Cấu trúc như trang Thi đua để mọi TVV luôn có đúng nhóm.
+  // Ưu tiên DS TVV → DS TB/TN → Nhân sự/NTD → dữ liệu hợp đồng.
+  const resolveTvvGroup = useCallback((agentCode: string, fallbackNhom = '', fallbackMaNhom = '') => {
+    const normalizedCode = norm(agentCode || '').toLowerCase();
+    const clean = (value: unknown) => String(value ?? '').trim();
+    const structureMember = tvvStructList.find(
+      (item) => norm(item.agentCode || '').toLowerCase() === normalizedCode,
+    );
+    const leaderMember = leadersList.find(
+      (item: any) => norm(item?.agentCode || '').toLowerCase() === normalizedCode,
+    );
+    const staffMember = staffList.find(
+      (item) => norm(item.agentCode || '').toLowerCase() === normalizedCode,
+    );
+    const recruiterMember = recruiterList.find(
+      (item) => norm(item.agentCode || '').toLowerCase() === normalizedCode,
+    );
+
+    const groupCode = clean(
+      structureMember?.maBanNhom
+      || leaderMember?.maNhom
+      || leaderMember?.maBanNhom
+      || leaderMember?.maDonVi
+      || leaderMember?.maDV
+      || staffMember?.maNhom
+      || fallbackMaNhom,
+    );
+    const groupRecord = (appData.structureBanNhom || []).find(
+      (item: any) => norm(item?.maBanNhom || '').toLowerCase() === norm(groupCode).toLowerCase(),
+    );
+    const groupName = clean(
+      groupRecord?.tenBanNhom
+      || leaderMember?.nhom
+      || leaderMember?.tenBanNhom
+      || leaderMember?.tenNhom
+      || staffMember?.nhom
+      || recruiterMember?.nhom
+      || fallbackNhom
+      || groupCode
+      || 'CHƯA XÁC ĐỊNH',
+    );
+
+    return { groupName, groupCode: groupCode || groupName };
+  }, [appData.structureBanNhom, leadersList, recruiterList, staffList, tvvStructList]);
+
+  const isPAGroupLabel = useCallback((groupName: string, groupCode: string) => {
+    const value = norm(`${groupName || ''} ${groupCode || ''}`).toUpperCase();
+    return /(^|[\s_-])PA(?:[\s_-]|\d|$)/.test(value);
+  }, []);
+
   // Step 1: filter contracts by contest dates
   const filteredContracts = useMemo(
     () => filterContractsByContest(allContracts, config),
@@ -159,14 +219,64 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     () => computeGroupedData(displayContracts, config, staffList, recruiterList, leadersList, tvvStructList),
     [displayContracts, config, staffList, recruiterList, leadersList, tvvStructList]
   );
-  const tvvTotalRows = useMemo(
-    () => computeTVVTotalRows(displayContracts, config, staffList, recruiterList, tvvStructList, priorityTvvCodes),
-    [displayContracts, config, staffList, recruiterList, tvvStructList, priorityTvvCodes]
-  );
-  const tvvPerContractRows = useMemo(
-    () => computeTVVPerContractRows(displayContracts, config, tvvStructList),
-    [displayContracts, config, tvvStructList]
-  );
+  const tvvTotalRows = useMemo(() => {
+    const rows = computeTVVTotalRows(
+      displayContracts, config, staffList, recruiterList, tvvStructList, priorityTvvCodes,
+    );
+    return rows
+      .map((row) => {
+        const resolved = resolveTvvGroup(row.agent.agentCode, row.agent.nhom, row.agent.maNhom);
+        return {
+          ...row,
+          agent: { ...row.agent, nhom: resolved.groupName, maNhom: resolved.groupCode },
+        };
+      })
+      .sort((a, b) => {
+        const valueDiff = b.value - a.value;
+        if (valueDiff !== 0) return valueDiff;
+        if (a.value === 0) {
+          const aPA = isPAGroupLabel(a.agent.nhom, a.agent.maNhom);
+          const bPA = isPAGroupLabel(b.agent.nhom, b.agent.maNhom);
+          if (aPA !== bPA) return aPA ? 1 : -1;
+        }
+        const aPriority = priorityTvvCodes.has(a.agent.agentCode) ? 1 : 0;
+        const bPriority = priorityTvvCodes.has(b.agent.agentCode) ? 1 : 0;
+        if (aPriority !== bPriority) return bPriority - aPriority;
+        return (a.agent.agentName || a.agent.agentCode).localeCompare(
+          b.agent.agentName || b.agent.agentCode, 'vi',
+        );
+      });
+  }, [displayContracts, config, staffList, recruiterList, tvvStructList, priorityTvvCodes, resolveTvvGroup, isPAGroupLabel]);
+
+  const tvvPerContractRows = useMemo(() => {
+    const rows = computeTVVPerContractRows(displayContracts, config, tvvStructList);
+    return rows
+      .map((row) => {
+        const resolved = resolveTvvGroup(
+          row.contract.agentCode, row.contract.nhom, row.contract.maNhom,
+        );
+        return {
+          ...row,
+          contract: {
+            ...row.contract,
+            nhom: resolved.groupName,
+            maNhom: resolved.groupCode,
+          },
+        };
+      })
+      .sort((a, b) => {
+        const valueDiff = b.cValue - a.cValue;
+        if (valueDiff !== 0) return valueDiff;
+        if (a.cValue === 0) {
+          const aPA = isPAGroupLabel(a.contract.nhom, a.contract.maNhom);
+          const bPA = isPAGroupLabel(b.contract.nhom, b.contract.maNhom);
+          if (aPA !== bPA) return aPA ? 1 : -1;
+        }
+        return (a.contract.agentName || a.contract.agentCode).localeCompare(
+          b.contract.agentName || b.contract.agentCode, 'vi',
+        );
+      });
+  }, [displayContracts, config, tvvStructList, resolveTvvGroup, isPAGroupLabel]);
   // NYD data — tính cho targetType='nyd' (trước đây báo "chưa hỗ trợ")
   const nydData = useMemo(
     () => computeNYDData(displayContracts, config, recruiterList, staffList, tvvStructList),
@@ -176,6 +286,39 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     () => computeNYDResultRows(nydData, config, tvvStructList),
     [nydData, config, tvvStructList]
   );
+
+  const combinedTopRankByKey = useMemo(() => {
+    if (!config.useTopRanking || !supportsCombinedTopRanking(config.conditionType)) return new Map();
+    const passesSecondaryConditions = (rows: Contract[]) => evaluateSecondaryConditions(rows, config, tvvStructList).passed;
+    const passesTopEligibility = (rows: Contract[], focusContract?: Contract) =>
+      passesCombinedTopEligibility(config.topEligibilityType ?? 'none', config.topEligibilityMin ?? 0, rows, focusContract);
+    const candidates: { key: string; value: number; qualified: boolean }[] = [];
+    if (config.targetType === 'tvv' && isPerContractMode(config.conditionType)) {
+      for (const row of tvvPerContractRows) {
+        const agentRows = displayContracts.filter(contract => contract.agentCode === row.contract.agentCode);
+        candidates.push({ key: `contract:${row.contract.id}`, value: row.cValue, qualified: Boolean(row.tier) && passesSecondaryConditions(agentRows) && passesTopEligibility(agentRows, row.contract) });
+      }
+    } else if (config.targetType === 'tvv') {
+      for (const row of tvvTotalRows) {
+        const agentRows = displayContracts.filter(contract => contract.agentCode === row.agent.agentCode);
+        candidates.push({ key: `tvv:${row.agent.agentCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryConditions(agentRows) && passesTopEligibility(agentRows) });
+      }
+    } else if (config.targetType === 'nhom') {
+      for (const group of groupedData) {
+        const value = config.conditionType === 'total_afyp' || config.conditionType === 'per_contract_afyp' ? group.totalAFYP : group.totalFYP;
+        const tier = calculateBonusWithTiers(value, config.bonusTiers).tier;
+        candidates.push({ key: `nhom:${group.maNhom}`, value, qualified: Boolean(tier) && passesSecondaryConditions(group.contracts || []) && passesTopEligibility(group.contracts || []) });
+      }
+    } else if (config.targetType === 'nyd') {
+      for (const row of nydResultRows) {
+        const personRows = (row.nyd.contracts || displayContracts).filter(contract => (contract.maDaiLyTD === row.nyd.nydCode && contract.agentCode !== row.nyd.nydCode) || ((config.includeIndividualNTD ?? false) && contract.agentCode === row.nyd.nydCode));
+        candidates.push({ key: `nyd:${row.nyd.nydCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryConditions(personRows) && passesTopEligibility(personRows) });
+      }
+    }
+    return buildCombinedTopRanking(candidates, config.topN ?? 3, config.topRewardAmounts || []);
+  }, [config, displayContracts, groupedData, tvvTotalRows, tvvPerContractRows, nydResultRows, tvvStructList]);
+
+  const getCombinedTopNote = (key: string) => combinedTopRankByKey.get(key)?.note || '';
 
   const referenceContest = useMemo(
     () => (appData.contests || []).find((item: any) => item.id === config.referenceContestId) || null,
@@ -232,7 +375,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   const q = nameFilter.trim().toLowerCase();
   const applyLocalFilter = <T extends { matchesName?: boolean; nhomLabel?: string }>(rows: T[]): T[] => {
     return rows.filter((r) => {
-      if (nhomFilter && r.nhomLabel !== nhomFilter) return false;
+      if (nhomFilter.length > 0 && !nhomFilter.includes(r.nhomLabel || '')) return false;
       if (q && !(r as any).matchesName) return false;
       return true;
     });
@@ -245,14 +388,15 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       for (const g of groupedData) if (g.nhom) set.add(g.nhom);
     } else if (config.targetType === 'tvv') {
       for (const c of displayContracts) if (c.nhom) set.add(c.nhom);
-      // Also from tvvTotalRows
+      // Also from both result modes after resolving group from Cấu trúc.
       for (const r of tvvTotalRows) if (r.agent.nhom) set.add(r.agent.nhom);
+      for (const r of tvvPerContractRows) if (r.contract.nhom) set.add(r.contract.nhom);
     } else if (config.targetType === 'nyd') {
       // NYD uses nydData — collect nhom from NTD records
       for (const n of nydData) if (n.nhom) set.add(n.nhom);
     }
     return Array.from(set).sort();
-  }, [groupedData, displayContracts, tvvTotalRows, nydData, config.targetType]);
+  }, [groupedData, displayContracts, tvvTotalRows, tvvPerContractRows, nydData, config.targetType]);
 
   // ===== Build table header + body based on targetType × conditionType =====
   // Hỗ trợ TẤT CẢ target: tvv (per-contract + total) / nhom (total/activity/pass-count) / nyd (NTD)
@@ -357,21 +501,21 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
         >
           <span className="truncate flex items-center gap-1">
             <span className="text-amber-700/70 text-[8px] uppercase tracking-wider">Nhóm</span>
-            <span className="truncate">{nhomFilter || 'Tất cả'}</span>
+            <span className="truncate">{nhomFilter.length === 0 ? 'Tất cả' : nhomFilter.length === 1 ? nhomFilter[0] : `${nhomFilter.length} nhóm`}</span>
           </span>
           <ChevronDown className="w-3 h-3 flex-shrink-0" />
         </button>
-        <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-amber-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
+        <div data-nmc-multi-group-menu="1" aria-multiselectable="true" className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-amber-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
           <button
-            onClick={(e) => { setNhomFilter(''); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
-            className={`w-full text-left px-2 py-1 text-[10px] hover:bg-amber-500/20 ${!nhomFilter ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
+            onClick={(e) => { setNhomFilter([]); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
+            className={`w-full flex items-center justify-between gap-2 text-left px-2 py-1 text-[10px] hover:bg-amber-500/20 ${nhomFilter.length === 0 ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
           >Tất cả nhóm</button>
           {uniqueNhomList.map((n) => (
             <button
-              key={n}
-              onClick={(e) => { setNhomFilter(n); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
-              className={`w-full text-left px-2 py-1 text-[10px] hover:bg-amber-500/20 ${nhomFilter === n ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
-            >{n}</button>
+              key={n} aria-pressed={nhomFilter.includes(n)}
+              onClick={(e) => { setNhomFilter(prev => prev.includes(n) ? prev.filter(value => value !== n) : [...prev, n]); }}
+              className={`w-full flex items-center justify-between gap-2 text-left px-2 py-1 text-[10px] hover:bg-amber-500/20 ${nhomFilter.includes(n) ? 'text-amber-300 font-bold' : 'text-amber-200/70'}`}
+            ><span className="flex-1 truncate">{n}</span>{nhomFilter.includes(n) && <span aria-hidden="true" className="ml-2 flex-shrink-0 text-[11px] font-black leading-none">✓</span>}</button>
           ))}
         </div>
       </div>
@@ -425,7 +569,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     const filteredRows = tvvPerContractRows.filter((row) => {
       if (hideNotAchieved && !row.effectiveTier) return false;
       if (!row.contract.nhom && !row.contract.maNhom) return false;
-      if (nhomFilter && row.contract.nhom !== nhomFilter && row.contract.maNhom !== nhomFilter) return false;
+      if (nhomFilter.length > 0 && !nhomFilter.includes(row.contract.nhom !== nhomFilter && row.contract.maNhom || '')) return false;
       if (q && !((row.contract.agentName || '').toLowerCase().includes(q) || (row.contract.agentCode || '').toLowerCase().includes(q))) return false;
       return true;
     });
@@ -492,7 +636,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                 </TableCell>
               )}
               <TableCell className="whitespace-nowrap">
-                {!row.effectiveTier && row.remaining !== null ? (
+                {getCombinedTopNote(`contract:${row.contract.id}`) ? (
+                  <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Crown className="w-4 h-4" />{getCombinedTopNote(`contract:${row.contract.id}`)}</span>
+                ) : !row.effectiveTier && row.remaining !== null ? (
                   <span className="text-[10px] italic text-gray-400">{!row.secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : `- ${formatNumber(row.remaining)}`}</span>
                 ) : !row.effectiveTier ? (
                   <span className="text-[10px] italic text-gray-400">{!row.secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span>
@@ -512,7 +658,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       const secondaryPassed = evaluateSecondaryConditions(entityContracts, config, tvvStructList).passed;
       if (hideNotAchieved && (!row.tier || !secondaryPassed)) return false;
       if (!row.agent.nhom && !row.agent.maNhom) return false;
-      if (nhomFilter && row.agent.nhom !== nhomFilter && row.agent.maNhom !== nhomFilter) return false;
+      if (nhomFilter.length > 0 && !nhomFilter.includes(row.agent.nhom !== nhomFilter && row.agent.maNhom || '')) return false;
       if (q && !((row.agent.agentName || '').toLowerCase().includes(q) || (row.agent.agentCode || '').toLowerCase().includes(q))) return false;
       return true;
     });
@@ -586,6 +732,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                   ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span>
                   : null;
             }
+            const combinedTopNote = getCombinedTopNote(`tvv:${row.agent.agentCode}`);
+            if (combinedTopNote) noteLabel = <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Crown className="w-4 h-4" />{combinedTopNote}</span>;
             return (
               <TableRow key={row.agent.agentCode} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
                 <TableCell className="text-center text-xs whitespace-nowrap text-gray-400">{idx + 1}</TableCell>
@@ -673,7 +821,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       })
       .filter((row) => {
         if (hideNotAchieved && !row.effectiveTier) return false;
-        if (nhomFilter && row.g.nhom !== nhomFilter) return false;
+        if (nhomFilter.length > 0 && !nhomFilter.includes(row.g.nhom || '')) return false;
         if (q) {
           const leaderName = row.g.leader?.agentName || '';
           const leaderCode = row.g.leader?.agentCode || '';
@@ -765,7 +913,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                 </TableCell>
               )}
               <TableCell className="whitespace-nowrap">
-                {!row.effectiveTier ? (
+                {getCombinedTopNote(`nhom:${row.g.maNhom}`) ? (
+                  <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Crown className="w-4 h-4" />{getCombinedTopNote(`nhom:${row.g.maNhom}`)}</span>
+                ) : !row.effectiveTier ? (
                   <span className="text-[10px] italic text-gray-400">{!row.secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span>
                 ) : null}
               </TableCell>
@@ -802,7 +952,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     const filteredRows = nydResultRows.filter((row) => {
       if (hideNotAchieved && !row.effectiveTier) return false;
       if (!row.nyd.nhom) return false;
-      if (nhomFilter && row.nyd.nhom !== nhomFilter) return false;
+      if (nhomFilter.length > 0 && !nhomFilter.includes(row.nyd.nhom || '')) return false;
       if (q && !((row.nyd.nydName || '').toLowerCase().includes(q) || (row.nyd.nydCode || '').toLowerCase().includes(q))) return false;
       return true;
     });
@@ -899,7 +1049,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                 </TableCell>
               )}
               <TableCell className="text-left px-3 whitespace-nowrap">
-                {!row.effectiveTier && row.tier && !row.secondaryPassed ? (
+                {getCombinedTopNote(`nyd:${row.nyd.nydCode}`) ? (
+                  <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Crown className="w-4 h-4" />{getCombinedTopNote(`nyd:${row.nyd.nydCode}`)}</span>
+                ) : !row.effectiveTier && row.tier && !row.secondaryPassed ? (
                   <span className="text-[10px] italic text-gray-400">{getSecondaryDeficitNote(row)}</span>
                 ) : !row.effectiveTier && row.remaining !== null ? (
                   <span className="text-[10px] italic text-gray-400">{isActivity ? `- ${String(Math.ceil(row.remaining)).padStart(2, '0')} lượt` : `- ${formatNumber(row.remaining)}`}</span>
@@ -1065,20 +1217,20 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                   className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] font-bold"
                   style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
                 >
-                  <span className="truncate">{nhomFilter || 'Tất cả nhóm'}</span>
+                  <span className="truncate">{nhomFilter.length === 0 ? 'Tất cả nhóm' : nhomFilter.length === 1 ? nhomFilter[0] : `${nhomFilter.length} nhóm`}</span>
                   <ChevronDown className="w-3 h-3 flex-shrink-0" />
                 </button>
-                <div className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
+                <div data-nmc-multi-group-menu="1" aria-multiselectable="true" className="hidden absolute top-full left-0 right-0 mt-0.5 z-[300] bg-[#1a2332] border border-emerald-500/40 max-h-[120px] overflow-y-auto rounded-[2px] shadow-2xl">
                   <button
-                    onClick={(e) => { setNhomFilter(''); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
-                    className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${!nhomFilter ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}
+                    onClick={(e) => { setNhomFilter([]); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
+                    className={`w-full flex items-center justify-between gap-2 text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${nhomFilter.length === 0 ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}
                   >Tất cả nhóm</button>
                   {uniqueNhomList.map((n) => (
                     <button
-                      key={n}
-                      onClick={(e) => { setNhomFilter(n); (e.currentTarget.closest('.relative')?.querySelector('.absolute') as HTMLElement)?.classList.add('hidden'); }}
-                      className={`w-full text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${nhomFilter === n ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}
-                    >{n}</button>
+                      key={n} aria-pressed={nhomFilter.includes(n)}
+                      onClick={(e) => { setNhomFilter(prev => prev.includes(n) ? prev.filter(value => value !== n) : [...prev, n]); }}
+                      className={`w-full flex items-center justify-between gap-2 text-left px-2 py-0.5 text-[9px] hover:bg-emerald-500/20 ${nhomFilter.includes(n) ? 'text-emerald-300 font-bold' : 'text-emerald-200/70'}`}
+                    ><span className="flex-1 truncate">{n}</span>{nhomFilter.includes(n) && <span aria-hidden="true" className="ml-2 flex-shrink-0 text-[11px] font-black leading-none">✓</span>}</button>
                   ))}
                 </div>
               </div>

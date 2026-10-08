@@ -180,6 +180,9 @@ model Contest {
   topN             Int     @default(3)
   topNMinIP        Float   @default(50000000)
   topNValueType    String  @default("ip")     // Loại chỉ tiêu xét Top N: 'ip' | 'afyp'
+  // nmc-contest-combined-top-ranking-v1: additive TOP ranking attached to the primary IP/AFYP contest
+  useTopRanking     Boolean @default(false)
+  topRewardAmounts String  @default("[]")
   filterByEffectiveDate Boolean @default(false) // Chỉ tính TVV có ngày LV sau ngày hiệu lực chức vụ gần nhất của NTD
   csvContractUrl   String   @default("")
   csvStaffUrl      String   @default("")
@@ -259,6 +262,7 @@ model TVVStruct {
   ngayBatDau      DateTime?
   maTVVTuyendung  String   @default("")
   note            String   @default("")
+  ghiChu          String   @default("")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }

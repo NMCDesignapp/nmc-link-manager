@@ -33,9 +33,19 @@ const CLBPostAssessmentMembers = dynamic(
   () => import('@/components/clb-sao-viet-post-assessment').then((mod) => mod.CLBPostAssessmentMembers),
   { ssr: false, loading: () => <SectionLoading /> },
 );
+// nmc-clb-title-assessment-v1
+const CLBTitleAssessmentSection = dynamic(
+  () => import('@/components/clb-sao-viet-title-assessment').then((mod) => mod.CLBTitleAssessmentSection),
+  { ssr: false, loading: () => <SectionLoading /> },
+);
+// nmc-clb-top-ip-v1
+const CLBTopIPSection = dynamic(
+  () => import('@/components/clb-sao-viet-top-ip').then((mod) => mod.CLBTopIPSection),
+  { ssr: false, loading: () => <SectionLoading /> },
+);
 
 function SectionLoading() {
-  return <div className="border-t border-white/10 bg-black/10 px-4 py-5 text-center text-xs text-white/40">Đang tải kết quả...</div>;
+  return <div className="border-t border-[#aeb9b2] bg-[#f5f1e8] px-4 py-4 text-center text-xs text-[#b8c6c0]">Đang tải kết quả...</div>;
 }
 
 function getDefaultAssessment() {
@@ -45,7 +55,7 @@ function getDefaultAssessment() {
 }
 
 const SELECT_CLASS =
-  'h-10 rounded-lg border border-white/10 bg-black/25 px-3 text-sm font-semibold text-white outline-none transition focus:border-amber-400/60';
+  'h-10 rounded-lg border border-[#2f4a3f] bg-[#102019] px-3 text-sm font-semibold text-white outline-none transition focus:border-[#d3a62c]';
 
 type FolderProps = {
   title: string;
@@ -56,7 +66,7 @@ type FolderProps = {
 
 function AssessmentFolder({ title, open, onToggle, children }: FolderProps) {
   return (
-    <section className="nmc-clb-folder mt-5 overflow-hidden border border-amber-300/20 bg-[#0b1511] shadow-[0_18px_48px_rgba(0,0,0,0.28)]">
+    <section className="nmc-clb-folder mt-5 overflow-hidden border border-[#8c7730] bg-[#1e2a22] shadow-[0_5px_0_#020805]">
       <button
         type="button"
         onClick={onToggle}
@@ -68,7 +78,7 @@ function AssessmentFolder({ title, open, onToggle, children }: FolderProps) {
         </span>
         {open ? <ChevronDown className="h-5 w-5 text-amber-200" /> : <ChevronRight className="h-5 w-5 text-amber-200" />}
       </button>
-      {open ? <div className="nmc-clb-folder-body space-y-2 border-t border-white/10 p-2.5 sm:p-3">{children}</div> : null}
+      {open ? <div className="nmc-clb-folder-body space-y-2 border-t border-[#87948b] bg-[#dce2de] p-2.5 sm:p-3">{children}</div> : null}
     </section>
   );
 }
@@ -82,16 +92,16 @@ type ItemProps = {
 
 function AssessmentItem({ title, open, onToggle, children }: ItemProps) {
   return (
-    <div className="nmc-clb-item overflow-hidden border border-white/10 bg-[#0e1915]">
+    <div className="nmc-clb-item overflow-hidden border border-[#6d8594] bg-[#284b61] shadow-[0_2px_0_#020805]">
       <button
         type="button"
         onClick={onToggle}
-        className="nmc-clb-item-head flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-white/[0.035]"
+        className="nmc-clb-item-head flex w-full items-center justify-between bg-[#2e566d] px-4 py-3 text-left transition hover:bg-[#39677f]"
       >
-        <span className="text-sm font-bold text-white/85">{title}</span>
-        {open ? <ChevronDown className="h-4 w-4 text-emerald-300" /> : <ChevronRight className="h-4 w-4 text-white/45" />}
+        <span className="text-sm font-bold text-[#e6ebe8]">{title}</span>
+        {open ? <ChevronDown className="h-4 w-4 text-emerald-300" /> : <ChevronRight className="h-4 w-4 text-[#edf4f0]" />}
       </button>
-      {open ? <div className="nmc-clb-item-body border-t border-white/10 px-3 pb-3 sm:px-4">{children}</div> : null}
+      {open ? <div className="nmc-clb-item-body border-t border-[#2f4a3f] px-3 pb-3 sm:px-4">{children}</div> : null}
     </div>
   );
 }
@@ -104,6 +114,8 @@ export default function CLBSaoVietPage() {
   const [retentionFolderOpen, setRetentionFolderOpen] = useState(true);
   const [entryFolderOpen, setEntryFolderOpen] = useState(true);
   const [membersFolderOpen, setMembersFolderOpen] = useState(false);
+  const [titleFolderOpen, setTitleFolderOpen] = useState(false);
+  const [topIpFolderOpen, setTopIpFolderOpen] = useState(false);
   const [openItem, setOpenItem] = useState<string | null>(null);
 
   const currentYear = new Date().getFullYear();
@@ -120,36 +132,28 @@ export default function CLBSaoVietPage() {
 
   return (
     <main className="nmc-clb-soft-skin min-h-screen bg-[#07100d] text-white">
-      <div
-        className="fixed inset-0 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(circle at 15% 10%, rgba(245,158,11,0.12), transparent 34%), radial-gradient(circle at 85% 18%, rgba(0,255,136,0.08), transparent 28%), linear-gradient(180deg, rgba(255,255,255,0.015), transparent 35%)',
-        }}
-      />
-
-      <div className="relative mx-auto max-w-[1500px] px-3 py-4 sm:px-5 lg:px-8 lg:py-6">
-        <header className="nmc-clb-header flex flex-col gap-4 border-b border-amber-300/15 pb-5 sm:flex-row sm:items-center sm:justify-between">
+<div className="relative mx-auto max-w-[1500px] px-3 py-4 sm:px-5 lg:px-8 lg:py-6">
+        <header className="nmc-clb-header flex flex-col gap-4 border border-[#365b72] bg-[#102a3d] px-3 py-3 shadow-[0_5px_0_#020805] sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-4">
           <div className="flex items-center gap-3">
             <BackButton size={36} />
             <div>
               <div className="flex items-center gap-2">
-                <Star className="h-5 w-5 fill-amber-300/20 text-amber-300" />
+                <Star className="h-5 w-5 fill-[#f2bd3f] text-amber-300" />
                 <h1 className="text-xl font-black tracking-[0.08em] text-amber-100 sm:text-2xl">CLB SAO VIỆT</h1>
               </div>
-              <p className="mt-1 text-xs text-white/50 sm:text-sm">Tính kết quả CLB, xuất Excel và chuẩn bị dữ liệu chúc mừng</p>
+              <p className="mt-1 text-xs text-[#ded7c2] sm:text-sm">Tính kết quả CLB, xuất Excel và chuẩn bị dữ liệu chúc mừng</p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.035] px-3 py-1.5">
-              <span className="text-xs font-semibold text-white/55">Năm xét</span>
+            <label className="flex items-center gap-2 rounded-lg border border-[#627888] bg-[#20394b] px-3 py-1.5 shadow-[0_2px_0_#020805]">
+              <span className="text-xs font-semibold text-[#b9c7c0]">Năm xét</span>
               <select className={SELECT_CLASS} value={assessmentYear} onChange={(event) => setAssessmentYear(Number(event.target.value))}>
                 {yearOptions.map((year) => <option key={year} value={year} className="bg-[#111915]">{year}</option>)}
               </select>
             </label>
-            <label className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.035] px-3 py-1.5">
-              <span className="text-xs font-semibold text-white/55">Đợt xét</span>
+            <label className="flex items-center gap-2 rounded-lg border border-[#627888] bg-[#20394b] px-3 py-1.5 shadow-[0_2px_0_#020805]">
+              <span className="text-xs font-semibold text-[#b9c7c0]">Đợt xét</span>
               <select className={SELECT_CLASS} value={assessmentMonth} onChange={(event) => setAssessmentMonth(Number(event.target.value))}>
                 {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => <option key={month} value={month} className="bg-[#111915]">1/{month}</option>)}
               </select>
@@ -160,9 +164,9 @@ export default function CLBSaoVietPage() {
           </div>
         </header>
 
-        <div className="nmc-clb-period-note mt-4 border border-amber-300/15 bg-amber-300/[0.035] px-4 py-3 text-xs leading-5 text-white/50">
+        <div className="nmc-clb-period-note mt-4 border border-[#a1842b] bg-[#403413] px-4 py-3 text-xs leading-5 text-[#d3d8d5] shadow-[0_4px_0_#020805]">
           <strong className="text-amber-100">Kỳ xét dùng chung:</strong>{' '}
-          tất cả mục Xét duy trì, Xét gia nhập và DS thành viên sau đợt xét đều sử dụng Đợt 1/{assessmentMonth}/{assessmentYear} đã chọn phía trên và lấy 3 tháng liền trước.
+          Xét duy trì, Xét gia nhập và DS thành viên sau đợt xét dùng Đợt 1/{assessmentMonth}/{assessmentYear} và 3 tháng liền trước. Xét danh hiệu dùng đúng bộ chỉ tiêu của Đợt 1/{assessmentMonth}/{assessmentYear} đã chọn. Xét Top IP chỉ lấy doanh số đúng 1 tháng liền trước theo Ngày PH.
         </div>
 
         <AssessmentFolder title="Xét duy trì" open={retentionFolderOpen} onToggle={() => setRetentionFolderOpen((value) => !value)}>
@@ -197,10 +201,36 @@ export default function CLBSaoVietPage() {
           {membersFolderOpen ? <CLBPostAssessmentMembers {...sharedProps} /> : null}
         </AssessmentFolder>
 
-        <section className="nmc-clb-footer mt-5 border border-dashed border-white/10 bg-white/[0.02] p-4 text-center text-xs text-white/35">
+        <AssessmentFolder
+          title="Xét danh hiệu CLB"
+          open={titleFolderOpen}
+          onToggle={() => setTitleFolderOpen((value) => !value)}
+        >
+          <AssessmentItem title="Xét danh hiệu - TVV" open={openItem === 'title-tvv'} onToggle={() => toggleItem('title-tvv')}>
+            {openItem === 'title-tvv' ? <CLBTitleAssessmentSection {...sharedProps} program="tvv" /> : null}
+          </AssessmentItem>
+          <AssessmentItem title="Xét danh hiệu - TN KTM" open={openItem === 'title-tn-ktm'} onToggle={() => toggleItem('title-tn-ktm')}>
+            {openItem === 'title-tn-ktm' ? <CLBTitleAssessmentSection {...sharedProps} program="tnKtm" /> : null}
+          </AssessmentItem>
+          <AssessmentItem title="Xét danh hiệu - TN TD" open={openItem === 'title-tn-td'} onToggle={() => toggleItem('title-tn-td')}>
+            {openItem === 'title-tn-td' ? <CLBTitleAssessmentSection {...sharedProps} program="tnTd" /> : null}
+          </AssessmentItem>
+        </AssessmentFolder>
+
+        <AssessmentFolder
+          title="Xét Top IP"
+          open={topIpFolderOpen}
+          onToggle={() => setTopIpFolderOpen((value) => !value)}
+        >
+          {topIpFolderOpen ? <CLBTopIPSection {...sharedProps} /> : null}
+        </AssessmentFolder>
+
+        <section className="nmc-clb-footer mt-5 border border-[#81958a] bg-[#d8e2dc] p-4 text-center text-xs text-[#40564b] shadow-[0_3px_0_#020805]">
           Phần tạo poster chúc mừng sẽ được nối vào kết quả từng mục sau khi hoàn tất các tiêu chí xét.
         </section>
       </div>
     </main>
   );
 }
+
+// nmc-clb-solid-compact-v2

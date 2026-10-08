@@ -204,17 +204,31 @@ export async function GET(request: NextRequest) {
           const monthlyIP = sumAgentIP(tvvCode, start, endExclusive);
           const monthlyReward = monthlyIP >= 12_000_000 ? 1_000_000 : 0;
 
+          // nmc-tvvm-stage-reward-once-v1
+          // Chỉ cộng PHẦN THƯỞNG CHẶNG MỚI PHÁT SINH trong tháng hiện tại.
+          // Phần đã đạt/đã tính ở tháng trước trong cùng chặng tuyệt đối không cộng lại.
+          // Riêng Chặng 1: nếu trước đó đã đạt mốc 50tr (3tr) rồi sau đó lên 100tr (6tr),
+          // tháng sau chỉ cộng phần tăng thêm 3tr, không cộng lại toàn bộ 6tr.
           let stageReward = 0;
           if (tvvStart && !Number.isNaN(tvvStart.getTime())) {
             const range = stageRange(tvvStart, month);
             if (range) {
-              const stageIP = sumAgentIP(tvvCode, range.start, range.endExclusive);
-              if (range.stage === 1) {
-                if (stageIP >= 100_000_000) stageReward = 6_000_000;
-                else if (stageIP >= 50_000_000) stageReward = 3_000_000;
-              } else if (range.stage >= 2 && range.stage <= 4 && stageIP >= 100_000_000) {
-                stageReward = 3_000_000;
-              }
+              const stageRewardEntitlement = (stage: number, stageIP: number): number => {
+                if (stage === 1) {
+                  if (stageIP >= 100_000_000) return 6_000_000;
+                  if (stageIP >= 50_000_000) return 3_000_000;
+                  return 0;
+                }
+                if (stage >= 2 && stage <= 4 && stageIP >= 100_000_000) return 3_000_000;
+                return 0;
+              };
+
+              const currentStageIP = sumAgentIP(tvvCode, range.start, range.endExclusive);
+              // 'start' là đầu tháng đang xét. Đây chính là IP lũy kế của chặng TRƯỚC tháng hiện tại.
+              const previousStageIP = sumAgentIP(tvvCode, range.start, start);
+              const currentEntitlement = stageRewardEntitlement(range.stage, currentStageIP);
+              const previousEntitlement = stageRewardEntitlement(range.stage, previousStageIP);
+              stageReward = Math.max(0, currentEntitlement - previousEntitlement);
             }
           }
 

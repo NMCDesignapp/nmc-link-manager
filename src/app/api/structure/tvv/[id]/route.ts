@@ -15,6 +15,7 @@ function safeDate(v: any): Date | null {
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await db.$executeRawUnsafe('ALTER TABLE "TVVStruct" ADD COLUMN IF NOT EXISTS "ghiChu" TEXT NOT NULL DEFAULT \'\'');
     const { id } = await params;
     const body = await req.json();
     const data: Record<string, unknown> = {};
@@ -25,6 +26,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.ngayBatDau !== undefined) data.ngayBatDau = body.ngayBatDau ? safeDate(body.ngayBatDau) : null;
     if (body.maTVVTuyendung !== undefined) data.maTVVTuyendung = body.maTVVTuyendung;
     if (body.note !== undefined) data.note = body.note;
+    if (body.ghiChu !== undefined) data.ghiChu = body.ghiChu;
     const item = await db.tVVStruct.update({ where: { id }, data });
     return NextResponse.json(item);
   } catch (error) {

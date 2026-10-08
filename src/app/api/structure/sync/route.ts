@@ -44,6 +44,7 @@ function assertNoDuplicate(rows: Array<{ agentCode: string }>) {
 // of its corresponding local Excel sheet; rows removed from Excel are removed here too.
 export async function POST(request: NextRequest) {
   try {
+    await db.$executeRawUnsafe('ALTER TABLE "TVVStruct" ADD COLUMN IF NOT EXISTS "ghiChu" TEXT NOT NULL DEFAULT \'\'');
     const body = await request.json();
     if (!isDataHubImport(body) || !isAuthorizedDataHubRequest(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
         .map(row => ({
           agentCode: text(row, 'Mã TVV'), agentName: text(row, 'Tên TVV'), maBanNhom: text(row, 'Mã Ban/Nhóm'),
           chucVu: text(row, 'Chức vụ'), ngayBatDau: date(row['Ngày bắt đầu làm việc']),
-          maTVVTuyendung: text(row, 'Mã TVV TD'), note: text(row, 'Trạng thái'),
+          maTVVTuyendung: text(row, 'Mã TVV TD'), note: text(row, 'Trạng thái'), ghiChu: text(row, 'Ghi chú'),
         }))
         .filter(row => row.agentCode && row.agentName);
       if (!rows.length) return NextResponse.json({ error: 'Không có TVV hợp lệ' }, { status: 400 });

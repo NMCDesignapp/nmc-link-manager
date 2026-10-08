@@ -1,6 +1,10 @@
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
+async function ensureGhiChuColumn() {
+  await db.$executeRawUnsafe('ALTER TABLE "TVVStruct" ADD COLUMN IF NOT EXISTS "ghiChu" TEXT NOT NULL DEFAULT \'\'');
+}
+
 // Helper: chuyển Excel serial number thành Date
 function excelSerialToDate(serial: number): Date {
   // Excel epoch = 30/12/1899 (bù bug 1900 leap year)
@@ -46,6 +50,7 @@ function datesEqual(a: Date | null, b: Date | null): boolean {
 // GET /api/structure/tvv
 export async function GET() {
   try {
+    await ensureGhiChuColumn();
     const list = await db.tVVStruct.findMany({ orderBy: { agentName: 'asc' } });
     return NextResponse.json(list);
   } catch (error) {
@@ -59,6 +64,7 @@ export async function GET() {
 // ?upsert=true → cập nhật thông minh: giữ nguyên nếu không đổi, cập nhật nếu thay đổi, thêm mới nếu chưa có, xoá nếu không còn trong DS mới
 export async function POST(request: NextRequest) {
   try {
+    await ensureGhiChuColumn();
     const replaceAll = request.nextUrl.searchParams.get('replaceAll') === 'true';
     const upsertMode = request.nextUrl.searchParams.get('upsert') === 'true';
     const body = await request.json();
@@ -100,7 +106,8 @@ export async function POST(request: NextRequest) {
         chucVu: getValFlex(r, 'chucVu', 'Chức vụ', 'chuc vu') || '',
         ngayBatDau: safeDate(getValFlex(r, 'ngayBatDau', 'Ngày bắt đầu', 'Ngày bắt đầu làm việc', 'ngay bat dau', 'ngay bat dau lam viec', 'ngay bd', 'ngay bat dau lv')),
         maTVVTuyendung: getValFlex(r, 'maTVVTuyendung', 'Mã TVV tuyển dụng', 'Mã TVV TD', 'ma tvv tuyen dung', 'ma tvv td', 'ma nguoi tuyen dung', 'ma nguoi td', 'ma ntd', 'manguoituyendung', 'ma nguoi td', 'ma dl td', 'nguoi tuyen dung', 'nguoi td') || '',
-        note: getValFlex(r, 'note', 'Trạng thái', 'trang thai', 'Ghi chú', 'ghi chu') || '',
+        note: getValFlex(r, 'note', 'Trạng thái', 'trang thai') || '',
+        ghiChu: getValFlex(r, 'ghiChu', 'Ghi chú', 'ghi chu') || '',
       }));
       if (records.length === 0) return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
 
@@ -156,6 +163,7 @@ export async function POST(request: NextRequest) {
               existing.chucVu === rec.chucVu &&
               existing.maTVVTuyendung === rec.maTVVTuyendung &&
               existing.note === rec.note &&
+              existing.ghiChu === rec.ghiChu &&
               datesEqual(existing.ngayBatDau, rec.ngayBatDau);
 
             if (isSame) {
@@ -172,6 +180,7 @@ export async function POST(request: NextRequest) {
                   ngayBatDau: rec.ngayBatDau,
                   maTVVTuyendung: rec.maTVVTuyendung,
                   note: rec.note,
+                  ghiChu: rec.ghiChu,
                 },
               });
               updated++;
@@ -231,13 +240,14 @@ export async function POST(request: NextRequest) {
     const chucVu = getValFlex(body, 'chucVu', 'Chức vụ', 'chuc vu');
     const ngayBatDau = getValFlex(body, 'ngayBatDau', 'Ngày bắt đầu', 'Ngày bắt đầu làm việc', 'ngay bat dau', 'ngay bat dau lv');
     const maTVVTuyendung = getValFlex(body, 'maTVVTuyendung', 'Mã TVV tuyển dụng', 'Mã TVV TD', 'ma tvv tuyen dung', 'ma tvv td', 'ma nguoi tuyen dung', 'ma nguoi td', 'ma ntd', 'ma dl td');
-    const note = getValFlex(body, 'note', 'Trạng thái', 'trang thai', 'Ghi chú', 'ghi chu');
+    const note = getValFlex(body, 'note', 'Trạng thái', 'trang thai');
+    const ghiChu = getValFlex(body, 'ghiChu', 'Ghi chú', 'ghi chu');
     if (!agentCode || !agentName) return NextResponse.json({ error: 'Vui lòng nhập mã TVV và tên TVV' }, { status: 400 });
 
     const item = await db.tVVStruct.upsert({
       where: { agentCode },
-      update: { agentName, maBanNhom: maBanNhom || '', chucVu: chucVu || '', ngayBatDau: safeDate(ngayBatDau), maTVVTuyendung: maTVVTuyendung || '', note: note || '' },
-      create: { agentCode, agentName, maBanNhom: maBanNhom || '', chucVu: chucVu || '', ngayBatDau: safeDate(ngayBatDau), maTVVTuyendung: maTVVTuyendung || '', note: note || '' },
+      update: { agentName, maBanNhom: maBanNhom || '', chucVu: chucVu || '', ngayBatDau: safeDate(ngayBatDau), maTVVTuyendung: maTVVTuyendung || '', note: note || '', ghiChu: ghiChu || '' },
+      create: { agentCode, agentName, maBanNhom: maBanNhom || '', chucVu: chucVu || '', ngayBatDau: safeDate(ngayBatDau), maTVVTuyendung: maTVVTuyendung || '', note: note || '', ghiChu: ghiChu || '' },
     });
     return NextResponse.json(item, { status: 201 });
   } catch (error: any) {

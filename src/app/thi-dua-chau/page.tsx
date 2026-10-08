@@ -1,5 +1,13 @@
 'use client';
 
+// nmc-contest-top-eligibility-v1
+
+// nmc-contest-combined-top-ranking-v3
+
+// nmc-contest-combined-top-ranking-v2
+
+// nmc-contest-combined-top-ranking-v1
+
 import React, { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 // useSettings removed — no CSV sync, data from Quản lý page
@@ -29,6 +37,7 @@ import {
 } from 'lucide-react';
 import { NeonDatePicker } from '@/components/neon-date-picker';
 import { expandActivityExportDetails } from '@/lib/contest-export-details';
+import { buildCombinedTopRanking, passesCombinedTopEligibility, supportsCombinedTopRanking } from '@/lib/contest-combined-top-ranking';
 import {
   createYearArchivePayload,
   getContestArchiveYear,
@@ -41,6 +50,8 @@ import {
   evaluateSecondaryConditions,
   filterQualifyingActivityContracts,
   getContestMetricLabel,
+  computeRecruitmentContestRows,
+  type RecruitmentContestConfig,
   type SecondaryConditionResult,
 } from '@/lib/contest-calculator';
 
@@ -108,6 +119,7 @@ interface TVVStructItem {
   ngayBatDau: string | null;  // startDate — ISO date string
   maTVVTuyendung?: string;
   note?: string;
+  ghiChu?: string;
 }
 
 // MonthlyRevenueRow removed — all data now sourced from Contracts table only
@@ -129,13 +141,16 @@ interface SavedContest {
   topN?: number;
   topNMinIP?: number;
   topNValueType?: 'ip' | 'afyp';
+  useTopRanking?: boolean;
+  topRewardAmounts?: string;
   filterByEffectiveDate?: boolean;
   recruitedAgentScope?: 'all' | 'tvvm';
+  recruitmentConfig?: RecruitmentContestConfig | null;
   csvContractUrl?: string; csvStaffUrl?: string; csvRecruiterUrl?: string;
   createdAt: string; updatedAt: string;
 }
 
-type ConditionType = 'per_contract_ip' | 'per_contract_afyp' | 'total_ip' | 'total_afyp' | 'activity_round' | 'activity_round_tvvm' | 'activity_round_standard' | 'activity_round_standard_tvvm' | 'activity_round_tvv90' | 'tvv_pass_count' | 'top_n_ip' | 'pass_count_ip_afyp';
+type ConditionType = 'per_contract_ip' | 'per_contract_afyp' | 'total_ip' | 'total_afyp' | 'activity_round' | 'activity_round_tvvm' | 'activity_round_standard' | 'activity_round_standard_tvvm' | 'activity_round_tvv90' | 'tvv_pass_count' | 'top_n_ip' | 'pass_count_ip_afyp' | 'recruitment_count';
 type TargetType = 'tvv' | 'nhom' | 'nyd';
 type RecruitedAgentScope = 'all' | 'tvvm';
 
@@ -177,6 +192,7 @@ function isStandardMode(ct: ConditionType): boolean {
 function isTopNMode(ct: ConditionType): boolean {
   return ct === 'top_n_ip';
 }
+function isRecruitmentMode(ct: ConditionType): boolean { return ct === 'recruitment_count'; }
 
 function isTVVm(startDate: string | null, maxMonths: number = 12): boolean {
   if (!startDate) return false;
@@ -361,6 +377,7 @@ function getConditionLabel(ct: ConditionType): string {
     case 'tvv_pass_count': return 'TVV đạt CTĐK';
     case 'pass_count_ip_afyp': return 'Đếm TVV đạt IP+AFYP';
     case 'top_n_ip': return 'Xét Top N IP';
+    case 'recruitment_count': return 'Tuyển dụng TVVm';
   }
 }
 
@@ -508,7 +525,7 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
   accentColor?: string;
 }) {
   const isAR = isActivityRoundMode(conditionType);
-  const isPassCount = isTVVPassCountMode(conditionType);
+  const isPassCount = isTVVPassCountMode(conditionType) || isRecruitmentMode(conditionType);
   const isTopN = isTopNMode(conditionType);
   const isAFYP = conditionType === 'per_contract_afyp' || conditionType === 'total_afyp';
   const unitLabel = isPassCount ? 'TVV đạt' : isAFYP ? 'AFYP' : 'IP';
@@ -650,10 +667,24 @@ function ThiDuaPageInner() {
   const [topNMinIP, setTopNMinIP] = useState(50_000_000);
   // Top N value type: 'ip' (default) hoặc 'afyp' — cho phép user chọn chỉ tiêu xét Top N
   const [topNValueType, setTopNValueType] = useState<'ip' | 'afyp'>('ip');
+  // ${MARKER}: TOP bổ sung chạy song song với điều kiện chính; tiền TOP chỉ ghi ở Ghi chú.
+  const [useTopRanking, setUseTopRanking] = useState(false);
+  const [topRewardAmounts, setTopRewardAmounts] = useState<number[]>([1_000_000, 500_000, 300_000]);
+  const [topEligibilityType, setTopEligibilityType] = useState<'none' | 'per_contract_ip' | 'per_contract_afyp' | 'total_ip' | 'total_afyp'>('none');
+  const [topEligibilityMin, setTopEligibilityMin] = useState(0);
   // Filter by effective date — khi true: chỉ tính TVV có ngày LV (DS TVV) bằng hoặc sau ngày hiệu lực chức vụ gần nhất của NTD recruiter
   const [filterByEffectiveDate, setFilterByEffectiveDate] = useState(false);
   // Với hình thức NTD: chọn rõ tổng/lượt lấy từ toàn bộ TVV hay chỉ TVVm do từng NTD tuyển.
   const [recruitedAgentScope, setRecruitedAgentScope] = useState<RecruitedAgentScope>('all');
+  const [recruitmentConfig, setRecruitmentConfig] = useState<RecruitmentContestConfig>({
+    subjectScope: 'both',
+    filterByEffectiveDate: false,
+    activityEnabled: false,
+    activityMetric: 'total_ip',
+    activityComparator: 'gte',
+    activityThreshold: 0,
+    activityBonusAmount: 0,
+  });
 
   const [posterUrl, setPosterUrl] = useState<string>('');
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -1067,6 +1098,20 @@ function ThiDuaPageInner() {
     return Array.from(map.values()).filter(person => !norm(person.nhom || '').toLowerCase().includes('dso'));
   }, [recruiterList, leadersList]);
 
+  const recruitmentRows = useMemo(() => {
+    if (!isRecruitmentMode(conditionType)) return [];
+    return computeRecruitmentContestRows({
+      startDate,
+      endDate,
+      recruiters: ntdCandidates,
+      tvvStructList,
+      contracts: filteredContracts,
+      bonusTiers,
+      selectedRecruiterCodes: subjectCodes,
+      config: recruitmentConfig,
+    });
+  }, [conditionType, startDate, endDate, ntdCandidates, tvvStructList, filteredContracts, bonusTiers, subjectCodes, recruitmentConfig]);
+
   const chooseSubjectType = useCallback((type: string) => {
     const list = type.startsWith('phong_')
       ? (subjectLists.phongLists?.[type] || [])
@@ -1194,7 +1239,11 @@ function ThiDuaPageInner() {
       }
       return contractsFiltered.filter(c => allowedMaNhom.has(c.maNhom) && !norm(c.nhom || '').toLowerCase().includes('dso'));
     }
-    if (targetType === 'nyd') {
+    if (targetType === 'nyd' && isRecruitmentMode(conditionType)) {
+      recruitmentRows.forEach((row, idx) => {
+        text += `${idx + 1}. ${row.recruiter.nhom || '—'} | ${row.recruiter.agentCode} | ${row.recruiter.agentName} | ${row.recruitCount} TVVm | Thưởng chính: ${formatCurrency(row.baseBonus)}${recruitmentConfig.activityEnabled ? ` | ${row.activityQualifiedCount} TVVm đạt hoạt động | Thưởng thêm: ${formatCurrency(row.activityBonus)}` : ''} | Tổng: ${formatCurrency(row.totalBonus)}\n`;
+      });
+    } else if (targetType === 'nyd') {
       // NTD: xác định tập mã NTD từ Recruiter table
       // Bỏ NTD thuộc nhóm DSO
       const ntdNoDSO = ntdCandidates;
@@ -2002,6 +2051,60 @@ function ThiDuaPageInner() {
     return g.totalFYP;
   }, [conditionType]);
 
+  const combinedTopRankByKey = useMemo(() => {
+    if (!useTopRanking || !supportsCombinedTopRanking(conditionType)) return new Map();
+
+    const passesSecondaryConditions = (rows: Contract[]) => evaluateSecondaryConditions(rows, {
+      useSecondaryCondition, secondaryTotalAFYPMin, secondaryTotalIPMin,
+      secondaryLuotHDMin, secondaryLuotHDCMin, secondaryLuotHDFilter, secondaryLuotHDCFilter,
+      luotHDThreshold, luotHDCTThreshold,
+    }, tvvStructList).passed;
+
+    const passesTopEligibility = (rows: Contract[], focusContract?: Contract) =>
+      passesCombinedTopEligibility(topEligibilityType, topEligibilityMin, rows, focusContract);
+
+    const candidates: { key: string; value: number; qualified: boolean }[] = [];
+    if (targetType === 'tvv' && isPerContractMode(conditionType)) {
+      for (const contract of perContractDisplayContracts) {
+        const value = getContractValue(contract);
+        const tier = calculateBonus(value).tier;
+        const agentContracts = displayContracts.filter(row => row.agentCode === contract.agentCode);
+        candidates.push({ key: `contract:${contract.id}`, value, qualified: Boolean(tier) && passesSecondaryConditions(agentContracts) && passesTopEligibility(agentContracts, contract) });
+      }
+    } else if (targetType === 'tvv') {
+      for (const row of tvvTotalRows) {
+        const agentContracts = displayContracts.filter(contract => contract.agentCode === row.agent.agentCode);
+        candidates.push({ key: `tvv:${row.agent.agentCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryConditions(agentContracts) && passesTopEligibility(agentContracts) });
+      }
+    } else if (targetType === 'nhom') {
+      for (const group of groupedData) {
+        const value = getGroupValue(group);
+        const tier = calculateBonus(value).tier;
+        candidates.push({ key: `nhom:${group.maNhom}`, value, qualified: Boolean(tier) && passesSecondaryConditions(group.contracts || []) && passesTopEligibility(group.contracts || []) });
+      }
+    } else if (targetType === 'nyd') {
+      for (const person of nydData) {
+        const value = getNYDContestValue(conditionType, person.recruitFYP, person.ownFYP, person.ownActivityRounds, includeIndividualNTD);
+        const tier = calculateBonus(value).tier;
+        const personContracts = (person.contracts || displayContracts).filter(contract => (
+          (contract.maDaiLyTD === person.nydCode && contract.agentCode !== person.nydCode)
+          || (includeIndividualNTD && contract.agentCode === person.nydCode)
+        ));
+        candidates.push({ key: `nyd:${person.nydCode}`, value, qualified: Boolean(tier) && passesSecondaryConditions(personContracts) && passesTopEligibility(personContracts) });
+      }
+    }
+
+    return buildCombinedTopRanking(candidates, topN, topRewardAmounts);
+  }, [
+    useTopRanking, conditionType, targetType, perContractDisplayContracts, tvvTotalRows, groupedData, nydData,
+    displayContracts, getContractValue, getGroupValue, calculateBonus, includeIndividualNTD, topN, topRewardAmounts,
+    useSecondaryCondition, secondaryTotalAFYPMin, secondaryTotalIPMin, secondaryLuotHDMin, secondaryLuotHDCMin,
+    secondaryLuotHDFilter, secondaryLuotHDCFilter, luotHDThreshold, luotHDCTThreshold, tvvStructList,
+    topEligibilityType, topEligibilityMin,
+  ]);
+
+  const getCombinedTopNote = useCallback((key: string) => combinedTopRankByKey.get(key)?.note || '', [combinedTopRankByKey]);
+
   // Helper: kiểm tra 1 TVV có đạt điều kiện của chương trình tham chiếu không
   // Dùng cho conditionType = 'tvv_pass_count'
   // Lọc HĐ theo ngày của CHƯƠNG TRÌNH THAM CHIẾU (không dùng displayContracts)
@@ -2116,6 +2219,14 @@ function ThiDuaPageInner() {
 
   const addBonusTier = () => setBonusTiers([...bonusTiers, { id: crypto.randomUUID(), minFYP: 0, maxFYP: null, bonusAmount: 0, bonusType: 'money', bonusText: '', bonusPercent: 0 }]);
   const removeBonusTier = (id: string) => { setBonusTiers(bonusTiers.filter((t) => t.id !== id)); };
+  const updateTopReward = useCallback((index: number, value: number) => {
+    setTopRewardAmounts(prev => {
+      const next = [...prev];
+      while (next.length <= index) next.push(0);
+      next[index] = Math.max(0, Number(value) || 0);
+      return next;
+    });
+  }, []);
   const updateBonusTier = (id: string, field: keyof BonusTier, value: string | number | null) => setBonusTiers(bonusTiers.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
 
   const addBonusTier2 = () => setBonusTiers2([...bonusTiers2, { id: crypto.randomUUID(), minFYP: 0, maxFYP: null, bonusAmount: 0, bonusType: 'money', bonusText: '', bonusPercent: 0 }]);
@@ -2141,7 +2252,13 @@ function ThiDuaPageInner() {
         referenceContestId: referenceContestId || undefined,
         includeTNInPassCount,
         topN, topNMinIP, topNValueType,
-        filterByEffectiveDate, recruitedAgentScope,
+        useTopRanking: supportsCombinedTopRanking(conditionType) ? useTopRanking : false,
+        topRewardAmounts: JSON.stringify({
+          rewards: topRewardAmounts.slice(0, Math.max(0, topN)),
+          eligibilityType: topEligibilityType,
+          eligibilityMin: Math.max(0, Number(topEligibilityMin) || 0),
+        }),
+        filterByEffectiveDate, recruitedAgentScope, recruitmentConfig,
         secondaryIPMin: conditionType === 'pass_count_ip_afyp' ? passCountIPMin : secondaryIPMin,
         secondaryAFYPMin: conditionType === 'pass_count_ip_afyp' ? passCountAFYPMin : secondaryAFYPMin,
       }) });
@@ -2291,9 +2408,32 @@ function ThiDuaPageInner() {
     setTopN(contest.topN ?? 3);
     setTopNMinIP(contest.topNMinIP ?? 50_000_000);
     setTopNValueType(contest.topNValueType === 'afyp' ? 'afyp' : 'ip');
+    setUseTopRanking(contest.useTopRanking ?? false);
+    try {
+      const parsedTopRewards = JSON.parse(contest.topRewardAmounts || '[]');
+      const rewards = Array.isArray(parsedTopRewards)
+        ? parsedTopRewards
+        : (Array.isArray(parsedTopRewards?.rewards) ? parsedTopRewards.rewards : []);
+      setTopRewardAmounts(rewards.length > 0
+        ? rewards.map((value: unknown) => Math.max(0, Number(value) || 0))
+        : [1_000_000, 500_000, 300_000]);
+      const rawEligibilityType = Array.isArray(parsedTopRewards) ? 'none' : parsedTopRewards?.eligibilityType;
+      setTopEligibilityType(rawEligibilityType === 'per_contract_ip' || rawEligibilityType === 'per_contract_afyp' || rawEligibilityType === 'total_ip' || rawEligibilityType === 'total_afyp'
+        ? rawEligibilityType
+        : 'none');
+      setTopEligibilityMin(Array.isArray(parsedTopRewards) ? 0 : Math.max(0, Number(parsedTopRewards?.eligibilityMin) || 0));
+    } catch {
+      setTopRewardAmounts([1_000_000, 500_000, 300_000]);
+      setTopEligibilityType('none');
+      setTopEligibilityMin(0);
+    }
     // Filter by effective date
     setFilterByEffectiveDate(contest.filterByEffectiveDate ?? false);
     setRecruitedAgentScope(contest.recruitedAgentScope === 'tvvm' ? 'tvvm' : 'all');
+    setRecruitmentConfig(contest.recruitmentConfig || {
+      subjectScope: 'both', filterByEffectiveDate: false, activityEnabled: false,
+      activityMetric: 'total_ip', activityComparator: 'gte', activityThreshold: 0, activityBonusAmount: 0,
+    });
     // pass_count_ip_afyp: load IP min + AFYP min (reuse secondaryIPMin + secondaryAFYPMin)
     setPassCountIPMin(contest.secondaryIPMin || 6000000);
     setPassCountAFYPMin(contest.secondaryAFYPMin || 12000000);
@@ -2332,7 +2472,7 @@ function ThiDuaPageInner() {
   };
 
   const handleCopyText = () => {
-    if (perContractDisplayContracts.length === 0 && nydData.length === 0 && tvvTotalRows.length === 0 && groupedData.length === 0) return;
+    if (perContractDisplayContracts.length === 0 && nydData.length === 0 && recruitmentRows.length === 0 && tvvTotalRows.length === 0 && groupedData.length === 0) return;
     const sTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
     let text = `🏆 ${contestTitle}\n📅 Từ ${startDate ? formatDate(startDate) : '...'} đến ${endDate ? formatDate(endDate) : '...'}\n🎯 ${getTargetLabel(targetType)}\n━━━━━━━━━━━━━━━━━━━━\n📊 Mức thưởng:\n`;
     sTiers.forEach((t, i) => { text += `  Mức ${i + 1}: ${isActivityRoundMode(conditionType) ? `${t.minFYP}${t.maxFYP ? ` - ${t.maxFYP}` : ' ↑'} lượt` : `${formatCurrency(t.minFYP)}${t.maxFYP ? ` - ${formatCurrency(t.maxFYP)}` : ' ↑'}`} → ${formatBonus(t)}\n`; });
@@ -2400,7 +2540,7 @@ function ThiDuaPageInner() {
 
   const handleExport = async () => {
     try {
-    if (perContractDisplayContracts.length === 0 && nydData.length === 0 && groupedData.length === 0 && tvvTotalRows.length === 0) { toast({ title: 'Thông báo', description: 'Không có dữ liệu' }); return; }
+    if (perContractDisplayContracts.length === 0 && nydData.length === 0 && recruitmentRows.length === 0 && groupedData.length === 0 && tvvTotalRows.length === 0) { toast({ title: 'Thông báo', description: 'Không có dữ liệu' }); return; }
     let headers: string[];
     let rows: (string | number)[][];
     let merges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = [];
@@ -2468,7 +2608,18 @@ function ThiDuaPageInner() {
       return bonus || '';
     };
 
-    if (targetType === 'nyd') {
+    if (targetType === 'nyd' && isRecruitmentMode(conditionType)) {
+      headers = ['STT', 'Nhóm', 'Mã NTD', 'Họ tên NTD', 'Chức vụ', 'SL TVVm tuyển', ...(recruitmentConfig.activityEnabled ? ['TVVm đạt hoạt động'] : []), 'Thưởng chính', ...(recruitmentConfig.activityEnabled ? ['Thưởng thêm'] : []), 'Tổng thưởng', 'Danh sách TVVm'];
+      rows = recruitmentRows.map((row, idx) => [
+        idx + 1, row.recruiter.nhom || '', row.recruiter.agentCode, row.recruiter.agentName,
+        row.recruiter.position || '', row.recruitCount,
+        ...(recruitmentConfig.activityEnabled ? [row.activityQualifiedCount] : []),
+        row.baseBonus,
+        ...(recruitmentConfig.activityEnabled ? [row.activityBonus] : []),
+        row.totalBonus,
+        row.recruits.map(item => `${item.agentCode} - ${item.agentName}`).join('; '),
+      ]);
+    } else if (targetType === 'nyd') {
       // NTD: mở rộng mỗi NTD thành nhiều dòng, mỗi dòng = 1 HĐ của TVV đóng góp
       const showTVVStartDate = isTVVmMode(conditionType) || includeEligibilityDateColumns;
       const showTVVmContributions = isTVVmMode(conditionType);
@@ -2557,7 +2708,7 @@ function ThiDuaPageInner() {
             if (showRateColumn) row.push(effectiveTier ? formatRate(effectiveTier) : '');
             row.push(effectiveTier ? formatBonusAmount(effectiveTier, value, isActivityRoundMode(conditionType) ? value : n.recruitCount) : '');
           }
-          row.push(rewardNote);
+          row.push(getCombinedTopNote(`nyd:${n.nydCode}`) || rewardNote);
           rows.push(row);
           currentRow++;
         } else {
@@ -2602,7 +2753,7 @@ function ThiDuaPageInner() {
               if (showRateColumn) row.push(cIdx === 0 ? (effectiveTier ? formatRate(effectiveTier) : '') : '');
               row.push(cIdx === 0 ? (effectiveTier ? formatBonusAmount(effectiveTier, value, isActivityRoundMode(conditionType) ? value : n.recruitCount) : '') : '');
             }
-            row.push(cIdx === 0 ? rewardNote : '');
+            row.push(cIdx === 0 ? (getCombinedTopNote(`nyd:${n.nydCode}`) || rewardNote) : '');
             rows.push(row);
             currentRow++;
           });
@@ -2712,11 +2863,11 @@ function ThiDuaPageInner() {
                 sc.passed ? phaseRewardCell(groupPhase.phase1Tier, effectiveGroupPhase1Bonus) : '',
                 sc.passed ? phaseRewardCell(groupPhase.phase2Tier, effectiveGroupPhase2Bonus) : '',
                 effectiveGroupPhase1Bonus + effectiveGroupPhase2Bonus || '',
-                groupPhaseRewardNote,
+                getCombinedTopNote(`nhom:${g.maNhom}`) || groupPhaseRewardNote,
               );
             } else {
               if (showRateColumn) row.push(effectiveTier ? formatRate(effectiveTier) : '');
-              row.push(effectiveTier ? formatBonusAmount(effectiveTier, groupMetricValue, g.activityRounds) : '', effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
+              row.push(effectiveTier ? formatBonusAmount(effectiveTier, groupMetricValue, g.activityRounds) : '', getCombinedTopNote(`nhom:${g.maNhom}`) || (effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức')));
             }
             rows.push(row);
             currentRow++;
@@ -2748,12 +2899,12 @@ function ThiDuaPageInner() {
                   cIdx === 0 && sc.passed ? phaseRewardCell(groupPhase.phase1Tier, effectiveGroupPhase1Bonus) : '',
                   cIdx === 0 && sc.passed ? phaseRewardCell(groupPhase.phase2Tier, effectiveGroupPhase2Bonus) : '',
                   cIdx === 0 ? (effectiveGroupPhase1Bonus + effectiveGroupPhase2Bonus || '') : '',
-                  cIdx === 0 ? groupPhaseRewardNote : '',
+                  cIdx === 0 ? (getCombinedTopNote(`nhom:${g.maNhom}`) || groupPhaseRewardNote) : '',
                 );
               } else {
                 if (showRateColumn) row.push(cIdx === 0 ? (effectiveTier ? formatRate(effectiveTier) : '') : '');
                 row.push(cIdx === 0 ? (effectiveTier ? formatBonusAmount(effectiveTier, groupMetricValue, g.activityRounds) : '') : '');
-                row.push(cIdx === 0 ? (effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức')) : '');
+                row.push(cIdx === 0 ? (getCombinedTopNote(`nhom:${g.maNhom}`) || (effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'))) : '');
               }
               rows.push(row);
               currentRow++;
@@ -2801,7 +2952,7 @@ function ThiDuaPageInner() {
               sc.passed ? phaseRewardCell(phaseInfo.phase1Tier, phase1Bonus) : '',
               sc.passed ? phaseRewardCell(phaseInfo.phase2Tier, phase2Bonus) : '',
               phase1Bonus + phase2Bonus || '',
-              phaseRewardNote,
+              getCombinedTopNote(`contract:${c.id}`) || phaseRewardNote,
             );
             return base;
           });
@@ -2822,7 +2973,7 @@ function ThiDuaPageInner() {
             if (expSecIP) base.push(sc.totalIP);
             if (showRateColumn) base.push(effectiveTier ? formatRate(effectiveTier) : '');
             base.push(effectiveTier ? formatBonusAmount(effectiveTier, cValue) : '');
-            base.push(effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
+            base.push(getCombinedTopNote(`contract:${c.id}`) || (effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức')));
             return base;
           });
         }
@@ -2859,7 +3010,7 @@ function ThiDuaPageInner() {
               sc.passed ? phaseRewardCell(phaseInfo.phase1Tier, phase1Bonus) : '',
               sc.passed ? phaseRewardCell(phaseInfo.phase2Tier, phase2Bonus) : '',
               phase1Bonus + phase2Bonus || '',
-              phaseRewardNote,
+              getCombinedTopNote(`tvv:${agent.agentCode}`) || phaseRewardNote,
             );
             return row;
           });
@@ -2891,7 +3042,7 @@ function ThiDuaPageInner() {
                   isActivityRoundMode(conditionType) ? value : undefined,
                 )
               : '');
-            row.push(effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức'));
+            row.push(getCombinedTopNote(`tvv:${agent.agentCode}`) || (effectiveTier ? '' : (tier ? 'Chưa đạt ĐKB' : 'Chưa đạt mức')));
             return row;
           });
           if (tvvTotalRows.length > 1) {
@@ -3438,16 +3589,21 @@ function ThiDuaPageInner() {
     ), 0) : 0;
 
     // NYD stats
-    const nydAchievedCount = targetType === 'nyd' ? nydData.filter(n => {
+    const nydAchievedCount = targetType === 'nyd' ? (isRecruitmentMode(conditionType)
+      ? recruitmentRows.filter(row => row.totalBonus > 0).length
+      : nydData.filter(n => {
       const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
       const entityContracts = n.contracts.filter(c =>
         (c.maDaiLyTD === n.nydCode && c.agentCode !== n.nydCode) ||
         (includeIndividualNTD && c.agentCode === n.nydCode)
       );
       return calculateBonus(value).tier && checkSecondaryTotalCondition(entityContracts).passed;
-    }).length : 0;
-    const nydNotAchievedCount = targetType === 'nyd' ? nydData.length - nydAchievedCount : 0;
-    const nydTotalBonus = targetType === 'nyd' ? nydData.reduce((sum, n) => {
+    }).length) : 0;
+    const nydEntityCount = isRecruitmentMode(conditionType) ? recruitmentRows.length : nydData.length;
+    const nydNotAchievedCount = targetType === 'nyd' ? nydEntityCount - nydAchievedCount : 0;
+    const nydTotalBonus = targetType === 'nyd' ? (isRecruitmentMode(conditionType)
+      ? recruitmentRows.reduce((sum, row) => sum + row.totalBonus, 0)
+      : nydData.reduce((sum, n) => {
       const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
       const { tier } = calculateBonus(value);
       const entityContracts = n.contracts.filter(c =>
@@ -3457,7 +3613,7 @@ function ThiDuaPageInner() {
       if (!tier || !checkSecondaryTotalCondition(entityContracts).passed) return sum;
       const entityIP = entityContracts.reduce((total, contract) => total + contract.pdt10DT, 0);
       return sum + computeBonusFromTier(tier, entityIP, isActivityRoundMode(conditionType) ? value : n.recruitCount, entityIP);
-    }, 0) : 0;
+    }, 0)) : 0;
 
     const tvvAgentCount = targetType === 'tvv'
       ? (isPerContractMode(conditionType) ? perContractDisplayContracts.length : tvvTotalRows.length)
@@ -3957,7 +4113,7 @@ function ThiDuaPageInner() {
                     }`}
                   >
                     <UserPlus className="w-4 h-4" />
-                    <span>NTD</span>
+                    <span>Cá nhân NTD</span>
                   </button>
                 </div>
                 <p className="text-[10px] text-emerald-400/50 italic">
@@ -3993,6 +4149,46 @@ function ThiDuaPageInner() {
                       className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${conditionType === 'total_afyp' ? 'bg-cyan-600 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-cyan-600/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
                     ><TrendingUp className="w-3 h-3 shrink-0" /><span>Tổng AFYP</span></button>
                   </div>
+                </div>
+                {/* Thi đua tuyển dụng — đếm TVVm từ Cấu trúc theo ngày bắt đầu làm việc */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-violet-300/70 font-medium uppercase tracking-wider">Tuyển dụng</p>
+                  <button type="button" onClick={() => { setConditionType('recruitment_count'); setTargetType('nyd'); }}
+                    className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${isRecruitmentMode(conditionType) ? 'bg-violet-600 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-violet-600/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
+                  ><UserPlus className="w-3 h-3 shrink-0" /><span>Thi đua tuyển dụng TVVm</span></button>
+                  {isRecruitmentMode(conditionType) && (
+                    <div className="space-y-2 pl-3 border-l-2 border-violet-500/30">
+                      <div className="grid grid-cols-3 gap-1">
+                        {([['ttn', 'TTN'], ['leader', 'TB/TN'], ['both', 'Cả hai']] as const).map(([value, label]) => (
+                          <button key={value} type="button" onClick={() => setRecruitmentConfig(p => ({ ...p, subjectScope: value }))}
+                            className={`rounded-lg py-1.5 text-[10px] font-bold ${recruitmentConfig.subjectScope === value ? 'bg-violet-500 text-white' : 'bg-gray-800 text-violet-200/70'}`}>{label}</button>
+                        ))}
+                      </div>
+                      <p className="text-[9px] text-violet-200/70">Đếm TVVm có ngày bắt đầu làm việc trong thời gian thi đua, đúng mã người tuyển dụng và Ghi chú để trống.</p>
+                      <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2">
+                        <Checkbox id="recruitmentEffectiveDate" checked={recruitmentConfig.filterByEffectiveDate} onCheckedChange={v => setRecruitmentConfig(p => ({ ...p, filterByEffectiveDate: !!v }))} />
+                        <Label htmlFor="recruitmentEffectiveDate" className="text-[10px] text-amber-200 cursor-pointer">Chỉ tính từ ngày hiệu lực chức vụ của cá nhân NTD</Label>
+                      </div>
+                      <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2">
+                        <Checkbox id="recruitmentActivity" checked={recruitmentConfig.activityEnabled} onCheckedChange={v => setRecruitmentConfig(p => ({ ...p, activityEnabled: !!v }))} />
+                        <Label htmlFor="recruitmentActivity" className="text-[10px] text-emerald-200 cursor-pointer">Thưởng thêm theo hoạt động của TVVm được tuyển</Label>
+                      </div>
+                      {recruitmentConfig.activityEnabled && (
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <Select value={recruitmentConfig.activityMetric} onValueChange={value => setRecruitmentConfig(p => ({ ...p, activityMetric: value as 'total_ip' | 'contract_ip' }))}>
+                            <SelectTrigger className="h-7 text-[10px] bg-gray-800 border-violet-500/30 text-white"><SelectValue /></SelectTrigger>
+                            <SelectContent><SelectItem value="total_ip">Tổng IP trong kỳ</SelectItem><SelectItem value="contract_ip">IP từng HĐ</SelectItem></SelectContent>
+                          </Select>
+                          <Select value={recruitmentConfig.activityComparator} onValueChange={value => setRecruitmentConfig(p => ({ ...p, activityComparator: value as 'gte' | 'lte' }))}>
+                            <SelectTrigger className="h-7 text-[10px] bg-gray-800 border-violet-500/30 text-white"><SelectValue /></SelectTrigger>
+                            <SelectContent><SelectItem value="gte">Từ ngưỡng trở lên</SelectItem><SelectItem value="lte">Từ ngưỡng trở xuống</SelectItem></SelectContent>
+                          </Select>
+                          <div><Label className="text-[9px] text-violet-300/70">Ngưỡng IP (nđ)</Label><Input type="number" value={vndToNgan(recruitmentConfig.activityThreshold) || ''} onChange={e => setRecruitmentConfig(p => ({ ...p, activityThreshold: nganToVnd(Number(e.target.value) || 0) }))} className="h-7 text-xs bg-gray-800 border-violet-500/30 text-white" /></div>
+                          <div><Label className="text-[9px] text-violet-300/70">Thưởng thêm / TVVm (nđ)</Label><Input type="number" value={vndToNgan(recruitmentConfig.activityBonusAmount) || ''} onChange={e => setRecruitmentConfig(p => ({ ...p, activityBonusAmount: nganToVnd(Number(e.target.value) || 0) }))} className="h-7 text-xs bg-gray-800 border-violet-500/30 text-white" /></div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 {/* Lượt HĐ - with sub-options and configurable threshold */}
                 <div className="space-y-1.5">
@@ -4193,6 +4389,73 @@ function ThiDuaPageInner() {
                 title={usePhase2 ? 'Bảng mức thưởng - Giai đoạn 1' : 'Bảng mức thưởng'}
               />
 
+              {supportsCombinedTopRanking(conditionType) && !isTopNMode(conditionType) && (
+                <div className="rounded-xl border border-rose-500/30 bg-rose-950/20 p-3 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <Label className="text-xs font-bold text-rose-300">Kết hợp xét TOP</Label>
+                      <p className="text-[10px] text-rose-200/70 mt-0.5">Chỉ xếp TOP trong số đối tượng đã đạt điều kiện chính; xếp theo đúng {conditionType.includes('afyp') ? 'AFYP' : 'IP'} của bảng này.</p>
+                    </div>
+                    <Checkbox checked={useTopRanking} onCheckedChange={(checked) => setUseTopRanking(Boolean(checked))} className="border-rose-400 data-[state=checked]:bg-rose-500" />
+                  </div>
+                  {useTopRanking && (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-rose-200">Số hạng xét TOP</Label>
+                          <Input type="number" min={1} max={50} value={topN || ''} onChange={(e) => setTopN(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)))} className="h-7 text-xs border-rose-500/30 bg-gray-900 text-white" />
+                        </div>
+                        <div className="rounded-lg border border-rose-500/20 bg-black/10 px-2 py-1.5 text-[10px] text-rose-100/80 flex items-center">Thưởng TOP chỉ hiện trong cột Ghi chú; cột Thưởng vẫn là thưởng điều kiện chính.</div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-lg border border-amber-400/25 bg-amber-950/10 p-2">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold text-amber-200">Điều kiện được xét TOP</Label>
+                          <select
+                            value={topEligibilityType}
+                            onChange={(e) => setTopEligibilityType(e.target.value as 'none' | 'per_contract_ip' | 'per_contract_afyp' | 'total_ip' | 'total_afyp')}
+                            className="h-8 w-full rounded-md border border-amber-400/30 bg-gray-950 px-2 text-xs text-white outline-none"
+                          >
+                            <option value="none">Không yêu cầu thêm</option>
+                            <option value="per_contract_ip">IP</option>
+                            <option value="per_contract_afyp">AFYP</option>
+                            <option value="total_ip">Tổng IP</option>
+                            <option value="total_afyp">Tổng AFYP</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold text-amber-200">Ngưỡng tối thiểu (≥)</Label>
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              min={0}
+                              inputMode="numeric"
+                              disabled={topEligibilityType === 'none'}
+                              value={topEligibilityType === 'none' ? '' : (topEligibilityMin || '')}
+                              onChange={(e) => setTopEligibilityMin(Math.max(0, Number(e.target.value) || 0))}
+                              placeholder={topEligibilityType === 'none' ? 'Không áp dụng' : 'Nhập ngưỡng'}
+                              className="h-8 pr-8 text-xs border-amber-400/30 bg-gray-950 text-white disabled:opacity-45"
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-amber-300">đ</span>
+                          </div>
+                        </div>
+                        <p className="sm:col-span-2 text-[10px] leading-4 text-amber-100/70">Chỉ đối tượng đã đạt điều kiện chính và đạt thêm ngưỡng này mới được đưa vào danh sách xét TOP. IP/AFYP là điều kiện theo từng hợp đồng; Tổng IP/Tổng AFYP là tổng của đối tượng.</p>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {Array.from({ length: Math.max(1, topN) }, (_, index) => (
+                          <div key={index} className="rounded-lg border border-rose-500/20 bg-gray-900/70 p-2">
+                            <Label className="text-[10px] font-bold text-rose-300">{index === 0 ? 'Quán quân' : index === 1 ? 'Á quân' : 'TOP ' + (index + 1)}</Label>
+                            <div className="relative mt-1">
+                              <Input type="number" min={0} inputMode="numeric" value={topRewardAmounts[index] ?? 0} onChange={(e) => updateTopReward(index, Number(e.target.value) || 0)} className="h-7 pr-7 text-xs border-rose-500/30 bg-gray-950 text-white" />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-rose-300">đ</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
               {/* Phase 2 Section */}
               <Separator className="bg-emerald-500/20" />
               <div className="space-y-2">
@@ -4332,7 +4595,7 @@ function ThiDuaPageInner() {
         </div>
 
         {/* Summary Cards - below buttons, visible when results exist */}
-        {(perContractDisplayContracts.length > 0 || nydData.length > 0 || tvvTotalRows.length > 0 || groupedData.length > 0) && (
+        {(perContractDisplayContracts.length > 0 || nydData.length > 0 || recruitmentRows.length > 0 || tvvTotalRows.length > 0 || groupedData.length > 0) && (
           <div className="space-y-2">
             <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalFYP={displayTotalFYP} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} formatCurrency={formatCurrency} formatNumber={formatNumber} formatDate={formatDate} variant="gradient" />
 
@@ -4352,7 +4615,7 @@ function ThiDuaPageInner() {
                 <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-amber-400" /><div className="flex-1"><p className="text-xs font-bold text-amber-300">{conditionType === 'total_afyp' ? 'Tổng AFYP' : 'Tổng IP'}: {formatCurrency(totalValue)}</p></div>{matchedTotalTier ? <>{showRateColumn && <div className="text-right border-r border-emerald-500/20 pr-2"><p className="text-sm font-bold text-violet-400">{formatRate(matchedTotalTier)}</p></div>}<div className="text-right"><p className="text-base font-extrabold text-amber-400">{formatBonusAmount(matchedTotalTier, totalValue)}</p></div></> : <div className="text-right"><p className="text-sm font-bold text-orange-400">Chưa đạt mức thấp nhất</p></div>}{totalRemaining !== null && <div className="text-right border-l border-emerald-500/20 pl-2"><p className="text-sm font-bold text-orange-400">- {formatCurrency(totalRemaining)}</p></div>}</div>
               </div>
             )}
-            {targetType === 'nyd' && nydData.length > 0 && (
+            {targetType === 'nyd' && (nydData.length > 0 || recruitmentRows.length > 0) && (
               <div className="rounded-lg bg-gradient-to-r from-violet-900/40 to-purple-900/40 border border-violet-500/20 p-3">
                 <div className="flex items-center gap-2"><UserPlus className="w-4 h-4 text-violet-400" /><div className="flex-1"><p className="text-xs font-bold text-violet-300">{getContestMetricLabel(conditionType, topNValueType, 'nyd')} (NTD)</p><p className="text-[10px] text-violet-400/60">{isActivityRoundMode(conditionType) ? `TVV có TÍNH LƯỢT 3tr ≥ ${formatNumber(isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold)}/tháng = 1 lượt${isStandardMode(conditionType) ? ' (Chuẩn)' : ''}${includeIndividualNTD ? ` + ${getIndividualMetricLabel(conditionType)}` : ''}` : `${getContestMetricLabel(conditionType, topNValueType, 'nyd')}${includeIndividualNTD ? ` + ${getIndividualMetricLabel(conditionType)}` : ''}`}</p></div><div className="text-right"><p className="text-[10px] text-violet-400/60">Tổng thưởng</p><p className="text-base font-extrabold text-violet-400">{formatCurrency(nydTotalBonus)}</p></div></div>
               </div>
@@ -4545,8 +4808,11 @@ function ThiDuaPageInner() {
                           <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center whitespace-nowrap">Họ tên</TableHead>
                           <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center whitespace-nowrap">Chức vụ</TableHead>
                           <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center whitespace-nowrap">
-                            {includeIndividualNTD ? 'Tổng cộng' : getContestMetricLabel(conditionType, topNValueType, 'nyd')}
+                            {isRecruitmentMode(conditionType) ? 'SL TVVm tuyển' : includeIndividualNTD ? 'Tổng cộng' : getContestMetricLabel(conditionType, topNValueType, 'nyd')}
                           </TableHead>
+                          {isRecruitmentMode(conditionType) && recruitmentConfig.activityEnabled && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">TVVm đạt HĐ</TableHead>}
+                          {isRecruitmentMode(conditionType) && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">Thưởng chính</TableHead>}
+                          {isRecruitmentMode(conditionType) && recruitmentConfig.activityEnabled && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">Thưởng thêm</TableHead>}
                           {showSecondaryTotalColumn && (
                             <>
                               {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng AFYP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
@@ -4739,7 +5005,24 @@ function ThiDuaPageInner() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {targetType === 'nyd' ? nydResultRows.map(({ nyd, tier, remaining, effectiveTier, secondaryCheck, value }, idx) => {
+                    {targetType === 'nyd' ? (isRecruitmentMode(conditionType) ? recruitmentRows.map((row, idx) => {
+                      if (hideNotAchieved && !row.tier && row.activityBonus === 0) return null;
+                      return (
+                        <TableRow key={row.recruiter.agentCode} className={`${row.totalBonus > 0 ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
+                          <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
+                          <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{row.recruiter.nhom || '—'}</TableCell>
+                          <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.recruiter.agentCode}</TableCell>
+                          <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.recruiter.agentName}</TableCell>
+                          <TableCell className="text-xs text-gray-600 whitespace-nowrap">{row.recruiter.position || '—'}</TableCell>
+                          <TableCell className="text-center text-xs font-bold text-gray-900 whitespace-nowrap">{row.recruitCount}</TableCell>
+                          {recruitmentConfig.activityEnabled && <TableCell className="text-center text-xs text-violet-700 whitespace-nowrap">{row.activityQualifiedCount}</TableCell>}
+                          <TableCell className="text-right text-xs text-emerald-700 whitespace-nowrap">{row.baseBonus ? formatCurrency(row.baseBonus) : '—'}</TableCell>
+                          {recruitmentConfig.activityEnabled && <TableCell className="text-right text-xs text-violet-700 whitespace-nowrap">{row.activityBonus ? formatCurrency(row.activityBonus) : '—'}</TableCell>}
+                          <TableCell className="text-right bg-emerald-50 text-sm font-bold text-emerald-600 whitespace-nowrap">{row.totalBonus ? formatCurrency(row.totalBonus) : '—'}</TableCell>
+                          <TableCell className="text-[10px] italic text-gray-500 whitespace-nowrap">{row.recruits.map(item => item.agentName || item.agentCode).join(', ') || 'Chưa tuyển đủ'}</TableCell>
+                        </TableRow>
+                      );
+                    }) : nydResultRows.map(({ nyd, tier, remaining, effectiveTier, secondaryCheck, value }, idx) => {
                       if (hideNotAchieved && !effectiveTier) return null;
                       if (!nyd.nhom) return null;
                       const phaseBonus = usePhase2 && phase2StartDate ? (() => {
@@ -4832,10 +5115,10 @@ function ThiDuaPageInner() {
                           ) : (
                             <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, nyd.contracts.filter(contract => (contract.maDaiLyTD === nyd.nydCode && contract.agentCode !== nyd.nydCode) || (includeIndividualNTD && contract.agentCode === nyd.nydCode)).reduce((sum, contract) => sum + contract.pdt10DT, 0), isActivityRoundMode(conditionType) ? value : nyd.recruitCount)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                           )}
-                          <TableCell className="whitespace-nowrap">{!effectiveTier ? <span className="text-[10px] italic text-gray-400">{nydDeficitNote}</span> : null}</TableCell>
+                          <TableCell className="whitespace-nowrap">{getCombinedTopNote(`nyd:${nyd.nydCode}`) ? <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Crown className="w-4 h-4" />{getCombinedTopNote(`nyd:${nyd.nydCode}`)}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{nydDeficitNote}</span> : null}</TableCell>
                         </TableRow>
                       );
-                    }) : targetType === 'nhom' ? [...groupedData].map((g) => {
+                    })) : targetType === 'nhom' ? [...groupedData].map((g) => {
                       const groupPhase = getGroupPhaseBonus(g);
                       const tvvPassCount = conditionType === 'pass_count_ip_afyp' ? getGroupTVVPassCountIPAFYP(g) : getGroupTVVPassCount(g);
                       const tier = isTVVPassCountMode(conditionType)
@@ -4937,7 +5220,7 @@ function ThiDuaPageInner() {
                           ) : (
                             <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, group.totalFYP, group.activityRounds, group.totalFYP)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                           )}
-                          <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : isActivityRoundMode(conditionType) ? `- ${String(Math.ceil(remaining)).padStart(2, '0')} lượt` : `- ${formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
+                          <TableCell className="whitespace-nowrap">{getCombinedTopNote(`nhom:${group.maNhom}`) ? <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Crown className="w-4 h-4" />{getCombinedTopNote(`nhom:${group.maNhom}`)}</span> : !effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : isActivityRoundMode(conditionType) ? `- ${String(Math.ceil(remaining)).padStart(2, '0')} lượt` : `- ${formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
                         </TableRow>
                       );
                     }) : isPerContractMode(conditionType) ? perContractDisplayContracts.map((c) => {
@@ -4996,7 +5279,7 @@ function ThiDuaPageInner() {
                           ) : (
                             <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, contract.pdt10DT, undefined, displayContracts.filter(row => row.agentCode === contract.agentCode).reduce((sum, row) => sum + row.pdt10DT, 0))}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                           )}
-                          <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `- ${formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
+                          <TableCell className="whitespace-nowrap">{getCombinedTopNote(`contract:${contract.id}`) ? <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Crown className="w-4 h-4" />{getCombinedTopNote(`contract:${contract.id}`)}</span> : !effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : `- ${formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
                         </TableRow>
                       );
                     }) : (() => {

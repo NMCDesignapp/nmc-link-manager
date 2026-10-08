@@ -1,3 +1,5 @@
+// nmc-contest-top-eligibility-v1
+
 /**
  * contest-calculator.ts — Shared logic for contest (thi đua) result calculation.
  *
@@ -110,6 +112,32 @@ export interface TVVStructMember {
   ngayBatDau: string | null; // Ngày bắt đầu làm việc của TVV
   maTVVTuyendung?: string;
   note?: string;
+  ghiChu?: string;
+}
+
+export type RecruitmentSubjectScope = 'ttn' | 'leader' | 'both';
+export type RecruitmentActivityMetric = 'total_ip' | 'contract_ip';
+export type RecruitmentComparator = 'gte' | 'lte';
+
+export interface RecruitmentContestConfig {
+  subjectScope: RecruitmentSubjectScope;
+  filterByEffectiveDate: boolean;
+  activityEnabled: boolean;
+  activityMetric: RecruitmentActivityMetric;
+  activityComparator: RecruitmentComparator;
+  activityThreshold: number;
+  activityBonusAmount: number;
+}
+
+export interface RecruitmentContestRow {
+  recruiter: RecruiterMember;
+  recruits: TVVStructMember[];
+  recruitCount: number;
+  activityQualifiedCount: number;
+  baseBonus: number;
+  activityBonus: number;
+  totalBonus: number;
+  tier: BonusTier | null;
 }
 
 export type ConditionType =
@@ -124,7 +152,8 @@ export type ConditionType =
   | 'activity_round_tvv90'
   | 'tvv_pass_count'
   | 'pass_count_ip_afyp'
-  | 'top_n_ip';
+  | 'top_n_ip'
+  | 'recruitment_count';
 
 export type TargetType = 'tvv' | 'nhom' | 'nyd';
 export type RecruitedAgentScope = 'all' | 'tvvm';
@@ -166,6 +195,12 @@ export interface ContestConfig {
   topN?: number;
   topNMinIP?: number;
   topNValueType?: 'ip' | 'afyp'; // Loại chỉ tiêu xét Top N: 'ip' (mặc định) hoặc 'afyp'
+  // ${MARKER}: TOP bổ sung; thưởng TOP tách khỏi bonusTiers của điều kiện chính
+  useTopRanking?: boolean;
+  topRewardAmounts: number[];
+  // ${MARKER}: điều kiện đủ riêng trước khi đưa đối tượng vào pool xét TOP
+  topEligibilityType?: 'none' | 'per_contract_ip' | 'per_contract_afyp' | 'total_ip' | 'total_afyp';
+  topEligibilityMin?: number;
   filterByEffectiveDate?: boolean; // true: chỉ tính TVV có ngày LV >= ngày hiệu lực chức vụ gần nhất của NTD recruiter
   recruitedAgentScope?: RecruitedAgentScope; // NTD: toàn bộ TVV hoặc chỉ TVVm do chính NTD tuyển
 }
@@ -197,6 +232,93 @@ export function isStandardMode(ct: ConditionType): boolean {
 }
 export function isTopNMode(ct: ConditionType): boolean {
   return ct === 'top_n_ip';
+}
+
+export function isRecruitmentMode(ct: ConditionType): boolean {
+  return ct === 'recruitment_count';
+}
+
+function dateOnlyTime(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+export function computeRecruitmentContestRows(args: {
+  startDate: string;
+  endDate: string;
+  recruiters: RecruiterMember[];
+  tvvStructList: TVVStructMember[];
+  contracts: Contract[];
+  bonusTiers: BonusTier[];
+  selectedRecruiterCodes?: string[];
+  config: RecruitmentContestConfig;
+}): RecruitmentContestRow[] {
+  const { startDate, endDate, recruiters, tvvStructList, contracts, bonusTiers, config } = args;
+  const from = dateOnlyTime(startDate);
+  const to = dateOnlyTime(endDate);
+  if (from === null || to === null) return [];
+  const selected = new Set((args.selectedRecruiterCodes || []).map(normalizeAgentCode).filter(Boolean));
+  const isTtn = (position: string) => /TTN|TIEN TRUONG NHOM/u.test(
+    String(position || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase(),
+  );
+  const eligibleRecruiters = recruiters.filter((person) => {
+    const code = normalizeAgentCode(person.agentCode);
+    if (!code || (selected.size > 0 && !selected.has(code))) return false;
+    const ttn = isTtn(person.position);
+    return config.subjectScope === 'both' || (config.subjectScope === 'ttn' ? ttn : !ttn);
+  });
+  const contractsByAgent = new Map<string, Contract[]>();
+  for (const contract of contracts) {
+    const code = normalizeAgentCode(contract.agentCode);
+    if (!code) continue;
+    const list = contractsByAgent.get(code) || [];
+    list.push(contract);
+    contractsByAgent.set(code, list);
+  }
+  const sortedTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
+  return eligibleRecruiters.map((recruiter) => {
+    const recruiterCode = normalizeAgentCode(recruiter.agentCode);
+    const effectiveFrom = config.filterByEffectiveDate ? dateOnlyTime(recruiter.ngayHieuLuc) : null;
+    const recruits = tvvStructList.filter((member) => {
+      if (normalizeAgentCode(member.maTVVTuyendung) !== recruiterCode) return false;
+      if (String(member.ghiChu || '').trim().toLowerCase() === 'x') return false;
+      const joinedAt = dateOnlyTime(member.ngayBatDau);
+      if (joinedAt === null || joinedAt < from || joinedAt > to) return false;
+      return effectiveFrom === null || joinedAt >= effectiveFrom;
+    });
+    const activityQualifiedCount = config.activityEnabled
+      ? recruits.filter((member) => {
+          const rows = contractsByAgent.get(normalizeAgentCode(member.agentCode)) || [];
+          const value = config.activityMetric === 'total_ip'
+            ? rows.reduce((sum, contract) => sum + Number(contract.pdt10DT || 0), 0)
+            : Math.max(0, ...rows.map(contract => Number(contract.pdt10DT || 0)));
+          return config.activityComparator === 'lte'
+            ? value <= config.activityThreshold
+            : value >= config.activityThreshold;
+        }).length
+      : 0;
+    const tier = [...sortedTiers].reverse().find(item => (
+      recruits.length >= item.minFYP && (item.maxFYP == null || recruits.length <= item.maxFYP)
+    )) || null;
+    const baseBonus = tier
+      ? tier.bonusType === 'money_per_tvv'
+        ? tier.bonusAmount * recruits.length
+        : tier.bonusAmount
+      : 0;
+    const activityBonus = activityQualifiedCount * Math.max(0, config.activityBonusAmount || 0);
+    return {
+      recruiter,
+      recruits,
+      recruitCount: recruits.length,
+      activityQualifiedCount,
+      baseBonus,
+      activityBonus,
+      totalBonus: baseBonus + activityBonus,
+      tier,
+    };
+  }).sort((a, b) => b.recruitCount - a.recruitCount || a.recruiter.agentName.localeCompare(b.recruiter.agentName, 'vi'));
 }
 
 /** Nhãn chỉ tiêu dùng chung cho bảng kết quả và file Excel. */
@@ -620,6 +742,10 @@ export function formatRate(tier: BonusTier): string {
   return '';
 }
 
+// nmc-contest-combined-top-ranking-v1
+// Additive TOP ranking is implemented in contest-combined-top-ranking.ts so the
+// live page, saved-result view and Excel export can share exactly one rule set.
+
 // ===== Labels =====
 export function getConditionLabel(ct: ConditionType): string {
   switch (ct) {
@@ -635,6 +761,7 @@ export function getConditionLabel(ct: ConditionType): string {
     case 'tvv_pass_count': return 'TVV đạt CTĐK';
     case 'pass_count_ip_afyp': return 'Đếm TVV đạt IP+AFYP';
     case 'top_n_ip': return 'Xét Top N IP';
+    case 'recruitment_count': return 'Tuyển dụng TVVm';
   }
 }
 
@@ -665,6 +792,25 @@ export function parseContestConfig(raw: any): ContestConfig {
   try {
     const parsed = JSON.parse(raw.bonusTiers2 || '[]');
     if (Array.isArray(parsed)) bonusTiers2 = parsed;
+  } catch { /* ignore */ }
+
+  let topRewardAmounts: number[] = [];
+  let topEligibilityType: 'none' | 'per_contract_ip' | 'per_contract_afyp' | 'total_ip' | 'total_afyp' = 'none';
+  let topEligibilityMin = 0;
+  try {
+    const parsed = JSON.parse(raw.topRewardAmounts || '[]');
+    if (Array.isArray(parsed)) {
+      // Dữ liệu cũ: chỉ có mảng thưởng TOP, không có điều kiện đủ.
+      topRewardAmounts = parsed.map((value: unknown) => Math.max(0, Number(value) || 0));
+    } else if (parsed && typeof parsed === 'object') {
+      const rewards = Array.isArray(parsed.rewards) ? parsed.rewards : [];
+      topRewardAmounts = rewards.map((value: unknown) => Math.max(0, Number(value) || 0));
+      const rawType = parsed.eligibilityType;
+      if (rawType === 'per_contract_ip' || rawType === 'per_contract_afyp' || rawType === 'total_ip' || rawType === 'total_afyp') {
+        topEligibilityType = rawType;
+      }
+      topEligibilityMin = Math.max(0, Number(parsed.eligibilityMin) || 0);
+    }
   } catch { /* ignore */ }
 
   let participants: string[] = [];
@@ -709,6 +855,10 @@ export function parseContestConfig(raw: any): ContestConfig {
     topN: raw.topN ?? 3,
     topNMinIP: raw.topNMinIP ?? 50_000_000,
     topNValueType: raw.topNValueType === 'afyp' ? 'afyp' : 'ip',
+    useTopRanking: raw.useTopRanking ?? false,
+    topRewardAmounts,
+    topEligibilityType,
+    topEligibilityMin,
     filterByEffectiveDate: raw.filterByEffectiveDate ?? false,
     recruitedAgentScope: raw.recruitedAgentScope === 'tvvm' ? 'tvvm' : 'all',
   };

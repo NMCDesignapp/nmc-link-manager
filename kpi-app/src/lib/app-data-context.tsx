@@ -188,11 +188,15 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           settings: settings || null,
           contests: contests || [],
         }
-        setData(nextData)
         writeSessionCache(nextData)
-        setLastSync(new Date())
-        setDataVersion(v => v + 1)
-        setLoadError(null)
+        // Secondary datasets can arrive while the KPI loader is fading. Mark the
+        // large context update as non-urgent so it does not steal an animation frame.
+        React.startTransition(() => {
+          setData(nextData)
+          setLastSync(new Date())
+          setDataVersion(v => v + 1)
+          setLoadError(null)
+        })
       } catch (err: any) {
         const msg = err?.message || String(err) || 'Lỗi không xác định khi tải dữ liệu'
         console.error('[AppDataProvider] loadAll error:', msg)
@@ -249,7 +253,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       channel = new BroadcastChannel('nmc-kpi-settings')
       channel.onmessage = refresh
     } catch {}
-    const intervalId = window.setInterval(refresh, 4_000)
+    const intervalId = window.setInterval(refresh, 20_000)
     window.addEventListener('focus', refresh)
     window.addEventListener('storage', onStorage)
     return () => {

@@ -19,7 +19,7 @@ type AggregateRow = {
 };
 
 type AggregateData = {
-  assessment: { year: number; month: number; label: string };
+  assessment: { year: number; month: number; label: string; entryPeriodLabel?: string };
   generatedAt: string;
   summary: {
     total: number;
@@ -103,17 +103,29 @@ function buildSevenSheetWorkbook(XLSX: any, data: AggregateData) {
   const wb = XLSX.utils.book_new();
   const label = data.assessment.label;
   const calc = data.calculations || {};
+  // nmc-clb-post-assessment-entry-title-v1
+  const entryPeriodLabel = data.assessment.entryPeriodLabel
+    || (calc.giaNhapTVV?.months || []).map((item: any) => String(item?.label || '')).filter(Boolean).join(' - ')
+    || '3 tháng liền trước';
 
   addSheet(
     XLSX,
     wb,
     'DS',
-    'DS THÀNH VIÊN CLB SAO VIỆT SAU ĐỢT XÉT',
-    `Đợt xét: ${label} • SV 2025/SV 2026 là thành viên mặc định và được giữ nguyên ghi chú`,
+    `DS THÀNH VIÊN CLB SAO VIỆT SAU ĐỢT XÉT ${label}` ,
+    `Kỳ lấy số liệu: ${entryPeriodLabel}` ,
     ['STT', 'AD', 'NHÓM', 'MÃ TVV', 'HỌ TÊN TVV', 'CHỨC VỤ', 'GHI CHÚ'],
     data.rows.map((row, index) => [index + 1, row.ad, row.nhom, row.agentCode, row.agentName, row.chucVu, row.note]),
     [6, 16, 20, 14, 28, 18, 34],
   );
+
+  const dsSheet = wb.Sheets.DS;
+  if (dsSheet?.A2) {
+    dsSheet.A2.s = {
+      ...(dsSheet.A2.s || {}),
+      font: { ...(dsSheet.A2.s?.font || {}), bold: false, italic: true },
+    };
+  }
 
   const dtTVV = calc.duyTriTVV || {};
   const dtTVVMonths = dtTVV.months || [];

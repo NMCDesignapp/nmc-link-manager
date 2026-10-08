@@ -4081,11 +4081,18 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const kpiIframeRef = useRef<HTMLIFrameElement>(null);
   const [kpiEmbeddedCanGoBack, setKpiEmbeddedCanGoBack] = useState(false);
   const [kpiEmbedLoading, setKpiEmbedLoading] = useState(false);
+  const kpiEmbedStartedAtRef = useRef(0);
+  const kpiEmbedReadyTimerRef = useRef<number | null>(null);
 
   // KPI tách hoạt động như một app độc lập: mỗi màn hình nhúng có một history entry riêng.
   const openKpiSheet = useCallback((sheet: 'saoviet' | 'report' | 'clb-saoviet') => {
     setKpiEmbeddedCanGoBack(false);
     setKpiEmbedLoading(true);
+    kpiEmbedStartedAtRef.current = Date.now();
+    if (kpiEmbedReadyTimerRef.current !== null && typeof window !== 'undefined') {
+      window.clearTimeout(kpiEmbedReadyTimerRef.current);
+      kpiEmbedReadyTimerRef.current = null;
+    }
     setKpiSheet(sheet);
     if (typeof window !== 'undefined') {
       window.history.pushState({ ...(window.history.state || {}), nmcKpiSheet: sheet }, '', window.location.href);
@@ -6015,12 +6022,29 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               key={kpiSheet}
               src={standalone
                 ? `${buildMainUrl('/quan-ly?sheet=' + kpiSheet + '&from=kpi')}`
-                : `/quan-ly?sheet=${kpiSheet}&admin=1`}
+                : `/quan-ly?sheet=${kpiSheet}&admin=1&from=kpi`}
               title={kpiSheet === 'saoviet' ? 'Thi đua' : kpiSheet === 'report' ? 'Chính Sách 2026' : 'CLB Sao Việt'}
               className="kpi-embed-iframe"
               loading="eager"
               allow="fullscreen"
-              onLoad={() => setKpiEmbedLoading(false)}
+              onLoad={() => {
+                const elapsed = Date.now() - kpiEmbedStartedAtRef.current;
+                const KPI_LINKED_MIN_VISIBLE_MS = 3200;
+                const remaining = Math.max(0, KPI_LINKED_MIN_VISIBLE_MS - elapsed);
+                if (kpiEmbedReadyTimerRef.current !== null) {
+                  window.clearTimeout(kpiEmbedReadyTimerRef.current);
+                }
+                kpiEmbedReadyTimerRef.current = window.setTimeout(() => {
+                  kpiEmbedReadyTimerRef.current = null;
+                  setKpiEmbedLoading(false);
+                }, remaining);
+              }}
+              style={{
+                visibility: kpiEmbedLoading ? 'hidden' : 'visible',
+                opacity: kpiEmbedLoading ? 0 : 1,
+                pointerEvents: kpiEmbedLoading ? 'none' : 'auto',
+                transition: 'opacity .16s ease-out',
+              }}
             />
           </div>
         </div>
