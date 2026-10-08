@@ -153,6 +153,7 @@ interface SavedContest {
 type ConditionType = 'per_contract_ip' | 'per_contract_afyp' | 'total_ip' | 'total_afyp' | 'activity_round' | 'activity_round_tvvm' | 'activity_round_standard' | 'activity_round_standard_tvvm' | 'activity_round_tvv90' | 'tvv_pass_count' | 'top_n_ip' | 'pass_count_ip_afyp' | 'recruitment_count';
 type TargetType = 'tvv' | 'nhom' | 'nyd';
 type RecruitedAgentScope = 'all' | 'tvvm';
+type ContestKind = 'sales' | 'recruitment' | 'top' | 'pass_count' | 'two_phase';
 
 function isActivityRoundMode(ct: ConditionType): boolean {
   return ct === 'activity_round' || ct === 'activity_round_tvvm' || ct === 'activity_round_standard' || ct === 'activity_round_standard_tvvm' || ct === 'activity_round_tvv90';
@@ -610,6 +611,94 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
   );
 });
 
+function PhaseRewardField({ tier, phaseLabel, onUpdate }: {
+  tier: BonusTier;
+  phaseLabel: string;
+  onUpdate: (field: keyof BonusTier, value: string | number | null) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-[10px] font-bold text-emerald-200">{phaseLabel}</Label>
+      <select
+        value={tier.bonusType}
+        onChange={(event) => onUpdate('bonusType', event.target.value)}
+        className="h-8 w-full rounded-md border border-emerald-500/25 bg-gray-900 px-2 text-[11px] text-white"
+        aria-label={`Loại thưởng ${phaseLabel}`}
+      >
+        {BONUS_TYPE_BUTTONS.map(([type, label]) => <option key={type} value={type}>{label}</option>)}
+      </select>
+      {tier.bonusType === 'money' || tier.bonusType === 'money_per_round' || tier.bonusType === 'money_per_tvv' ? (
+        <Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(event) => onUpdate('bonusAmount', event.target.value === '' ? 0 : nganToVnd(parseFloat(event.target.value) || 0))} className="h-8 text-xs border-emerald-500/25 bg-gray-900 text-white" />
+      ) : tier.bonusType === 'percent' || tier.bonusType === 'percent_total_ip' || tier.bonusType === 'percent_fyc' ? (
+        <Input type="number" inputMode="decimal" placeholder="0" value={tier.bonusPercent || ''} onChange={(event) => onUpdate('bonusPercent', event.target.value === '' ? 0 : parseFloat(event.target.value) || 0)} className="h-8 text-xs border-emerald-500/25 bg-gray-900 text-white" />
+      ) : (
+        <Input type="text" placeholder="Nhập quà tặng" value={tier.bonusText} onChange={(event) => onUpdate('bonusText', event.target.value)} className="h-8 text-xs border-emerald-500/25 bg-gray-900 text-white" />
+      )}
+    </div>
+  );
+}
+
+const DualPhaseBonusTierEditor = React.memo(function DualPhaseBonusTierEditor({
+  phase1Tiers,
+  phase2Tiers,
+  conditionType,
+  onAdd,
+  onRemove,
+  onMilestoneUpdate,
+  onPhase1Update,
+  onPhase2Update,
+}: {
+  phase1Tiers: BonusTier[];
+  phase2Tiers: BonusTier[];
+  conditionType: ConditionType;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+  onMilestoneUpdate: (index: number, field: 'minFYP' | 'maxFYP', value: number | null) => void;
+  onPhase1Update: (id: string, field: keyof BonusTier, value: string | number | null) => void;
+  onPhase2Update: (id: string, field: keyof BonusTier, value: string | number | null) => void;
+}) {
+  const isRound = isActivityRoundMode(conditionType);
+  const unitLabel = isRound ? 'Lượt' : conditionType.includes('afyp') ? 'AFYP' : 'Doanh số';
+  const rowCount = Math.max(phase1Tiers.length, phase2Tiers.length);
+
+  return (
+    <div className="space-y-2 rounded-xl border border-sky-500/30 bg-sky-950/15 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <Label className="text-xs font-bold text-sky-300">Bảng thưởng 2 giai đoạn</Label>
+          <p className="mt-0.5 text-[10px] text-sky-200/65">Một mốc {unitLabel.toLowerCase()} dùng chung; mức thưởng của mỗi giai đoạn được đặt riêng.</p>
+        </div>
+        <Button type="button" variant="ghost" size="sm" onClick={onAdd} className="h-7 shrink-0 text-xs text-sky-300 hover:text-sky-200"><Plus className="mr-0.5 h-3 w-3" /> Thêm mức</Button>
+      </div>
+      <div className="hidden grid-cols-[1.2fr_1fr_1fr_32px] gap-2 px-2 text-[10px] font-bold uppercase tracking-wide text-sky-200/70 sm:grid">
+        <span>{unitLabel}</span><span>Thưởng GĐ1</span><span>Thưởng GĐ2</span><span />
+      </div>
+      <div className="space-y-2">
+        {Array.from({ length: rowCount }, (_, index) => {
+          const phase1 = phase1Tiers[index];
+          const phase2 = phase2Tiers[index];
+          if (!phase1 || !phase2) return null;
+          return (
+            <div key={`${phase1.id}-${phase2.id}`} className="grid grid-cols-1 gap-2 rounded-lg border border-sky-500/20 bg-gray-950/45 p-2 sm:grid-cols-[1.2fr_1fr_1fr_32px]">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold text-amber-200">Mức {index + 1} · {unitLabel}</Label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <Input type="number" inputMode="decimal" placeholder="Từ" value={isRound ? (phase1.minFYP || '') : (vndToNgan(phase1.minFYP) || '')} onChange={(event) => onMilestoneUpdate(index, 'minFYP', event.target.value === '' ? 0 : isRound ? parseInt(event.target.value) || 0 : nganToVnd(parseFloat(event.target.value) || 0))} className="h-8 text-xs border-amber-500/25 bg-gray-900 text-white" />
+                  <Input type="number" inputMode="decimal" placeholder="Đến ∞" value={phase1.maxFYP ? (isRound ? phase1.maxFYP : vndToNgan(phase1.maxFYP)) : ''} onChange={(event) => onMilestoneUpdate(index, 'maxFYP', event.target.value === '' ? null : isRound ? parseInt(event.target.value) || null : nganToVnd(parseFloat(event.target.value) || 0))} className="h-8 text-xs border-amber-500/25 bg-gray-900 text-white" />
+                </div>
+              </div>
+              <PhaseRewardField tier={phase1} phaseLabel="Thưởng GĐ1" onUpdate={(field, value) => onPhase1Update(phase1.id, field, value)} />
+              <PhaseRewardField tier={phase2} phaseLabel="Thưởng GĐ2" onUpdate={(field, value) => onPhase2Update(phase2.id, field, value)} />
+              <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(index)} className="h-8 w-full self-end p-0 text-red-400 hover:text-red-300 sm:w-8" aria-label={`Xóa mức ${index + 1}`}><Trash2 className="h-3.5 w-3.5" /></Button>
+            </div>
+          );
+        })}
+        {rowCount === 0 && <p className="rounded-lg border border-dashed border-sky-500/25 px-3 py-4 text-center text-[11px] text-sky-200/60">Chưa có mức thưởng. Chọn “Thêm mức” để bắt đầu.</p>}
+      </div>
+    </div>
+  );
+});
+
 function ThiDuaPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -727,6 +816,37 @@ function ThiDuaPageInner() {
   // revenueData removed — all data now sourced from Contracts table only
   const printRef = useRef<HTMLDivElement>(null);
   const resultContentRef = useRef<HTMLDivElement>(null);
+
+  const contestKind = useMemo<ContestKind>(() => {
+    if (usePhase2) return 'two_phase';
+    if (isRecruitmentMode(conditionType)) return 'recruitment';
+    if (isTopNMode(conditionType)) return 'top';
+    if (isTVVPassCountMode(conditionType)) return 'pass_count';
+    return 'sales';
+  }, [conditionType, usePhase2]);
+
+  const chooseContestKind = useCallback((kind: ContestKind) => {
+    if (kind === 'two_phase') {
+      setUsePhase2(true);
+      if (isRecruitmentMode(conditionType) || isTopNMode(conditionType) || isTVVPassCountMode(conditionType)) setConditionType('total_ip');
+      setBonusTiers2(current => current.length > 0 ? current : bonusTiers.map(tier => ({ ...tier, id: crypto.randomUUID() })));
+      return;
+    }
+
+    setUsePhase2(false);
+    if (kind === 'recruitment') {
+      setConditionType('recruitment_count');
+      setTargetType('nyd');
+    } else if (kind === 'top') {
+      setConditionType('top_n_ip');
+      setTargetType('tvv');
+    } else if (kind === 'pass_count') {
+      setConditionType('tvv_pass_count');
+      setTargetType('nhom');
+    } else if (isRecruitmentMode(conditionType) || isTopNMode(conditionType) || isTVVPassCountMode(conditionType)) {
+      setConditionType('total_ip');
+    }
+  }, [bonusTiers, conditionType]);
 
   const handlePosterUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -2225,9 +2345,21 @@ function ThiDuaPageInner() {
   }, []);
   const updateBonusTier = (id: string, field: keyof BonusTier, value: string | number | null) => setBonusTiers(bonusTiers.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
 
-  const addBonusTier2 = () => setBonusTiers2([...bonusTiers2, { id: crypto.randomUUID(), minFYP: 0, maxFYP: null, bonusAmount: 0, bonusType: 'money', bonusText: '', bonusPercent: 0 }]);
-  const removeBonusTier2 = (id: string) => { setBonusTiers2(bonusTiers2.filter((t) => t.id !== id)); };
   const updateBonusTier2 = (id: string, field: keyof BonusTier, value: string | number | null) => setBonusTiers2(bonusTiers2.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
+
+  const addDualPhaseTier = () => {
+    const base = { minFYP: 0, maxFYP: null, bonusAmount: 0, bonusType: 'money' as const, bonusText: '', bonusPercent: 0 };
+    setBonusTiers(previous => [...previous, { ...base, id: crypto.randomUUID() }]);
+    setBonusTiers2(previous => [...previous, { ...base, id: crypto.randomUUID() }]);
+  };
+  const removeDualPhaseTier = (index: number) => {
+    setBonusTiers(previous => previous.filter((_, tierIndex) => tierIndex !== index));
+    setBonusTiers2(previous => previous.filter((_, tierIndex) => tierIndex !== index));
+  };
+  const updateDualPhaseMilestone = (index: number, field: 'minFYP' | 'maxFYP', value: number | null) => {
+    setBonusTiers(previous => previous.map((tier, tierIndex) => tierIndex === index ? { ...tier, [field]: value } : tier));
+    setBonusTiers2(previous => previous.map((tier, tierIndex) => tierIndex === index ? { ...tier, [field]: value } : tier));
+  };
 
   // Save contest with all new fields
   const handleSaveContest = async () => {
@@ -3983,6 +4115,30 @@ function ThiDuaPageInner() {
               <NeonDatePicker label="Phát hành từ" value={issueStartDate} onChange={setIssueStartDate} />
               <NeonDatePicker label="Phát hành đến" value={issueEndDate} onChange={setIssueEndDate} />
             </div>
+            <div className="space-y-2 rounded-xl border border-emerald-500/25 bg-emerald-950/15 p-3">
+              <div>
+                <Label className="text-xs font-bold text-emerald-200">Loại hình thi đua</Label>
+                <p className="mt-0.5 text-[10px] text-emerald-300/55">Chọn loại trước; các phần đối tượng, điều kiện và thưởng bên dưới sẽ hiển thị tương ứng.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
+                {([
+                  ['sales', 'Thi đua doanh số', TrendingUp, 'emerald'],
+                  ['recruitment', 'Thi đua tuyển dụng', UserPlus, 'violet'],
+                  ['top', 'Thi đua xét TOP', Trophy, 'rose'],
+                  ['pass_count', 'Đếm TVV đạt', UserCheck, 'indigo'],
+                  ['two_phase', 'Thi đua 2 giai đoạn', Layers, 'sky'],
+                ] as const).map(([kind, label, Icon, color]) => {
+                  const active = contestKind === kind;
+                  const activeClass = color === 'violet' ? 'border-violet-300 bg-violet-500/35 text-white' : color === 'rose' ? 'border-rose-300 bg-rose-500/35 text-white' : color === 'indigo' ? 'border-indigo-300 bg-indigo-500/35 text-white' : color === 'sky' ? 'border-sky-300 bg-sky-500/35 text-white' : 'border-emerald-300 bg-emerald-500/35 text-white';
+                  return (
+                    <button key={kind} type="button" onClick={() => chooseContestKind(kind)} aria-pressed={active}
+                      className={`flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-lg border px-2 py-2 text-center text-[10px] font-bold leading-tight transition-all ${active ? `${activeClass} ring-1 ring-white/25` : 'border-emerald-500/20 bg-gray-900/55 text-emerald-100/65 hover:border-emerald-400/50 hover:text-emerald-100'}`}>
+                      <Icon className="h-4 w-4" /><span>{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -4035,7 +4191,7 @@ function ThiDuaPageInner() {
                 <p className="text-[10px] text-emerald-400/50 italic">Chọn một nhóm đối tượng chính. “Khác” có thể cộng thêm mã đại lý vào nhóm đang chọn.</p>
               </div>
 
-              {targetType === 'nyd' && (
+              {targetType === 'nyd' && !isRecruitmentMode(conditionType) && (
                 <div className="space-y-2 rounded-xl border border-violet-500/30 bg-violet-500/10 p-3">
                   <div className="flex items-center justify-between gap-2">
                     <Label className="text-xs font-semibold text-violet-100">Phạm vi số liệu của mỗi NTD / TTN</Label>
@@ -4073,9 +4229,9 @@ function ThiDuaPageInner() {
 
               <Separator className="bg-emerald-500/20" />
 
-              {/* 2. Hình thức thi đua - quyết định cách tổng hợp kết quả */}
+              {/* 2. Cách xét kết quả - giữ nguyên targetType nghiệp vụ hiện có */}
               <div className="space-y-2">
-                <Label className="text-xs font-medium text-emerald-200">Hình thức thi đua</Label>
+                <Label className="text-xs font-medium text-emerald-200">Cách xét kết quả</Label>
                 <div className="grid grid-cols-3 gap-1.5">
                   <button
                     type="button"
@@ -4126,6 +4282,7 @@ function ThiDuaPageInner() {
               {/* 3. Điều kiện thi đua */}
               <div className="space-y-2">
                 <Label className="text-xs font-medium text-emerald-200">Điều kiện thi đua</Label>
+                {(contestKind === 'sales' || contestKind === 'two_phase') && (<>
                 {/* Theo HĐ row */}
                 <div className="space-y-1.5">
                   <p className="text-[10px] text-emerald-300/70 font-medium uppercase tracking-wider">Theo Hợp đồng</p>
@@ -4150,8 +4307,9 @@ function ThiDuaPageInner() {
                     ><TrendingUp className="w-3 h-3 shrink-0" /><span>Tổng AFYP</span></button>
                   </div>
                 </div>
+                </>)}
                 {/* Thi đua tuyển dụng — đếm TVVm từ Cấu trúc theo ngày bắt đầu làm việc */}
-                <div className="space-y-1.5">
+                {contestKind === 'recruitment' && <div className="space-y-1.5">
                   <p className="text-[10px] text-violet-300/70 font-medium uppercase tracking-wider">Tuyển dụng</p>
                   <button type="button" onClick={() => { setConditionType('recruitment_count'); setTargetType('nyd'); }}
                     className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${isRecruitmentMode(conditionType) ? 'bg-violet-600 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-violet-600/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
@@ -4189,8 +4347,9 @@ function ThiDuaPageInner() {
                       )}
                     </div>
                   )}
-                </div>
+                </div>}
                 {/* Lượt HĐ - with sub-options and configurable threshold */}
+                {(contestKind === 'sales' || contestKind === 'two_phase') && <>
                 <div className="space-y-1.5">
                   <p className="text-[10px] text-emerald-300/70 font-medium uppercase tracking-wider">Lượt hoạt động</p>
                   <button type="button" onClick={() => setConditionType(conditionType === 'activity_round_tvvm' ? 'activity_round_tvvm' : 'activity_round')}
@@ -4259,7 +4418,9 @@ function ThiDuaPageInner() {
                     </div>
                   )}
                 </div>
+                </>}
                 {/* Đếm TVV đạt CTĐK - reference another saved contest */}
+                {contestKind === 'pass_count' && <>
                 <div className="space-y-1.5">
                   <p className="text-[10px] text-emerald-300/70 font-medium uppercase tracking-wider">Tham chiếu chương trình</p>
                   <button type="button" onClick={() => { setConditionType('tvv_pass_count'); setTargetType('nhom'); }}
@@ -4341,8 +4502,9 @@ function ThiDuaPageInner() {
                     </div>
                   )}
                 </div>
+                </>}
                 {/* Xét Top N IP cao nhất - ranking-based reward */}
-                <div className="space-y-1.5">
+                {contestKind === 'top' && <div className="space-y-1.5">
                   <p className="text-[10px] text-emerald-300/70 font-medium uppercase tracking-wider">Xếp hạng</p>
                   <button type="button" onClick={() => { setConditionType('top_n_ip'); setTargetType('tvv'); }}
                     className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer w-full ${conditionType === 'top_n_ip' ? 'bg-rose-700 text-white shadow-lg brightness-110 ring-2 ring-white/30' : 'bg-rose-700/50 text-emerald-200 hover:brightness-110 hover:text-white/90'}`}
@@ -4374,20 +4536,32 @@ function ThiDuaPageInner() {
                       <p className="text-[9px] text-amber-400/70 italic">Ví dụ: Top 3 TVV có tổng {topNValueType === 'afyp' ? 'AFYP' : 'IP'} cao nhất, {topNValueType === 'afyp' ? 'AFYP' : 'IP'} tối thiểu 50 triệu → Hạng 1 (Quán quân) thưởng 2tr, Hạng 2 (Á quân) - Hạng 3 thưởng 1tr/TDV. Nếu chỉ 1 TVV đủ điều kiện → mặc nhiên là Quán quân. Bảng kết quả hiển thị TẤT CẢ TVV tham gia (dùng "Ẩn chưa đạt mức" để ẩn người k có doanh số).</p>
                     </div>
                   )}
-                </div>
+                </div>}
               </div>
 
-              <Separator className="bg-emerald-500/20" />
-
-              {/* Bonus Tiers - Phase 1 */}
-              <BonusTierEditor
-                tiers={bonusTiers}
-                conditionType={conditionType}
-                onUpdate={updateBonusTier}
-                onAdd={addBonusTier}
-                onRemove={removeBonusTier}
-                title={usePhase2 ? 'Bảng mức thưởng - Giai đoạn 1' : 'Bảng mức thưởng'}
-              />
+              {targetType === 'nhom' && (
+                <div className="space-y-2 rounded-xl border border-sky-500/20 bg-sky-950/10 p-3">
+                  <Label className="text-xs font-medium text-sky-200">Phạm vi tính điều kiện</Label>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div className="flex items-center gap-2 rounded-lg border border-sky-500/30 bg-emerald-500/10 p-2">
+                      <Checkbox id="includeIndividualTN" checked={includeIndividualTN} onCheckedChange={(value) => setIncludeIndividualTN(!!value)} />
+                      <Label htmlFor="includeIndividualTN" className="flex cursor-pointer items-center gap-1 text-xs text-emerald-200/70">
+                        <UserCheck className="h-3 w-3 text-sky-400" /> Tính cá nhân TN vào chương trình
+                      </Label>
+                    </div>
+                    {/* Filter by effective date — chỉ tính TVV có ngày LV bằng hoặc sau ngày hiệu lực chức vụ gần nhất của NTD recruiter */}
+                    <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2">
+                      <Checkbox id="filterByEffectiveDate" checked={filterByEffectiveDate} onCheckedChange={(value) => setFilterByEffectiveDate(!!value)} />
+                      <Label htmlFor="filterByEffectiveDate" className="flex cursor-pointer items-center gap-1 text-xs text-amber-200/90">
+                        <CalendarClock className="h-3 w-3 text-amber-400" /> Chỉ tính TVV có ngày LV bằng hoặc sau ngày hiệu lực CV gần nhất
+                      </Label>
+                    </div>
+                  </div>
+                  {filterByEffectiveDate && (
+                    <p className="text-[10px] italic leading-snug text-amber-300/80">Chỉ giữ TVV có ngày bắt đầu làm việc <b>bằng hoặc sau</b> ngày hiệu lực chức vụ gần nhất của NTD đã tuyển dụng họ. TVV thiếu ngày làm việc sẽ không được tính.</p>
+                  )}
+                </div>
+              )}
 
               {supportsCombinedTopRanking(conditionType) && !isTopNMode(conditionType) && (
                 <div className="rounded-xl border border-rose-500/30 bg-rose-950/20 p-3 space-y-3">
@@ -4456,34 +4630,6 @@ function ThiDuaPageInner() {
                 </div>
               )}
 
-              {/* Phase 2 Section */}
-              <Separator className="bg-emerald-500/20" />
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Checkbox id="usePhase2" checked={usePhase2} onCheckedChange={(v) => setUsePhase2(!!v)} />
-                  <Label htmlFor="usePhase2" className="text-xs font-medium text-emerald-200 flex items-center gap-1 cursor-pointer">
-                    <Layers className="w-3.5 h-3.5 text-sky-400" /> Chia 2 giai đoạn
-                  </Label>
-                </div>
-                {usePhase2 && (
-                  <div className="space-y-2 pl-4 border-l-2 border-sky-500/20">
-                    <div className="grid grid-cols-2 gap-2">
-                      <NeonDatePicker label="GĐ2 Hiệu lực từ" value={phase2StartDate} onChange={setPhase2StartDate} accentColor="sky" />
-                      <NeonDatePicker label="GĐ2 Hiệu lực đến" value={phase2EndDate} onChange={setPhase2EndDate} accentColor="sky" />
-                    </div>
-                    <BonusTierEditor
-                      tiers={bonusTiers2}
-                      conditionType={conditionType}
-                      onUpdate={updateBonusTier2}
-                      onAdd={addBonusTier2}
-                      onRemove={removeBonusTier2}
-                      title="Bảng mức thưởng - Giai đoạn 2"
-                      accentColor="sky"
-                    />
-                  </div>
-                )}
-              </div>
-
               {/* Chỉ tiêu bổ sung (Secondary Condition) */}
               <Separator className="bg-emerald-500/20" />
               <div className="space-y-2">
@@ -4531,10 +4677,42 @@ function ThiDuaPageInner() {
                 )}
               </div>
 
-              {/* Tùy chọn */}
               <Separator className="bg-emerald-500/20" />
               <div className="space-y-2">
-                <Label className="text-xs font-medium text-emerald-200">Tùy chọn</Label>
+                <Label className="text-xs font-medium text-amber-200">Thiết lập thưởng</Label>
+                {usePhase2 ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2 rounded-xl border border-sky-500/25 bg-sky-950/15 p-3">
+                      <NeonDatePicker label="GĐ2 Hiệu lực từ" value={phase2StartDate} onChange={setPhase2StartDate} accentColor="sky" />
+                      <NeonDatePicker label="GĐ2 Hiệu lực đến" value={phase2EndDate} onChange={setPhase2EndDate} accentColor="sky" />
+                    </div>
+                    <DualPhaseBonusTierEditor
+                      phase1Tiers={bonusTiers}
+                      phase2Tiers={bonusTiers2}
+                      conditionType={conditionType}
+                      onAdd={addDualPhaseTier}
+                      onRemove={removeDualPhaseTier}
+                      onMilestoneUpdate={updateDualPhaseMilestone}
+                      onPhase1Update={updateBonusTier}
+                      onPhase2Update={updateBonusTier2}
+                    />
+                  </div>
+                ) : (
+                  <BonusTierEditor
+                    tiers={bonusTiers}
+                    conditionType={conditionType}
+                    onUpdate={updateBonusTier}
+                    onAdd={addBonusTier}
+                    onRemove={removeBonusTier}
+                    title="Bảng mức thưởng"
+                  />
+                )}
+              </div>
+
+              {/* Tùy chọn hiển thị */}
+              <Separator className="bg-emerald-500/20" />
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-emerald-200">Hiển thị kết quả</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {/* Hide not achieved */}
                   <div className="flex items-center gap-2 p-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10">
@@ -4543,31 +4721,7 @@ function ThiDuaPageInner() {
                       <EyeOff className="w-3 h-3 text-gray-400" /> Ẩn chưa đạt mức
                     </Label>
                   </div>
-                  {/* Include Individual NTD - for nhóm and NTD targets */}
-                  {/* Include Individual TN - for nhóm and NTD targets */}
-                  {targetType === 'nhom' && (
-                    <div className="flex items-center gap-2 p-2 rounded-lg border border-sky-500/30 bg-emerald-500/10">
-                      <Checkbox id="includeIndividualTN" checked={includeIndividualTN} onCheckedChange={(v) => setIncludeIndividualTN(!!v)} />
-                      <Label htmlFor="includeIndividualTN" className="text-xs text-emerald-200/70 cursor-pointer flex items-center gap-1">
-                        <UserCheck className="w-3 h-3 text-sky-400" /> Tính cá nhân TN vào chương trình
-                      </Label>
-                    </div>
-                  )}
-                  {/* Filter by effective date — chỉ tính TVV có ngày LV bằng hoặc sau ngày hiệu lực chức vụ gần nhất của NTD recruiter */}
-                  {targetType === 'nhom' && (
-                    <div className="flex items-center gap-2 p-2 rounded-lg border border-amber-500/40 bg-amber-500/10">
-                      <Checkbox id="filterByEffectiveDate" checked={filterByEffectiveDate} onCheckedChange={(v) => setFilterByEffectiveDate(!!v)} />
-                      <Label htmlFor="filterByEffectiveDate" className="text-xs text-amber-200/90 cursor-pointer flex items-center gap-1">
-                        <CalendarClock className="w-3 h-3 text-amber-400" /> Chỉ tính TVV có ngày LV bằng hoặc sau ngày hiệu lực CV gần nhất
-                      </Label>
-                    </div>
-                  )}
                 </div>
-                {filterByEffectiveDate && targetType === 'nhom' && (
-                  <p className="text-[10px] text-amber-300/80 italic leading-snug">
-                    Khi tích: chỉ giữ HĐ của TVV có <b>ngày bắt đầu LV</b> (lấy từ DS TVV — Cấu trúc) <b>bằng hoặc sau</b> ngày hiệu lực chức vụ gần nhất của NTD đã tuyển dụng họ (lấy từ DS TTN — Cấu trúc). TVV không có ngày LV sẽ bị bỏ qua. Độc lập với điều kiện "Tính cá nhân NTD/TN".
-                  </p>
-                )}
               </div>
 
               <Separator className="bg-emerald-500/20" />
