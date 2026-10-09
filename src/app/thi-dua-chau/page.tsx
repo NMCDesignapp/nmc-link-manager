@@ -70,6 +70,21 @@ interface BonusTier {
   bonusType: 'money' | 'gift' | 'percent' | 'percent_total_ip' | 'money_per_round' | 'money_per_tvv' | 'percent_fyc'; bonusText: string; bonusPercent: number;
 }
 
+type BonusType = BonusTier['bonusType'];
+
+const createBlankBonusTier = (id: string, bonusType: BonusType = 'money'): BonusTier => ({
+  id,
+  minFYP: 0,
+  maxFYP: null,
+  bonusAmount: 0,
+  bonusType,
+  bonusText: '',
+  bonusPercent: 0,
+});
+
+const createDefaultBonusTiers = (prefix = 'draft-tier'): BonusTier[] =>
+  Array.from({ length: 3 }, (_, index) => createBlankBonusTier(`${prefix}-${index + 1}`));
+
 interface GroupLeader {
   agentCode: string; agentName: string; position: string;
 }
@@ -304,6 +319,8 @@ function formatDate(dateStr: string): string {
 }
 function nganToVnd(val: number): number { return val * 1_000; }
 function vndToNgan(val: number): number { return val / 1_000; }
+function trieuToVnd(val: number): number { return val * 1_000_000; }
+function vndToTrieu(val: number): number { return val / 1_000_000; }
 
 function formatBonus(tier: BonusTier, ipBase?: number, rounds?: number, totalIPBase?: number): string {
   if (tier.bonusType === 'gift' && tier.bonusText) return tier.bonusText;
@@ -524,127 +541,84 @@ const ContestSourceRows = React.memo(function ContestSourceRows({ contracts, onD
   ))}</TableBody>;
 });
 
-const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionType, onUpdate, onAdd, onRemove, title: sectionTitle, accentColor = 'amber' }: {
+function getBonusMetricLabel(conditionType: ConditionType): string {
+  if (isActivityRoundMode(conditionType)) return 'Lượt';
+  if (isTVVPassCountMode(conditionType) || isRecruitmentMode(conditionType)) return 'TVV';
+  if (isTopNMode(conditionType)) return 'Hạng';
+  if (conditionType === 'per_contract_afyp' || conditionType === 'total_afyp') return 'AFYP';
+  return 'IP';
+}
+
+function getBonusRewardLabel(type: BonusType): string {
+  if (type === 'money') return 'Thưởng (nđ)';
+  if (type === 'gift') return 'Quà tặng';
+  if (type === 'percent') return '% IP';
+  if (type === 'percent_total_ip') return '% Tổng IP';
+  if (type === 'percent_fyc') return '% FYC';
+  if (type === 'money_per_round') return '/Lượt (nđ)';
+  return '/TVV (nđ)';
+}
+
+function BonusRewardInput({ tier, rewardType, label, onUpdate }: {
+  tier: BonusTier;
+  rewardType: BonusType;
+  label: string;
+  onUpdate: (field: keyof BonusTier, value: string | number | null) => void;
+}) {
+  const inputClassName = 'h-9 min-w-0 px-2 border-emerald-500/30 bg-gray-900 text-xs text-white';
+  if (rewardType === 'money' || rewardType === 'money_per_round' || rewardType === 'money_per_tvv') {
+    return <Input aria-label={label} type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(event) => onUpdate('bonusAmount', event.target.value === '' ? 0 : nganToVnd(parseFloat(event.target.value) || 0))} className={inputClassName} />;
+  }
+  if (rewardType === 'percent' || rewardType === 'percent_total_ip' || rewardType === 'percent_fyc') {
+    return <Input aria-label={label} type="number" inputMode="decimal" placeholder="0" value={tier.bonusPercent || ''} onChange={(event) => onUpdate('bonusPercent', event.target.value === '' ? 0 : parseFloat(event.target.value) || 0)} className={inputClassName} />;
+  }
+  return <Input aria-label={label} type="text" placeholder="Nhập quà tặng" value={tier.bonusText} onChange={(event) => onUpdate('bonusText', event.target.value)} className={inputClassName} />;
+}
+
+const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionType, onUpdate, onAdd, onRemove, onRewardTypeChange }: {
   tiers: BonusTier[];
   conditionType: ConditionType;
   onUpdate: (id: string, field: keyof BonusTier, value: string | number | null) => void;
   onAdd: () => void;
   onRemove: (id: string) => void;
-  title?: string;
-  accentColor?: string;
+  onRewardTypeChange: (type: BonusType) => void;
 }) {
-  const isAR = isActivityRoundMode(conditionType);
-  const isPassCount = isTVVPassCountMode(conditionType) || isRecruitmentMode(conditionType);
-  const isTopN = isTopNMode(conditionType);
-  const isAFYP = conditionType === 'per_contract_afyp' || conditionType === 'total_afyp';
-  const unitLabel = isPassCount ? 'TVV đạt' : isAFYP ? 'AFYP' : 'IP';
-  const cls = accentColor === 'sky' ? {
-    bg: 'bg-sky-900/30', border: 'border-sky-500/30', label: 'text-sky-400', badge: 'bg-sky-500/10',
-    btn: 'text-sky-400 hover:text-sky-300', accent: 'bg-sky-600',
-  } : {
-    bg: 'bg-amber-900/30', border: 'border-amber-500/30', label: 'text-amber-400', badge: 'bg-amber-500/10',
-    btn: 'text-amber-400 hover:text-amber-300', accent: 'bg-amber-600',
-  };
+  const metricLabel = getBonusMetricLabel(conditionType);
+  const isCountMetric = isActivityRoundMode(conditionType) || isTVVPassCountMode(conditionType) || isRecruitmentMode(conditionType) || isTopNMode(conditionType);
+  const metricHeaderLabel = isCountMetric ? metricLabel : `${metricLabel} (trđ)`;
+  const rewardType = tiers[0]?.bonusType || 'money';
+  const gridClassName = 'grid w-full grid-cols-[28px_minmax(54px,1fr)_minmax(54px,1fr)_minmax(76px,1.15fr)_28px] items-center gap-1 sm:min-w-[560px] sm:grid-cols-[42px_minmax(92px,1fr)_minmax(92px,1fr)_minmax(128px,1.2fr)_36px] sm:gap-2';
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label className={`text-xs font-medium ${cls.label}`}>{sectionTitle || 'Bảng mức thưởng'}</Label>
-        <Button variant="ghost" size="sm" onClick={onAdd} className={`${cls.btn} h-6 text-xs`}><Plus className="w-3 h-3 mr-0.5" /> Thêm mức</Button>
+    <div className="space-y-3">
+      <div className="grid gap-1 sm:max-w-xs">
+        <Label htmlFor="bonus-type" className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300/75">Hình thức thưởng</Label>
+        <select id="bonus-type" value={rewardType} onChange={(event) => onRewardTypeChange(event.target.value as BonusType)} className="h-9 w-full rounded-lg border border-emerald-500/30 bg-gray-900 px-3 text-xs font-semibold text-white outline-none focus:border-emerald-400">
+          {BONUS_TYPE_BUTTONS.map(([type, label]) => <option key={type} value={type}>{label}</option>)}
+        </select>
       </div>
-      <div className="space-y-2">
+      <div className="overflow-x-hidden pb-1 sm:overflow-x-auto">
+        <div className="w-full space-y-2 sm:min-w-[560px]">
+          <div className={gridClassName}>
+            <span className="text-center text-[10px] font-bold uppercase text-amber-300">STT</span>
+            <span className="col-span-2 text-center text-[10px] font-bold uppercase text-amber-300">Chỉ tiêu · {metricHeaderLabel}</span>
+            <span className="text-center text-[10px] font-bold uppercase text-amber-300">{getBonusRewardLabel(rewardType)}</span>
+            <Button type="button" variant="ghost" size="sm" onClick={onAdd} className="h-8 w-8 p-0 text-amber-300 hover:text-amber-200" aria-label="Thêm mức thưởng" title="Thêm mức thưởng"><Plus className="h-4 w-4" /></Button>
+          </div>
         {tiers.map((tier, index) => (
-          <div key={tier.id} className={`p-2 rounded-lg ${cls.bg} border ${cls.border}`}>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <span className={`text-[10px] font-bold ${cls.label} ${cls.badge} px-1.5 py-0.5 rounded`}>{isTopN ? `Hạng ${index + 1}` : `Mức ${index + 1}`}</span>
-              <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(tier.id)} className="ml-auto h-7 w-7 p-0 text-red-400 hover:text-red-300" aria-label={`Xóa ${isTopN ? `hạng ${index + 1}` : `mức ${index + 1}`}`}><Trash2 className="w-3.5 h-3.5" /></Button>
-            </div>
-            <div className="mb-2 grid grid-cols-4 gap-1 md:grid-cols-7" role="group" aria-label={`Loại thưởng ${isTopN ? `hạng ${index + 1}` : `mức ${index + 1}`}`}>
-              {BONUS_TYPE_BUTTONS.map(([type, label, Icon, activeCls]) => (
-                <Button
-                  key={type}
-                  type="button"
-                  variant={tier.bonusType === type ? 'default' : 'outline'}
-                  size="sm"
-                  className={`h-9 min-w-0 gap-1 px-1 text-[10px] font-semibold ${tier.bonusType === type ? activeCls + ' text-white shadow-sm ring-1 ring-white/30 hover:opacity-90' : 'border-emerald-500/20 bg-transparent text-emerald-300/70 hover:border-emerald-400/50 hover:text-emerald-200'}`}
-                  onClick={() => onUpdate(tier.id, 'bonusType', type)}
-                  aria-pressed={tier.bonusType === type}
-                  title={`Chọn thưởng ${label}`}
-                >
-                  <Icon className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{label}</span>
-                </Button>
-              ))}
-            </div>
-            <div className={`grid ${isTopN ? 'grid-cols-1' : 'grid-cols-3'} gap-1.5`}>
-              {isTopN ? (
-                <div>
-                  <Label className="text-[9px] text-emerald-300/70">
-                    {tier.bonusType === 'money' ? `Thưởng Hạng ${index + 1} (nđ)` : tier.bonusType === 'gift' ? 'Quà tặng' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_total_ip' ? '% Tổng IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Thưởng'}
-                  </Label>
-                  {tier.bonusType === 'money' || tier.bonusType === 'money_per_round' || tier.bonusType === 'money_per_tvv'
-                    ? <Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(e) => onUpdate(tier.id, 'bonusAmount', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
-                    : tier.bonusType === 'percent' || tier.bonusType === 'percent_total_ip' || tier.bonusType === 'percent_fyc'
-                      ? <Input type="number" inputMode="decimal" placeholder="7" value={tier.bonusPercent || ''} onChange={(e) => onUpdate(tier.id, 'bonusPercent', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
-                      : <Input type="text" placeholder="VD: iPhone 15" value={tier.bonusText} onChange={(e) => onUpdate(tier.id, 'bonusText', e.target.value)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />}
-                </div>
-              ) : isAR || isPassCount ? (
-                <>
-                  <div><Label className="text-[9px] text-emerald-300/70">{isPassCount ? 'TVV đạt từ' : 'Lượt từ'}</Label><Input type="number" inputMode="numeric" placeholder="0" value={tier.minFYP || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', e.target.value === '' ? 0 : parseInt(e.target.value) || 0)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
-                  <div><Label className="text-[9px] text-emerald-300/70">{isPassCount ? 'TVV đạt đến' : 'Lượt đến'}</Label><Input type="number" inputMode="numeric" placeholder="∞" value={tier.maxFYP || ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? parseInt(e.target.value) : null)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
-                </>
-              ) : (
-                <>
-                  <div><Label className="text-[9px] text-emerald-300/70">{unitLabel} từ (nđ)</Label><Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.minFYP) || ''} onChange={(e) => onUpdate(tier.id, 'minFYP', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
-                  <div><Label className="text-[9px] text-emerald-300/70">{unitLabel} đến (nđ)</Label><Input type="number" inputMode="decimal" placeholder="∞" value={tier.maxFYP ? vndToNgan(tier.maxFYP) : ''} onChange={(e) => onUpdate(tier.id, 'maxFYP', e.target.value ? nganToVnd(parseFloat(e.target.value)) : null)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" /></div>
-                </>
-              )}
-              {!isTopN && (
-                <div>
-                  <Label className="text-[9px] text-emerald-300/70">
-                    {tier.bonusType === 'money' ? 'Thưởng (nđ)' : tier.bonusType === 'money_per_round' ? '/Lượt (nđ)' : tier.bonusType === 'money_per_tvv' ? '/TVV (nđ)' : tier.bonusType === 'percent' ? '% IP' : tier.bonusType === 'percent_total_ip' ? '% Tổng IP' : tier.bonusType === 'percent_fyc' ? '% FYC' : 'Quà tặng'}
-                  </Label>
-                  {tier.bonusType === 'money' || tier.bonusType === 'money_per_round' || tier.bonusType === 'money_per_tvv'
-                    ? <Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(e) => onUpdate(tier.id, 'bonusAmount', e.target.value === '' ? 0 : nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
-                    : tier.bonusType === 'percent' || tier.bonusType === 'percent_total_ip' || tier.bonusType === 'percent_fyc'
-                      ? <Input type="number" inputMode="decimal" placeholder="7" value={tier.bonusPercent || ''} onChange={(e) => onUpdate(tier.id, 'bonusPercent', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />
-                      : <Input type="text" placeholder="VD: iPhone 15" value={tier.bonusText} onChange={(e) => onUpdate(tier.id, 'bonusText', e.target.value)} className="h-7 text-xs border-gray-600 bg-gray-800 text-white" />}
-                </div>
-              )}
-            </div>
+          <div key={tier.id} className={gridClassName}>
+            <span className="text-center text-xs font-semibold text-emerald-200/80">{index + 1}</span>
+            <Input aria-label={`${metricLabel} từ mức ${index + 1}`} type="number" inputMode="decimal" placeholder="Từ" value={isCountMetric ? (tier.minFYP || '') : (vndToTrieu(tier.minFYP) || '')} onChange={(event) => onUpdate(tier.id, 'minFYP', event.target.value === '' ? 0 : isCountMetric ? parseInt(event.target.value) || 0 : trieuToVnd(parseFloat(event.target.value) || 0))} className="h-9 min-w-0 px-2 border-emerald-500/30 bg-gray-900 text-xs text-white" />
+            <Input aria-label={`${metricLabel} đến mức ${index + 1}`} type="number" inputMode="decimal" placeholder="Đến ∞" value={tier.maxFYP ? (isCountMetric ? tier.maxFYP : vndToTrieu(tier.maxFYP)) : ''} onChange={(event) => onUpdate(tier.id, 'maxFYP', event.target.value === '' ? null : isCountMetric ? parseInt(event.target.value) || null : trieuToVnd(parseFloat(event.target.value) || 0))} className="h-9 min-w-0 px-2 border-emerald-500/30 bg-gray-900 text-xs text-white" />
+            <BonusRewardInput tier={tier} rewardType={rewardType} label={`${getBonusRewardLabel(rewardType)} mức ${index + 1}`} onUpdate={(field, value) => onUpdate(tier.id, field, value)} />
+            <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(tier.id)} className="h-8 w-8 p-0 text-red-400 hover:text-red-300" aria-label={`Xóa mức ${index + 1}`}><Trash2 className="h-3.5 w-3.5" /></Button>
           </div>
         ))}
+        </div>
       </div>
     </div>
   );
 });
-
-function PhaseRewardField({ tier, phaseLabel, onUpdate }: {
-  tier: BonusTier;
-  phaseLabel: string;
-  onUpdate: (field: keyof BonusTier, value: string | number | null) => void;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-[10px] font-bold text-emerald-200">{phaseLabel}</Label>
-      <select
-        value={tier.bonusType}
-        onChange={(event) => onUpdate('bonusType', event.target.value)}
-        className="h-8 w-full rounded-md border border-emerald-500/25 bg-gray-900 px-2 text-[11px] text-white"
-        aria-label={`Loại thưởng ${phaseLabel}`}
-      >
-        {BONUS_TYPE_BUTTONS.map(([type, label]) => <option key={type} value={type}>{label}</option>)}
-      </select>
-      {tier.bonusType === 'money' || tier.bonusType === 'money_per_round' || tier.bonusType === 'money_per_tvv' ? (
-        <Input type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(event) => onUpdate('bonusAmount', event.target.value === '' ? 0 : nganToVnd(parseFloat(event.target.value) || 0))} className="h-8 text-xs border-emerald-500/25 bg-gray-900 text-white" />
-      ) : tier.bonusType === 'percent' || tier.bonusType === 'percent_total_ip' || tier.bonusType === 'percent_fyc' ? (
-        <Input type="number" inputMode="decimal" placeholder="0" value={tier.bonusPercent || ''} onChange={(event) => onUpdate('bonusPercent', event.target.value === '' ? 0 : parseFloat(event.target.value) || 0)} className="h-8 text-xs border-emerald-500/25 bg-gray-900 text-white" />
-      ) : (
-        <Input type="text" placeholder="Nhập quà tặng" value={tier.bonusText} onChange={(event) => onUpdate('bonusText', event.target.value)} className="h-8 text-xs border-emerald-500/25 bg-gray-900 text-white" />
-      )}
-    </div>
-  );
-}
 
 const DualPhaseBonusTierEditor = React.memo(function DualPhaseBonusTierEditor({
   phase1Tiers,
@@ -655,6 +629,7 @@ const DualPhaseBonusTierEditor = React.memo(function DualPhaseBonusTierEditor({
   onMilestoneUpdate,
   onPhase1Update,
   onPhase2Update,
+  onRewardTypeChange,
 }: {
   phase1Tiers: BonusTier[];
   phase2Tiers: BonusTier[];
@@ -664,44 +639,48 @@ const DualPhaseBonusTierEditor = React.memo(function DualPhaseBonusTierEditor({
   onMilestoneUpdate: (index: number, field: 'minFYP' | 'maxFYP', value: number | null) => void;
   onPhase1Update: (id: string, field: keyof BonusTier, value: string | number | null) => void;
   onPhase2Update: (id: string, field: keyof BonusTier, value: string | number | null) => void;
+  onRewardTypeChange: (type: BonusType) => void;
 }) {
-  const isRound = isActivityRoundMode(conditionType);
-  const unitLabel = isRound ? 'Lượt' : conditionType.includes('afyp') ? 'AFYP' : 'Doanh số';
+  const metricLabel = getBonusMetricLabel(conditionType);
+  const isCountMetric = isActivityRoundMode(conditionType) || isTVVPassCountMode(conditionType) || isRecruitmentMode(conditionType) || isTopNMode(conditionType);
+  const metricHeaderLabel = isCountMetric ? metricLabel : `${metricLabel} (trđ)`;
   const rowCount = Math.max(phase1Tiers.length, phase2Tiers.length);
+  const rewardType = phase1Tiers[0]?.bonusType || phase2Tiers[0]?.bonusType || 'money';
+  const gridClassName = 'grid w-full grid-cols-[24px_minmax(44px,1fr)_minmax(44px,1fr)_minmax(58px,1.15fr)_minmax(58px,1.15fr)_24px] items-center gap-1 sm:min-w-[720px] sm:grid-cols-[42px_minmax(92px,1fr)_minmax(92px,1fr)_minmax(128px,1.1fr)_minmax(128px,1.1fr)_36px] sm:gap-2';
 
   return (
-    <div className="space-y-2 rounded-xl border border-sky-500/30 bg-sky-950/15 p-3">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <Label className="text-xs font-bold text-sky-300">Bảng thưởng 2 giai đoạn</Label>
-          <p className="mt-0.5 text-[10px] text-sky-200/65">Một mốc {unitLabel.toLowerCase()} dùng chung; mức thưởng của mỗi giai đoạn được đặt riêng.</p>
-        </div>
-        <Button type="button" variant="ghost" size="sm" onClick={onAdd} className="h-7 shrink-0 text-xs text-sky-300 hover:text-sky-200"><Plus className="mr-0.5 h-3 w-3" /> Thêm mức</Button>
+    <div className="space-y-3">
+      <div className="grid gap-1 sm:max-w-xs">
+        <Label htmlFor="dual-bonus-type" className="text-[10px] font-semibold uppercase tracking-wide text-sky-300/80">Hình thức thưởng</Label>
+        <select id="dual-bonus-type" value={rewardType} onChange={(event) => onRewardTypeChange(event.target.value as BonusType)} className="h-9 w-full rounded-lg border border-sky-500/30 bg-gray-900 px-3 text-xs font-semibold text-white outline-none focus:border-sky-400">
+          {BONUS_TYPE_BUTTONS.map(([type, label]) => <option key={type} value={type}>{label}</option>)}
+        </select>
       </div>
-      <div className="hidden grid-cols-[1.2fr_1fr_1fr_32px] gap-2 px-2 text-[10px] font-bold uppercase tracking-wide text-sky-200/70 sm:grid">
-        <span>{unitLabel}</span><span>Thưởng GĐ1</span><span>Thưởng GĐ2</span><span />
-      </div>
-      <div className="space-y-2">
+      <div className="overflow-x-hidden pb-1 sm:overflow-x-auto">
+        <div className="w-full space-y-2 sm:min-w-[720px]">
+          <div className={gridClassName}>
+            <span className="text-center text-[10px] font-bold uppercase text-sky-300">STT</span>
+            <span className="col-span-2 text-center text-[10px] font-bold uppercase text-sky-300">Chỉ tiêu · {metricHeaderLabel}</span>
+            <span className="text-center text-[10px] font-bold uppercase text-sky-300">Thưởng GĐ1</span>
+            <span className="text-center text-[10px] font-bold uppercase text-sky-300">Thưởng GĐ2</span>
+            <Button type="button" variant="ghost" size="sm" onClick={onAdd} className="h-8 w-8 p-0 text-sky-300 hover:text-sky-200" aria-label="Thêm mức thưởng" title="Thêm mức thưởng"><Plus className="h-4 w-4" /></Button>
+          </div>
         {Array.from({ length: rowCount }, (_, index) => {
           const phase1 = phase1Tiers[index];
           const phase2 = phase2Tiers[index];
           if (!phase1 || !phase2) return null;
           return (
-            <div key={`${phase1.id}-${phase2.id}`} className="grid grid-cols-1 gap-2 rounded-lg border border-sky-500/20 bg-gray-950/45 p-2 sm:grid-cols-[1.2fr_1fr_1fr_32px]">
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-bold text-amber-200">Mức {index + 1} · {unitLabel}</Label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <Input type="number" inputMode="decimal" placeholder="Từ" value={isRound ? (phase1.minFYP || '') : (vndToNgan(phase1.minFYP) || '')} onChange={(event) => onMilestoneUpdate(index, 'minFYP', event.target.value === '' ? 0 : isRound ? parseInt(event.target.value) || 0 : nganToVnd(parseFloat(event.target.value) || 0))} className="h-8 text-xs border-amber-500/25 bg-gray-900 text-white" />
-                  <Input type="number" inputMode="decimal" placeholder="Đến ∞" value={phase1.maxFYP ? (isRound ? phase1.maxFYP : vndToNgan(phase1.maxFYP)) : ''} onChange={(event) => onMilestoneUpdate(index, 'maxFYP', event.target.value === '' ? null : isRound ? parseInt(event.target.value) || null : nganToVnd(parseFloat(event.target.value) || 0))} className="h-8 text-xs border-amber-500/25 bg-gray-900 text-white" />
-                </div>
-              </div>
-              <PhaseRewardField tier={phase1} phaseLabel="Thưởng GĐ1" onUpdate={(field, value) => onPhase1Update(phase1.id, field, value)} />
-              <PhaseRewardField tier={phase2} phaseLabel="Thưởng GĐ2" onUpdate={(field, value) => onPhase2Update(phase2.id, field, value)} />
-              <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(index)} className="h-8 w-full self-end p-0 text-red-400 hover:text-red-300 sm:w-8" aria-label={`Xóa mức ${index + 1}`}><Trash2 className="h-3.5 w-3.5" /></Button>
+            <div key={`${phase1.id}-${phase2.id}`} className={gridClassName}>
+              <span className="text-center text-xs font-semibold text-sky-200/80">{index + 1}</span>
+              <Input aria-label={`${metricLabel} từ mức ${index + 1}`} type="number" inputMode="decimal" placeholder="Từ" value={isCountMetric ? (phase1.minFYP || '') : (vndToTrieu(phase1.minFYP) || '')} onChange={(event) => onMilestoneUpdate(index, 'minFYP', event.target.value === '' ? 0 : isCountMetric ? parseInt(event.target.value) || 0 : trieuToVnd(parseFloat(event.target.value) || 0))} className="h-9 min-w-0 px-1.5 border-sky-500/30 bg-gray-900 text-xs text-white" />
+              <Input aria-label={`${metricLabel} đến mức ${index + 1}`} type="number" inputMode="decimal" placeholder="Đến ∞" value={phase1.maxFYP ? (isCountMetric ? phase1.maxFYP : vndToTrieu(phase1.maxFYP)) : ''} onChange={(event) => onMilestoneUpdate(index, 'maxFYP', event.target.value === '' ? null : isCountMetric ? parseInt(event.target.value) || null : trieuToVnd(parseFloat(event.target.value) || 0))} className="h-9 min-w-0 px-1.5 border-sky-500/30 bg-gray-900 text-xs text-white" />
+              <BonusRewardInput tier={phase1} rewardType={rewardType} label={`Thưởng GĐ1 mức ${index + 1}`} onUpdate={(field, value) => onPhase1Update(phase1.id, field, value)} />
+              <BonusRewardInput tier={phase2} rewardType={rewardType} label={`Thưởng GĐ2 mức ${index + 1}`} onUpdate={(field, value) => onPhase2Update(phase2.id, field, value)} />
+              <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(index)} className="h-8 w-8 p-0 text-red-400 hover:text-red-300" aria-label={`Xóa mức ${index + 1}`}><Trash2 className="h-3.5 w-3.5" /></Button>
             </div>
           );
         })}
-        {rowCount === 0 && <p className="rounded-lg border border-dashed border-sky-500/25 px-3 py-4 text-center text-[11px] text-sky-200/60">Chưa có mức thưởng. Chọn “Thêm mức” để bắt đầu.</p>}
+        </div>
       </div>
     </div>
   );
@@ -727,7 +706,7 @@ function ThiDuaPageInner() {
   const [contestTitle, setContestTitle] = useState('CHƯƠNG TRÌNH THI ĐUA');
   const [conditionType, setConditionType] = useState<ConditionType>('per_contract_ip');
   const [targetType, setTargetType] = useState<TargetType>('tvv');
-  const [bonusTiers, setBonusTiers] = useState<BonusTier[]>([]);
+  const [bonusTiers, setBonusTiers] = useState<BonusTier[]>(() => createDefaultBonusTiers());
   // Phase 2
   const [usePhase2, setUsePhase2] = useState(false);
   const [phase2StartDate, setPhase2StartDate] = useState('');
@@ -2371,8 +2350,8 @@ function ThiDuaPageInner() {
     return { totalFYP, bonus, tier, remaining };
   }, [displayContracts, calculateBonus, getRemainingToNextTier]);
 
-  const addBonusTier = () => setBonusTiers([...bonusTiers, { id: crypto.randomUUID(), minFYP: 0, maxFYP: null, bonusAmount: 0, bonusType: 'money', bonusText: '', bonusPercent: 0 }]);
-  const removeBonusTier = (id: string) => { setBonusTiers(bonusTiers.filter((t) => t.id !== id)); };
+  const addBonusTier = () => setBonusTiers(previous => [...previous, createBlankBonusTier(crypto.randomUUID(), previous[0]?.bonusType || 'money')]);
+  const removeBonusTier = (id: string) => { setBonusTiers(previous => previous.filter((tier) => tier.id !== id)); };
   const updateTopReward = useCallback((index: number, value: number) => {
     setTopRewardAmounts(prev => {
       const next = [...prev];
@@ -2381,14 +2360,23 @@ function ThiDuaPageInner() {
       return next;
     });
   }, []);
-  const updateBonusTier = (id: string, field: keyof BonusTier, value: string | number | null) => setBonusTiers(bonusTiers.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
+  const updateBonusTier = (id: string, field: keyof BonusTier, value: string | number | null) => setBonusTiers(previous => previous.map((tier) => (tier.id === id ? { ...tier, [field]: value } : tier)));
 
-  const updateBonusTier2 = (id: string, field: keyof BonusTier, value: string | number | null) => setBonusTiers2(bonusTiers2.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
+  const updateBonusTier2 = (id: string, field: keyof BonusTier, value: string | number | null) => setBonusTiers2(previous => previous.map((tier) => (tier.id === id ? { ...tier, [field]: value } : tier)));
+
+  const updateBonusType = (type: BonusType) => {
+    setBonusTiers(previous => previous.map(tier => ({ ...tier, bonusType: type })));
+  };
+
+  const updateDualPhaseBonusType = (type: BonusType) => {
+    setBonusTiers(previous => previous.map(tier => ({ ...tier, bonusType: type })));
+    setBonusTiers2(previous => previous.map(tier => ({ ...tier, bonusType: type })));
+  };
 
   const addDualPhaseTier = () => {
-    const base = { minFYP: 0, maxFYP: null, bonusAmount: 0, bonusType: 'money' as const, bonusText: '', bonusPercent: 0 };
-    setBonusTiers(previous => [...previous, { ...base, id: crypto.randomUUID() }]);
-    setBonusTiers2(previous => [...previous, { ...base, id: crypto.randomUUID() }]);
+    const rewardType = bonusTiers[0]?.bonusType || bonusTiers2[0]?.bonusType || 'money';
+    setBonusTiers(previous => [...previous, createBlankBonusTier(crypto.randomUUID(), rewardType)]);
+    setBonusTiers2(previous => [...previous, createBlankBonusTier(crypto.randomUUID(), rewardType)]);
   };
   const removeDualPhaseTier = (index: number) => {
     setBonusTiers(previous => previous.filter((_, tierIndex) => tierIndex !== index));
@@ -2529,7 +2517,7 @@ function ThiDuaPageInner() {
     setTargetType((contest.conditionType === 'tvv_pass_count' || contest.conditionType === 'pass_count_ip_afyp' ? 'nhom' : (contest.targetType || 'tvv')) as TargetType);
     if (contest.issueDate) setIssueStartDate(new Date(contest.issueDate).toISOString().slice(0, 10)); else setIssueStartDate('');
     setIssueEndDate(''); // issueEndDate not stored in contest yet
-    try { const tiers = JSON.parse(contest.bonusTiers); if (Array.isArray(tiers)) setBonusTiers(tiers); } catch { /* ignore */ }
+    try { const tiers = JSON.parse(contest.bonusTiers); if (Array.isArray(tiers)) setBonusTiers(tiers.length > 0 ? tiers : createDefaultBonusTiers()); } catch { setBonusTiers(createDefaultBonusTiers()); }
     // Startup only preloads the lightweight contest summary. Load the potentially
     // large poster only when this particular contest is opened.
     setPosterUrl('');
@@ -2544,7 +2532,7 @@ function ThiDuaPageInner() {
     setUsePhase2(contest.usePhase2 ?? false);
     setPhase2StartDate(contest.phase2StartDate ? new Date(contest.phase2StartDate).toISOString().slice(0, 10) : '');
     setPhase2EndDate(contest.phase2EndDate ? new Date(contest.phase2EndDate).toISOString().slice(0, 10) : '');
-    try { const tiers2 = JSON.parse(contest.bonusTiers2 || '[]'); if (Array.isArray(tiers2)) setBonusTiers2(tiers2); } catch { /* ignore */ }
+    try { const tiers2 = JSON.parse(contest.bonusTiers2 || '[]'); if (Array.isArray(tiers2)) setBonusTiers2(tiers2.length > 0 ? tiers2 : createDefaultBonusTiers('draft-tier-phase2')); } catch { setBonusTiers2(createDefaultBonusTiers('draft-tier-phase2')); }
     // Secondary condition
     setUseSecondaryCondition(contest.useSecondaryCondition ?? false);
     setSecondaryAFYPMin(contest.secondaryAFYPMin ?? 0);
@@ -4744,6 +4732,7 @@ function ThiDuaPageInner() {
                       onMilestoneUpdate={updateDualPhaseMilestone}
                       onPhase1Update={updateBonusTier}
                       onPhase2Update={updateBonusTier2}
+                      onRewardTypeChange={updateDualPhaseBonusType}
                     />
                   </div>
                 ) : (
@@ -4753,7 +4742,7 @@ function ThiDuaPageInner() {
                     onUpdate={updateBonusTier}
                     onAdd={addBonusTier}
                     onRemove={removeBonusTier}
-                    title="Bảng mức thưởng"
+                    onRewardTypeChange={updateBonusType}
                   />
                 )}
               </div>
