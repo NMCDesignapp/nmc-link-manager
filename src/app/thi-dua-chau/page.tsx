@@ -593,8 +593,8 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
     <div className="space-y-3">
       <div className="grid gap-1 sm:max-w-xs">
         <Label htmlFor="bonus-type" className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300/75">Hình thức thưởng</Label>
-        <select id="bonus-type" value={rewardType} onChange={(event) => onRewardTypeChange(event.target.value as BonusType)} className="h-9 w-full rounded-lg border border-emerald-500/30 bg-gray-900 px-3 text-xs font-semibold text-white outline-none focus:border-emerald-400">
-          {BONUS_TYPE_BUTTONS.map(([type, label]) => <option key={type} value={type}>{label}</option>)}
+        <select id="bonus-type" value={rewardType} onChange={(event) => onRewardTypeChange(event.target.value as BonusType)} style={{ colorScheme: 'dark' }} className="h-9 w-full rounded-lg border border-emerald-500/30 bg-gray-900 px-3 text-xs font-semibold text-white outline-none focus:border-emerald-400">
+          {BONUS_TYPE_BUTTONS.map(([type, label]) => <option key={type} value={type} className="bg-slate-950 text-white">{label}</option>)}
         </select>
       </div>
       <div className="overflow-x-hidden pb-1 sm:overflow-x-auto">
@@ -652,8 +652,8 @@ const DualPhaseBonusTierEditor = React.memo(function DualPhaseBonusTierEditor({
     <div className="space-y-3">
       <div className="grid gap-1 sm:max-w-xs">
         <Label htmlFor="dual-bonus-type" className="text-[10px] font-semibold uppercase tracking-wide text-sky-300/80">Hình thức thưởng</Label>
-        <select id="dual-bonus-type" value={rewardType} onChange={(event) => onRewardTypeChange(event.target.value as BonusType)} className="h-9 w-full rounded-lg border border-sky-500/30 bg-gray-900 px-3 text-xs font-semibold text-white outline-none focus:border-sky-400">
-          {BONUS_TYPE_BUTTONS.map(([type, label]) => <option key={type} value={type}>{label}</option>)}
+        <select id="dual-bonus-type" value={rewardType} onChange={(event) => onRewardTypeChange(event.target.value as BonusType)} style={{ colorScheme: 'dark' }} className="h-9 w-full rounded-lg border border-sky-500/30 bg-gray-900 px-3 text-xs font-semibold text-white outline-none focus:border-sky-400">
+          {BONUS_TYPE_BUTTONS.map(([type, label]) => <option key={type} value={type} className="bg-slate-950 text-white">{label}</option>)}
         </select>
       </div>
       <div className="overflow-x-hidden pb-1 sm:overflow-x-auto">
