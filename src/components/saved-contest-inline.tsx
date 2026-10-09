@@ -194,7 +194,14 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       || 'CHƯA XÁC ĐỊNH',
     );
 
-    return { groupName, groupCode: groupCode || groupName };
+    const agentName = clean(
+      structureMember?.agentName
+      || staffMember?.agentName
+      || leaderMember?.agentName
+      || recruiterMember?.agentName,
+    );
+
+    return { groupName, groupCode: groupCode || groupName, agentName };
   }, [appData.structureBanNhom, leadersList, recruiterList, staffList, tvvStructList]);
 
   const isPAGroupLabel = useCallback((groupName: string, groupCode: string) => {
@@ -228,7 +235,12 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
         const resolved = resolveTvvGroup(row.agent.agentCode, row.agent.nhom, row.agent.maNhom);
         return {
           ...row,
-          agent: { ...row.agent, nhom: resolved.groupName, maNhom: resolved.groupCode },
+          agent: {
+            ...row.agent,
+            agentName: resolved.agentName || row.agent.agentName || row.agent.agentCode,
+            nhom: resolved.groupName,
+            maNhom: resolved.groupCode,
+          },
         };
       })
       .sort((a, b) => {
@@ -259,6 +271,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           ...row,
           contract: {
             ...row.contract,
+            agentName: resolved.agentName || row.contract.agentName || row.contract.agentCode,
             nhom: resolved.groupName,
             maNhom: resolved.groupCode,
           },

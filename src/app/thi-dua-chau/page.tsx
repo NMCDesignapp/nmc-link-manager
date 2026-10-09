@@ -155,6 +155,14 @@ type TargetType = 'tvv' | 'nhom' | 'nyd';
 type RecruitedAgentScope = 'all' | 'tvvm';
 type ContestKind = 'sales' | 'recruitment' | 'top' | 'pass_count' | 'two_phase';
 
+const CONTEST_KIND_META: Record<ContestKind, { title: string; detail: string }> = {
+  sales: { title: 'Thi đua doanh số', detail: 'Chọn đối tượng, cách xét và chỉ tiêu doanh số hoặc lượt hoạt động.' },
+  recruitment: { title: 'Thi đua tuyển dụng', detail: 'Chọn TTN, TB/TN hoặc cả hai; kết quả đếm TVVm tuyển mới trong kỳ.' },
+  top: { title: 'Thi đua xét TOP', detail: 'Xếp hạng theo IP hoặc AFYP và thưởng theo từng vị trí TOP.' },
+  pass_count: { title: 'Thi đua đếm TVV đạt', detail: 'Xét theo Nhóm và đếm số TVV đạt chương trình hoặc bộ chỉ tiêu tham chiếu.' },
+  two_phase: { title: 'Thi đua 2 giai đoạn', detail: 'Dùng cùng một chỉ tiêu, tách riêng bảng thưởng giai đoạn 1 và giai đoạn 2.' },
+};
+
 function isActivityRoundMode(ct: ConditionType): boolean {
   return ct === 'activity_round' || ct === 'activity_round_tvvm' || ct === 'activity_round_standard' || ct === 'activity_round_standard_tvvm' || ct === 'activity_round_tvv90';
 }
@@ -825,7 +833,21 @@ function ThiDuaPageInner() {
     return 'sales';
   }, [conditionType, usePhase2]);
 
+  const contestKindMeta = CONTEST_KIND_META[contestKind];
+
+  const visibleSubjectKeys = useMemo(() => {
+    if (contestKind === 'recruitment') return new Set(['ttn', 'leader', 'ntd']);
+    if (contestKind === 'pass_count' || targetType === 'nhom') return new Set(['nhom']);
+    if (targetType === 'nyd') return new Set(['ttn', 'leader', 'ntd']);
+    return new Set(['allTvv', 'tvvm', 'tvvCu']);
+  }, [contestKind, targetType]);
+
   const chooseContestKind = useCallback((kind: ContestKind) => {
+    setShowConfig(true);
+    if (kind !== contestKind) {
+      setSelectedSubjectTypes(new Set());
+      setThiDuaSubjects('');
+    }
     if (kind === 'two_phase') {
       setUsePhase2(true);
       if (isRecruitmentMode(conditionType) || isTopNMode(conditionType) || isTVVPassCountMode(conditionType)) setConditionType('total_ip');
@@ -837,6 +859,7 @@ function ThiDuaPageInner() {
     if (kind === 'recruitment') {
       setConditionType('recruitment_count');
       setTargetType('nyd');
+      setRecruitmentConfig(current => ({ ...current, subjectScope: 'both' }));
     } else if (kind === 'top') {
       setConditionType('top_n_ip');
       setTargetType('tvv');
@@ -846,7 +869,7 @@ function ThiDuaPageInner() {
     } else if (isRecruitmentMode(conditionType) || isTopNMode(conditionType) || isTVVPassCountMode(conditionType)) {
       setConditionType('total_ip');
     }
-  }, [bonusTiers, conditionType]);
+  }, [bonusTiers, conditionType, contestKind]);
 
   const handlePosterUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1193,7 +1216,7 @@ function ThiDuaPageInner() {
       phongLists[`phong_${maPhong}`] = tvvInPhong;
     }
 
-    return { allTvv, tvvm, tvvCu, nhom, ttn, ntd, phongLists };
+    return { allTvv, tvvm, tvvCu, nhom, leader: tn, ttn, ntd, phongLists };
   }, [tvvStructList, leadersList, recruiterList, phongStructList, adStructList, banNhomStructList]);
 
   // Danh sách NTD hợp nhất từ DS TN và DS TTN của Cấu trúc.  TTN được ưu
@@ -1236,13 +1259,17 @@ function ThiDuaPageInner() {
     const list = type.startsWith('phong_')
       ? (subjectLists.phongLists?.[type] || [])
       : (subjectLists as any)[type] || [];
-    const nextTarget: TargetType = type === 'nhom' ? 'nhom' : (type === 'ntd' || type === 'ttn') ? 'nyd' : 'tvv';
+    const nextTarget: TargetType = type === 'nhom' ? 'nhom' : (type === 'ntd' || type === 'ttn' || type === 'leader') ? 'nyd' : 'tvv';
     setTargetType(nextTarget);
     if (nextTarget === 'nhom') {
       setIncludeIndividualTN(false); // mặc định không tính cá nhân trưởng nhóm
     }
     if (nextTarget === 'nyd') {
       setIncludeIndividualNTD(false); // mặc định không tính cá nhân người tuyển dụng
+    }
+    if (isRecruitmentMode(conditionType)) {
+      const subjectScope = type === 'ttn' ? 'ttn' : type === 'leader' ? 'leader' : 'both';
+      setRecruitmentConfig(current => ({ ...current, subjectScope }));
     }
     if (conditionType === 'tvv_pass_count' && nextTarget !== 'nhom') setConditionType('total_ip');
     setSelectedSubjectTypes(new Set([type]));
@@ -1516,7 +1543,7 @@ function ThiDuaPageInner() {
   const resolveTvvGroup = useMemo(() => {
     const normalizeKey = (value: string) => norm(value || '').toLowerCase();
     const groupNameByCode = new Map<string, string>();
-    const groupByAgentCode = new Map<string, { maNhom: string; nhom: string }>();
+    const groupByAgentCode = new Map<string, { maNhom: string; nhom: string; agentName: string }>();
 
     for (const group of banNhomStructList) {
       if (group.maBanNhom && group.tenBanNhom) {
@@ -1531,12 +1558,19 @@ function ThiDuaPageInner() {
         groupNameByCode.set(normalizeKey(maNhom), member.nhom);
       }
     }
-    const addMember = (member: { agentCode?: string; maBanNhom?: string; maNhom?: string; nhom?: string }) => {
+    const addMember = (member: { agentCode?: string; agentName?: string; maBanNhom?: string; maNhom?: string; nhom?: string }) => {
       const agentCode = normalizeKey(member.agentCode || '');
       if (!agentCode) return;
       const maNhom = member.maBanNhom || member.maNhom || '';
       const nhom = groupNameByCode.get(normalizeKey(maNhom)) || member.nhom || '';
-      if (maNhom || nhom) groupByAgentCode.set(agentCode, { maNhom, nhom });
+      const current = groupByAgentCode.get(agentCode);
+      if (maNhom || nhom || member.agentName) {
+        groupByAgentCode.set(agentCode, {
+          maNhom: current?.maNhom || maNhom,
+          nhom: current?.nhom || nhom,
+          agentName: current?.agentName || member.agentName || '',
+        });
+      }
     };
     tvvStructList.forEach(addMember);
     staffList.forEach(addMember);
@@ -1548,6 +1582,7 @@ function ThiDuaPageInner() {
       return {
         maNhom: resolvedMaNhom,
         nhom: groupNameByCode.get(normalizeKey(resolvedMaNhom)) || structureGroup?.nhom || nhom || '—',
+        agentName: structureGroup?.agentName || '',
       };
     };
   }, [tvvStructList, staffList, leadersList, banNhomStructList]);
@@ -1639,13 +1674,16 @@ function ThiDuaPageInner() {
         existing.totalFYP += c.pdt10DT;
         existing.totalAFYP += c.afyp;
         existing.contractCount += 1;
+        if (!existing.agentName || existing.agentName === existing.agentCode) {
+          existing.agentName = group.agentName || c.agentName || c.agentCode;
+        }
         if ((!existing.maNhom || existing.nhom === '—') && group.maNhom) {
           existing.maNhom = group.maNhom;
           existing.nhom = group.nhom;
         }
       } else {
         agentMap.set(key, {
-          agentCode: c.agentCode, agentName: c.agentName,
+          agentCode: c.agentCode, agentName: group.agentName || c.agentName || c.agentCode,
           nhom: group.nhom, maNhom: group.maNhom,
           totalFYP: c.pdt10DT, totalAFYP: c.afyp, contractCount: 1,
           activityRounds: 0,
@@ -1667,7 +1705,7 @@ function ThiDuaPageInner() {
           const group = resolveTvvGroup(info?.agentCode || code, info?.maBanNhom || '');
           agentMap.set(code, {
             agentCode: info?.agentCode || code,
-            agentName: info?.agentName || code,
+            agentName: group.agentName || info?.agentName || code,
             nhom: group.nhom,
             maNhom: group.maNhom,
             totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0,
@@ -4154,6 +4192,10 @@ function ThiDuaPageInner() {
             </button>
           </CardHeader>
           <CardContent className="px-4 pb-4 space-y-3" style={{ display: showConfig ? 'block' : 'none' }}>
+              <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2">
+                <p className="text-[11px] font-extrabold uppercase tracking-wide text-amber-200">{contestKindMeta.title}</p>
+                <p className="mt-0.5 text-[10px] leading-4 text-amber-100/70">{contestKindMeta.detail}</p>
+              </div>
               {/* 1. Đối tượng thi đua - luôn chọn trước điều kiện và hình thức */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
@@ -4167,8 +4209,9 @@ function ThiDuaPageInner() {
                     { key: 'tvvCu', label: 'TVV cũ', desc: 'Trừ TVVm', count: subjectLists.tvvCu.length, icon: Users },
                     { key: 'nhom', label: 'Nhóm', desc: 'DS TB/TN', count: subjectLists.nhom.length, icon: Layers },
                     { key: 'ttn', label: 'TTN', desc: 'DS TTN', count: subjectLists.ttn.length, icon: UserPlus },
+                    { key: 'leader', label: 'TB/TN', desc: 'DS TB/TN', count: subjectLists.leader.length, icon: UserCheck },
                     { key: 'ntd', label: 'NTD', desc: 'TN + TTN', count: subjectLists.ntd.length, icon: UserPlus },
-                  ]).map(option => {
+                  ]).filter(option => visibleSubjectKeys.has(option.key)).map(option => {
                     const active = selectedSubjectTypes.has(option.key);
                     const Icon = option.icon;
                     return (
@@ -4179,7 +4222,7 @@ function ThiDuaPageInner() {
                       </button>
                     );
                   })}
-                  {phongStructList.slice(0, 3).map((phong, index) => {
+                  {targetType === 'tvv' && contestKind !== 'recruitment' && contestKind !== 'pass_count' && phongStructList.slice(0, 3).map((phong, index) => {
                     const key = `phong_${phong.maPhong}`;
                     const active = selectedSubjectTypes.has(key);
                     const label = phong.tenPhong || `Phòng ${index + 1}`;
@@ -4232,6 +4275,11 @@ function ThiDuaPageInner() {
               {/* 2. Cách xét kết quả - giữ nguyên targetType nghiệp vụ hiện có */}
               <div className="space-y-2">
                 <Label className="text-xs font-medium text-emerald-200">Cách xét kết quả</Label>
+                {contestKind === 'recruitment' ? (
+                  <div className="flex items-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/15 px-3 py-2 text-xs font-bold text-violet-100"><UserPlus className="h-4 w-4" /> Cá nhân người tuyển dụng (NTD)</div>
+                ) : contestKind === 'pass_count' ? (
+                  <div className="flex items-center gap-2 rounded-xl border border-indigo-400/30 bg-indigo-500/15 px-3 py-2 text-xs font-bold text-indigo-100"><Layers className="h-4 w-4" /> Nhóm kinh doanh</div>
+                ) : (
                 <div className="grid grid-cols-3 gap-1.5">
                   <button
                     type="button"
@@ -4272,6 +4320,7 @@ function ThiDuaPageInner() {
                     <span>Cá nhân NTD</span>
                   </button>
                 </div>
+                )}
                 <p className="text-[10px] text-emerald-400/50 italic">
                   {targetType === 'tvv' ? 'Ánh xạ theo mã TVV' : targetType === 'nhom' ? 'Ánh xạ theo tên/mã nhóm' : 'Ánh xạ theo mã đại lý tuyển dụng'}
                 </p>
