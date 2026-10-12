@@ -3594,9 +3594,10 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 interface Contract {
   id: string; agentCode: string; agentName: string; position: string;
   ban: string; nhom: string; maNhom: string; maBanNhom: string;
-  ad: string; contractNumber?: string; effectiveDate: string; issueDate: string | null; contractStatus?: string; afyp: number; fyp: number;
+  ad: string; contractNumber?: string; effectiveDate: string | null; issueDate: string | null; contractStatus?: string; afyp: number; fyp: number;
   pdt10DT: number; tinhLuot3tr: number; ngayBatDauLamViec: string | null;
   thangTD: string | null; namTD: string | null; thangHL: string | null;
+  nguonDuLieu?: string | null;
 }
 interface TamthuDetailRow {
   rowNo: number; nhom: string; maNhom: string; agentCode: string; agentName: string;
@@ -3927,11 +3928,13 @@ function getMonthNum(d: string | null | undefined): number {
   if (!d) return 0;
   try { const dt = new Date(d); return isNaN(dt.getTime()) ? 0 : dt.getMonth() + 1; } catch { return 0; }
 }
-// Get doanh so month from issueDate (Ngày PH), fallback effectiveDate (Ngày HL) — same as quan-ly
-function getDoanhSoMonth(c: { issueDate: string | null; effectiveDate: string }): Date {
+// Tạm thu Sheet 4 thuộc tháng đồng bộ; nguồn khác dùng Ngày PH, fallback Ngày HL.
+function getDoanhSoMonth(c: { issueDate: string | null; effectiveDate: string | null; nguonDuLieu?: string | null }): Date {
+  const sourceMonth = String(c.nguonDuLieu || '').match(/^NMC_TAMTHU:(\d{4})-(\d{2})(?:\||$)/);
+  if (sourceMonth) return new Date(Number(sourceMonth[1]), Number(sourceMonth[2]) - 1, 1);
   const issueD = c.issueDate ? new Date(c.issueDate) : null;
   if (issueD && !isNaN(issueD.getTime())) return issueD;
-  return new Date(c.effectiveDate);
+  return c.effectiveDate ? new Date(c.effectiveDate) : new Date(NaN);
 }
 // Format currency in compact form (trđ, tỷ)
 function formatKpiCurrency(amount: number): string {

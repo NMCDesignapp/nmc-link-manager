@@ -76,8 +76,8 @@ interface Contract {
   agentName: string;
   position: string;
   ngayBatDauLamViec: string | null;
-  effectiveDate: string;
-  issueDate: string;
+  effectiveDate: string | null;
+  issueDate: string | null;
   contractStatus: string;
   pdt10DT: number;
   fyp: number;
@@ -456,9 +456,13 @@ const CONTRACT_COLUMNS = [
 ];
 
 // ==================== HELPERS ====================
-// Helper: lấy tháng doanh số từ issueDate (Ngày PH), fallback effectiveDate (Ngày HL)
+// Tạm thu Sheet 4 là snapshot của tháng đang chạy: mọi dòng có Mã ĐL thuộc
+// tháng đồng bộ, bất kể Ngày PH/Ngày HL trong file. Các nguồn khác vẫn dùng
+// issueDate (Ngày PH), fallback effectiveDate (Ngày HL).
 // Trả về Invalid Date nếu cả 2 đều trống (các nơi gọi dùng !isNaN(d.getTime()) để filter)
-function getDoanhSoMonth(c: { issueDate: string | null; effectiveDate: string | null }): Date {
+function getDoanhSoMonth(c: { issueDate: string | null; effectiveDate: string | null; nguonDuLieu?: string | null }): Date {
+  const sourceMonth = String(c.nguonDuLieu || '').match(/^NMC_TAMTHU:(\d{4})-(\d{2})(?:\||$)/);
+  if (sourceMonth) return new Date(Number(sourceMonth[1]), Number(sourceMonth[2]) - 1, 1);
   const issueD = c.issueDate ? new Date(c.issueDate) : null;
   if (issueD && !isNaN(issueD.getTime())) return issueD;
   if (c.effectiveDate) {
@@ -3409,7 +3413,7 @@ export default function QuanLyPage() {
       let data: any[] = [];
       if (sheetName === 'leaders') data = leaders.map(l => ({ 'Mã số': l.agentCode, 'Họ tên': l.agentName, 'Chức vụ': l.position, 'Ban': l.ban, 'Nhóm': l.nhom, 'Mã nhóm': l.maNhom, 'Tiền/tháng': l.salary, 'SĐT': l.phone, 'Email': l.email, 'Ngày bắt đầu': l.startDate ? new Date(l.startDate).toLocaleDateString('vi-VN') : '', 'Ghi chú': l.note }));
       else if (sheetName === 'revenue') data = revenue.map(r => ({ 'Tháng': r.month, 'Mã nhóm': r.maNhom, 'Nhóm': r.nhom, 'Mã TVV': r.agentCode, 'Tên TVV': r.agentName, 'Tổng IP': r.totalFYP, 'Tổng AFYP': r.totalAFYP, 'Số HĐ': r.contractCount, 'Lượt HĐ': r.activityRounds, 'Ghi chú': r.note }));
-      else if (sheetName === 'contracts') data = contracts.map((c, idx) => ({ 'STT': idx + 1, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã Ban/Nhóm': c.maNhom || c.maBanNhom, 'Mã ĐL': c.agentCode || c.maDL, 'Tên': c.agentName, 'Chức vụ': c.position, 'Ngày bắt đầu làm việc': c.ngayBatDauLamViec ? new Date(c.ngayBatDauLamViec).toLocaleDateString('vi-VN') : '', 'Số hợp đồng': c.contractNumber, 'Ngày hiệu lực': new Date(c.effectiveDate).toLocaleDateString('vi-VN'), 'Ngày phát hành': c.issueDate ? new Date(c.issueDate).toLocaleDateString('vi-VN') : '', 'PĐT + 10% ĐT': c.pdt10DT, 'AFYP': c.afyp, 'AD': c.ad, 'TÍNH LƯỢT 3 tr': c.tinhLuot3tr, 'MÃ ĐL TD': c.maDaiLyTD, 'Tình trạng hợp đồng': c.contractStatus || '' }));
+      else if (sheetName === 'contracts') data = contracts.map((c, idx) => ({ 'STT': idx + 1, 'Ban': c.ban, 'Nhóm': c.nhom, 'Mã Ban/Nhóm': c.maNhom || c.maBanNhom, 'Mã ĐL': c.agentCode || c.maDL, 'Tên': c.agentName, 'Chức vụ': c.position, 'Ngày bắt đầu làm việc': c.ngayBatDauLamViec ? new Date(c.ngayBatDauLamViec).toLocaleDateString('vi-VN') : '', 'Số hợp đồng': c.contractNumber, 'Ngày hiệu lực': c.effectiveDate ? new Date(c.effectiveDate).toLocaleDateString('vi-VN') : '', 'Ngày phát hành': c.issueDate ? new Date(c.issueDate).toLocaleDateString('vi-VN') : '', 'PĐT + 10% ĐT': c.pdt10DT, 'AFYP': c.afyp, 'AD': c.ad, 'TÍNH LƯỢT 3 tr': c.tinhLuot3tr, 'MÃ ĐL TD': c.maDaiLyTD, 'Tình trạng hợp đồng': c.contractStatus || '' }));
       else if (sheetName === 'staff') data = staff.map(s => ({ 'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position, 'Nhóm': s.nhom, 'Mã nhóm': s.maNhom, 'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'recruiters') data = recruiters.map(r => ({ 'Mã số': r.agentCode, 'Họ tên': r.agentName, 'Chức vụ': r.position, 'Nhóm': r.nhom, 'Ngày bắt đầu': r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '', 'Ngày hiệu lực chức vụ': r.ngayHieuLuc ? new Date(r.ngayHieuLuc).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'tuyen-ngang') data = tuyenNgangList.map((t, i) => ({ 'STT': i + 1, 'NHÓM': t.nhom, 'MÃ TVV': t.agentCode, 'HỌ TÊN': t.agentName, 'Ngày bắt đầu làm việc': t.ngayBatDau ? new Date(t.ngayBatDau).toLocaleDateString('vi-VN') : '', 'Ngày hiệu lực chức vụ': t.ngayHieuLuc ? new Date(t.ngayHieuLuc).toLocaleDateString('vi-VN') : '', 'MÃ NGƯỜI TUYỂN DỤNG': t.maNguoiTuyenDung, 'TÊN NGƯỜI TUYỂN DỤNG': t.tenNguoiTuyenDung }));
@@ -12247,7 +12251,7 @@ export default function QuanLyPage() {
       return contracts
         .filter(c => {
           if (c.agentCode !== agentCode) return false;
-          const d = new Date(c.issueDate || c.effectiveDate);
+          const d = getDoanhSoMonth(c);
           return !isNaN(d.getTime()) && d.getMonth() + 1 === month && d.getFullYear() === year;
         })
         .reduce((s, c) => s + c.tinhLuot3tr, 0);

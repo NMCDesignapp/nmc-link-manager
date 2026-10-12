@@ -108,8 +108,11 @@ function getCurrentBangkokMonth() {
   };
 }
 
-function isInMonth(date: Date | null, from: Date, until: Date) {
-  return !!date && date >= from && date < until;
+const TAMTHU_SOURCE_PREFIX = 'NMC_TAMTHU:';
+
+function tagTamthuSourceMonth(rawSource: string, month: string): string {
+  const original = rawSource.replace(/^NMC_TAMTHU:\d{4}-\d{2}\|?/, '').trim();
+  return `${TAMTHU_SOURCE_PREFIX}${month}${original ? `|${original}` : ''}`;
 }
 
 // POST /api/sync - Sync all 3 CSVs simultaneously
@@ -172,15 +175,13 @@ export async function POST(request: NextRequest) {
           currentMonth = window.label;
           currentMonthWindow = window;
           importRows = importRows.filter(({ row }) => {
-            const effectiveDate = parseDate(getVal(row, 'Ngày hiệu lực', 'Ngày HL', 'effectiveDate'));
-            // Tạm thu là nguồn của tháng hiện tại: lấy đúng các HĐ có ngày
-            // hiệu lực trong tháng đó. Ngày phát hành có thể trống hoặc khác
-            // tháng và không được dùng để làm lệch số dòng đồng bộ.
-            return isInMonth(effectiveDate, window.from, window.until);
+            // Sheet 4 của Tạm thu là toàn bộ doanh số tháng hiện tại. Không
+            // phân loại lại theo ngày; chỉ bỏ dòng không có Mã đại lý.
+            return !!getVal(row, 'Mã ĐL', 'Mã đại lý', 'Mã số', 'agentCode').trim();
           });
 
           if (importRows.length === 0) {
-            throw new Error(`Không có HĐ hợp lệ của tháng ${currentMonth} trong file; dữ liệu trên app không bị xóa.`);
+            throw new Error(`Không có dòng nào có Mã đại lý trong Tạm thu tháng ${currentMonth}; dữ liệu trên app không bị xóa.`);
           }
 
           const realNumbers = new Set<string>();
@@ -283,7 +284,8 @@ export async function POST(request: NextRequest) {
           const recruiterCode = getVal(row, 'Mã tuyển dụng', 'MÃ TUYỂN DỤNG', 'recruiterCode');
           const sttStr = getVal(row, 'STT', 'stt');
 
-          if (!effectiveDateStr) return;
+          if (!agentCode) return;
+          if (!replaceDataHubCurrentRevenueMonth && !effectiveDateStr) return;
           // Blank contract numbers are normalised to a unique import key. They
           // are removed at the next authoritative current-month replacement.
           const finalContractNumber = contractNumber || (() => {
@@ -298,7 +300,7 @@ export async function POST(request: NextRequest) {
           const issueDate = parseDate(issueDateStr);
           const startDate = parseDate(startDateStr);
           const ngayBatDauLamViec2 = parseDate(ngayBatDauLamViec2Str);
-          if (!effectiveDate) return;
+          if (!replaceDataHubCurrentRevenueMonth && !effectiveDate) return;
 
           const fyp = parseNumber(fypStr) || parseNumber(pdt10DTStr); // FYP fallback to PĐT+10%
           const afyp = parseNumber(afypStr);
@@ -312,7 +314,10 @@ export async function POST(request: NextRequest) {
               maTruongBan, maBanNhom: '', maTruongBanNhom: '', maDL: '',
               ngayBatDauLamViec: startDate, recruiterCode: recruiterCode || '', startDate,
               effectiveDate, issueDate, contractStatus, pdt10DT: parseNumber(pdt10DTStr), fyp,
-              nguonDuLieu, hopDongToChuc, dkDongPhi,
+              nguonDuLieu: replaceDataHubCurrentRevenueMonth
+                ? tagTamthuSourceMonth(nguonDuLieu, currentMonth)
+                : nguonDuLieu,
+              hopDongToChuc, dkDongPhi,
               phiDongThem: parseNumber(phiDongThemStr),
               afypChuaTru10DT: parseNumber(afypChuaTru10DTStr), afyp, ad, nhom2,
               ngayBatDauLamViec2, thangTD: parseInt(thangTDStr) || 0,
@@ -391,11 +396,15 @@ export async function POST(request: NextRequest) {
 
         if (authoritativeReplacement && contractsToCreate.length > 0) {
           if (replaceDataHubCurrentRevenueMonth && currentMonthWindow) {
-            // Xóa toàn bộ tháng hiện tại theo Ngày hiệu lực trước khi thêm
-            // file Tạm thu. Sau thao tác này số dòng tháng luôn bằng đúng
-            // số dòng hợp lệ của Sheet 4, không thể cộng dồn dữ liệu cũ.
+            // Xóa snapshot Tạm thu cũ (kể cả snapshot của tháng trước) và dữ
+            // liệu tháng hiện tại theo cơ chế cũ trước khi tạo snapshot mới.
             const deletedCurrentMonth = await db.contract.deleteMany({
-              where: { effectiveDate: { gte: currentMonthWindow.from, lt: currentMonthWindow.until } },
+              where: {
+                OR: [
+                  { nguonDuLieu: { startsWith: TAMTHU_SOURCE_PREFIX } },
+                  { effectiveDate: { gte: currentMonthWindow.from, lt: currentMonthWindow.until } },
+                ],
+              },
             });
             results.deletedContracts += deletedCurrentMonth.count;
           }

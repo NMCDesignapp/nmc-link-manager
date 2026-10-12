@@ -60,18 +60,24 @@ function findHeaderIndex(headers, candidates) {
   return headers.findIndex(value => accepted.has(normalizedHeader(value)));
 }
 
-function revenueWorksheetValues(sheet) {
+function revenueWorksheetValues(sheet, options = {}) {
   const values = compactWorksheetValues(sheet);
   if (values.length === 0) return values;
 
   const headers = values[0];
   const contractNumberIndex = findHeaderIndex(headers, ['Số hợp đồng', 'Số HĐ', 'contractNumber']);
   const effectiveDateIndex = findHeaderIndex(headers, ['Ngày hiệu lực', 'Ngày HL', 'effectiveDate']);
+  const agentCodeIndex = findHeaderIndex(headers, ['Mã ĐL', 'Mã đại lý', 'Mã số', 'agentCode']);
+  const requiredIndex = options.requireAgentCode ? agentCodeIndex : effectiveDateIndex;
+
+  if (options.requireAgentCode && agentCodeIndex < 0) {
+    throw new Error('Không tìm thấy cột "Mã ĐL" trong sheet doanh số tháng hiện tại.');
+  }
 
   const rows = values.slice(1)
-    // API chỉ nhận hợp đồng có ngày hiệu lực. Loại các ô tổng/ghi chú nằm xa
-    // bảng dữ liệu để bộ đếm Data Hub khớp đúng số hợp đồng được nhập.
-    .filter(row => effectiveDateIndex < 0 || String(row[effectiveDateIndex] ?? '').trim() !== '')
+    // Tạm thu tháng hiện tại lấy toàn bộ dòng có Mã ĐL, không phụ thuộc ngày.
+    // Doanh số lịch sử vẫn giữ điều kiện ngày hiệu lực như trước.
+    .filter(row => requiredIndex < 0 || String(row[requiredIndex] ?? '').trim() !== '')
     .map(row => {
       const next = [...row];
       // Số hợp đồng là mã định danh. Khi Excel lưu mã 14 chữ số dưới dạng số,
@@ -95,7 +101,9 @@ function csvFromWorkbook(file, sheetName, options = {}) {
   // Excel có thể giữ used-range tới hàng nghìn dòng chỉ vì định dạng cũ.
   // Nếu sheet_to_csv trực tiếp, các hàng trống vẫn thành CSV có dấu phẩy và
   // bị bộ đếm hiểu nhầm là dữ liệu. Chỉ xuất các hàng thực sự có giá trị.
-  const values = options.revenueRowsOnly ? revenueWorksheetValues(sheet) : compactWorksheetValues(sheet);
+  const values = options.revenueRowsOnly
+    ? revenueWorksheetValues(sheet, { requireAgentCode: options.requireAgentCode === true })
+    : compactWorksheetValues(sheet);
   if (values.length === 0) return '';
   return XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet(values), { FS: ',', RS: '\n', forceQuotes: true });
 }
@@ -161,7 +169,10 @@ async function inputFromSource(source) {
   const extension = path.extname(source.file).toLowerCase();
   if (extension === '.csv') return fs.readFile(source.file, 'utf8');
   if (extension === '.xlsx' || extension === '.xls' || extension === '.xlsm') {
-    return csvFromWorkbook(source.file, source.sheet, { revenueRowsOnly: source.kind === 'revenue' });
+    return csvFromWorkbook(source.file, source.sheet, {
+      revenueRowsOnly: source.kind === 'revenue',
+      requireAgentCode: source.kind === 'revenue' && source.replaceCurrentMonth === true,
+    });
   }
   throw new Error(`Định dạng chưa hỗ trợ: ${extension}. Hãy dùng CSV hoặc Excel.`);
 }

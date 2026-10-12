@@ -13,6 +13,7 @@ export async function POST() {
       select: {
         effectiveDate: true,
         issueDate: true,
+        nguonDuLieu: true,
         nhom: true,
         maNhom: true,
         agentCode: true,
@@ -22,8 +23,12 @@ export async function POST() {
         tinhLuot3tr: true,
       },
     });
-    // Chỉ cần HĐ có ít nhất effectiveDate hoặc issueDate
-    const contracts = allContracts.filter(c => c.issueDate !== null || c.effectiveDate !== null);
+    // Tạm thu có thể không có ngày; marker tháng nguồn vẫn đủ để tính doanh số.
+    const contracts = allContracts.filter(c =>
+      /^NMC_TAMTHU:\d{4}-\d{2}(?:\||$)/.test(c.nguonDuLieu || '')
+      || c.issueDate !== null
+      || c.effectiveDate !== null
+    );
 
     if (contracts.length === 0) {
       return NextResponse.json({ error: 'Không có hợp đồng nào để tính doanh thu' }, { status: 400 });
@@ -44,8 +49,11 @@ export async function POST() {
     }>();
 
     for (const c of contracts) {
-      // DOANH SỐ: dùng issueDate (ngày phát hành), fallback effectiveDate
-      const dateForRevenue = c.issueDate || c.effectiveDate;
+      const sourceMonth = String(c.nguonDuLieu || '').match(/^NMC_TAMTHU:(\d{4})-(\d{2})(?:\||$)/);
+      // Tạm thu thuộc tháng đồng bộ; nguồn khác dùng issueDate, fallback effectiveDate.
+      const dateForRevenue = sourceMonth
+        ? new Date(Date.UTC(Number(sourceMonth[1]), Number(sourceMonth[2]) - 1, 1))
+        : (c.issueDate || c.effectiveDate);
       if (!dateForRevenue) continue;
 
       // Lấy tháng từ date (dùng UTC vì date đã được lưu dạng UTC midnight trong DB)

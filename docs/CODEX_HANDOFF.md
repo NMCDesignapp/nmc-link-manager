@@ -287,7 +287,11 @@ Data Hub gửi:
 }
 ```
 
-Route `/api/sync` phải xác định tháng hiện tại theo timezone nghiệp vụ, validate dữ liệu, tránh nguồn rỗng xóa dữ liệu đúng và thay đúng phạm vi.
+Route `/api/sync` xác định tháng hiện tại theo timezone nghiệp vụ. Với `Tamthu.xlsx`
+sheet `4`, mọi dòng có `Mã ĐL` đều thuộc snapshot doanh số tháng hiện tại,
+không phân loại lại theo Ngày phát hành hoặc Ngày hiệu lực. Dữ liệu ngày gốc vẫn
+được lưu; marker nguồn `NMC_TAMTHU:YYYY-MM` dùng để gom đúng tháng và thay toàn
+bộ snapshot Tạm thu cũ mà không cộng dồn.
 
 ### Doanh số lịch sử
 
