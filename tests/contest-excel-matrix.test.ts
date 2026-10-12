@@ -195,6 +195,43 @@ test('chuẩn hóa workbook không nhân đôi cột ngày bắt đầu TVVm', (
   assert.equal(workbook.Sheets['Kết quả thi đua']['!rows']![0].hpt, 32);
 });
 
+test('bảng kết quả Nhóm và TTN có lưới rõ, mọi ô đều căn giữa', () => {
+  const cases = [
+    {
+      headers: ['Họ tên NTD', 'Ngày hiệu lực chức vụ NTD', 'Chức vụ', 'Tổng IP', 'Họ tên TVV'],
+      rows: [
+        ['NTD Một', '01/04/2026', 'Tiền trưởng nhóm', 20_000_000, 'TVV Một'],
+        ['', '', '', '', 'TVV Hai'],
+      ],
+      merges: [{ s: { r: 1, c: 0 }, e: { r: 2, c: 0 } }],
+    },
+    {
+      headers: ['Mã TTN', 'Tên TTN', 'Chức vụ', 'Tổng IP', 'Họ tên TVV'],
+      rows: [
+        ['TTN01', 'TTN Một', 'Trưởng nhóm', 30_000_000, 'TVV Một'],
+        ['', '', '', '', 'TVV Hai'],
+      ],
+      merges: [{ s: { r: 1, c: 0 }, e: { r: 2, c: 0 } }],
+    },
+  ];
+
+  for (const item of cases) {
+    const workbook = XLSXUtils.book_new();
+    const sheet = XLSXUtils.aoa_to_sheet([item.headers, ...item.rows]);
+    sheet['!merges'] = item.merges;
+    XLSXUtils.book_append_sheet(workbook, sheet, 'Kết quả thi đua');
+
+    normalizeContestWorkbook(workbook);
+
+    const result = workbook.Sheets['Kết quả thi đua'];
+    for (const address of ['A2', 'A3', 'B2', 'E3']) {
+      assert.equal(result[address]?.s?.alignment?.horizontal, 'center', `${item.headers[0]} ${address}`);
+      assert.equal(result[address]?.s?.border?.bottom?.style, 'thin', `${item.headers[0]} ${address}`);
+      assert.equal(result[address]?.s?.border?.bottom?.color?.rgb, '9AAEC1', `${item.headers[0]} ${address}`);
+    }
+  }
+});
+
 test('ánh xạ ngày bắt đầu giữ Đ/D riêng và bỏ qua tên trùng mơ hồ', () => {
   const workbook = XLSXUtils.book_new();
   XLSXUtils.book_append_sheet(workbook, XLSXUtils.aoa_to_sheet([

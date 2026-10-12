@@ -40,6 +40,13 @@ const BODY_STYLE = {
   },
 };
 
+const DETAIL_GRID_BORDER = {
+  top: { style: 'thin', color: { rgb: '9AAEC1' } },
+  bottom: { style: 'thin', color: { rgb: '9AAEC1' } },
+  left: { style: 'thin', color: { rgb: '9AAEC1' } },
+  right: { style: 'thin', color: { rgb: '9AAEC1' } },
+};
+
 const LEADER_STYLE = {
   ...BODY_STYLE,
   font: { bold: true, color: { rgb: '103667' }, sz: 11 },
@@ -296,6 +303,7 @@ function styleSheet(
   matrix: Matrix,
   merges: MergeRange[] = [],
   leaderRows: number[] = [],
+  options: { centerAll?: boolean; clearGrid?: boolean } = {},
 ): any {
   const headers = matrix[0] || [];
   const rows = matrix.slice(1);
@@ -306,7 +314,9 @@ function styleSheet(
   for (let r = range.s.r; r <= range.e.r; r++) {
     for (let c = range.s.c; c <= range.e.c; c++) {
       const address = XLSXCore.utils.encode_cell({ r, c });
-      const cell = sheet[address];
+      const cell = sheet[address] || (options.clearGrid
+        ? (sheet[address] = { t: 's', v: '' })
+        : undefined);
       if (!cell) continue;
       if (r === 0) {
         cell.s = HEADER_STYLE;
@@ -314,10 +324,13 @@ function styleSheet(
       }
 
       const base = leaderSet.has(r) ? LEADER_STYLE : BODY_STYLE;
-      const horizontal = typeof cell.v === 'number' || isCenterColumn(headers[c]) ? 'center' : 'left';
+      const horizontal = options.centerAll
+        ? 'center'
+        : typeof cell.v === 'number' || isCenterColumn(headers[c]) ? 'center' : 'left';
       cell.s = {
         ...base,
         alignment: { horizontal, vertical: 'center', wrapText: true },
+        border: options.clearGrid ? DETAIL_GRID_BORDER : base.border,
       };
       if (typeof cell.v === 'number') cell.z = '#,##0';
     }
@@ -359,7 +372,17 @@ export function normalizeContestWorkbook(workbook: any): void {
     cloneMerges(resultInfo.sheet?.['!merges']),
   );
   const leaderRows = resultBlockStarts(transformed.matrix);
-  workbook.Sheets[resultInfo.name] = styleSheet(transformed.matrix, transformed.merges, leaderRows);
+  const resultHeaders = transformed.matrix[0] || [];
+  const isNTDResult = findHeader(resultHeaders, ['Họ tên NTD']) >= 0;
+  const isGroupResult = findHeader(resultHeaders, ['Mã TTN', 'Mã TN']) >= 0
+    || findHeader(resultHeaders, ['Tên TTN', 'Họ tên TN']) >= 0;
+  const useDetailedLeaderGrid = isNTDResult || isGroupResult;
+  workbook.Sheets[resultInfo.name] = styleSheet(
+    transformed.matrix,
+    transformed.merges,
+    leaderRows,
+    useDetailedLeaderGrid ? { centerAll: true, clearGrid: true } : {},
+  );
 
   if (detailInfo && detailMatrix.length) {
     // Giữ nguyên tuyệt đối nội dung/cột/thứ tự của sheet Chi tiết, chỉ đồng bộ trình bày.
