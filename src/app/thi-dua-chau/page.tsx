@@ -2721,8 +2721,8 @@ function ThiDuaPageInner() {
     let merges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = [];
 
     // Supplementary total column flags
-    const expSecAFYP = showSecondaryTotalColumn && secondaryTotalAFYPMin > 0;
-    const expSecIP = showSecondaryTotalColumn && secondaryTotalIPMin > 0;
+    const expSecAFYP = showSecondaryAFYPValueColumn;
+    const expSecIP = showSecondaryIPValueColumn;
     const expSecLuotHD = showSecondaryRoundColumn && secondaryLuotHDMin > 0;
     const expSecLuotHDC = showSecondaryRoundColumn && secondaryLuotHDCMin > 0;
     const expSecCount = showSecondaryContractCountColumn;
@@ -3867,6 +3867,9 @@ function ThiDuaPageInner() {
   // Có hiển thị cột điều kiện bổ sung Tổng AFYP/Tổng IP trong bảng kết quả không?
   const showSecondaryTotalColumn = useSecondaryCondition && (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0);
   const showSecondaryRoundColumn = useSecondaryCondition && (secondaryLuotHDMin > 0 || secondaryLuotHDCMin > 0);
+  // Không tạo cột Tổng IP/AFYP thứ hai nếu đây đã là chỉ tiêu chính.
+  const showSecondaryAFYPValueColumn = useSecondaryCondition && secondaryTotalAFYPMin > 0 && conditionType !== 'total_afyp';
+  const showSecondaryIPValueColumn = useSecondaryCondition && secondaryTotalIPMin > 0 && conditionType !== 'total_ip';
   const showSecondaryContractCountColumn = useSecondaryCondition && secondaryContractCountMin > 0;
   // Có hiển thị cột điều kiện bổ sung per-contract (AFYP/IP tối thiểu mỗi HĐ) không?
   const showSecondaryPerContractColumn = useSecondaryCondition && (secondaryAFYPMin > 0 || secondaryIPMin > 0);
@@ -5067,8 +5070,8 @@ function ThiDuaPageInner() {
                           {isRecruitmentMode(conditionType) && recruitmentConfig.activityEnabled && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center">Thưởng thêm</TableHead>}
                           {showSecondaryTotalColumn && (
                             <>
-                              {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng AFYP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
-                              {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
+                              {showSecondaryAFYPValueColumn && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng AFYP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
+                              {showSecondaryIPValueColumn && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                             </>
                           )}
                           {showSecondaryContractCountColumn && <TableHead className="text-yellow-100 min-w-[85px] font-bold uppercase text-center bg-orange-800/60"><div>SL HĐ</div><div className="text-[9px] font-normal">IP ≥ {vndToNgan(secondaryContractIPMin)} nđ</div></TableHead>}
@@ -5146,8 +5149,8 @@ function ThiDuaPageInner() {
                             )}
                             {showSecondaryTotalColumn && (
                               <>
-                                {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng AFYP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
-                                {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
+                                {showSecondaryAFYPValueColumn && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng AFYP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
+                                {showSecondaryIPValueColumn && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                               </>
                             )}
                             {showSecondaryContractCountColumn && <TableHead className="text-yellow-100 min-w-[85px] font-bold uppercase text-center bg-orange-800/60"><div>SL HĐ</div><div className="text-[9px] font-normal">IP ≥ {vndToNgan(secondaryContractIPMin)} nđ</div></TableHead>}
@@ -5195,8 +5198,8 @@ function ThiDuaPageInner() {
                           )}
                           {showSecondaryTotalColumn && (
                             <>
-                              {secondaryTotalAFYPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng AFYP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
-                              {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
+                              {showSecondaryAFYPValueColumn && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng AFYP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
+                              {showSecondaryIPValueColumn && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                             </>
                           )}
                           {showSecondaryContractCountColumn && <TableHead className="text-yellow-100 min-w-[85px] font-bold uppercase text-center bg-orange-800/60"><div>SL HĐ</div><div className="text-[9px] font-normal">IP ≥ {vndToNgan(secondaryContractIPMin)} nđ</div></TableHead>}
@@ -5239,8 +5242,8 @@ function ThiDuaPageInner() {
                           </TableHead>
                           {showSecondaryTotalColumn && (
                             <>
-                              {secondaryTotalAFYPMin > 0 && conditionType !== 'total_afyp' && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng AFYP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
-                              {secondaryTotalIPMin > 0 && conditionType !== 'total_ip' && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
+                              {showSecondaryAFYPValueColumn && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng AFYP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
+                              {showSecondaryIPValueColumn && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                             </>
                           )}
                           {showSecondaryContractCountColumn && <TableHead className="text-yellow-100 min-w-[85px] font-bold uppercase text-center bg-orange-800/60"><div>SL HĐ</div><div className="text-[9px] font-normal">IP ≥ {vndToNgan(secondaryContractIPMin)} nđ</div></TableHead>}
@@ -5356,13 +5359,13 @@ function ThiDuaPageInner() {
                             const sc = secondaryCheck;
                             return (
                               <>
-                                {secondaryTotalAFYPMin > 0 && (
+                                {showSecondaryAFYPValueColumn && (
                                   <TableCell className={`text-right text-xs whitespace-nowrap ${sc.totalAFYP >= secondaryTotalAFYPMin ? 'text-emerald-600' : 'text-red-500'}`}>
                                     {formatNumber(sc.totalAFYP)}
                                     {sc.totalAFYP < secondaryTotalAFYPMin && <span className="text-[9px] ml-1">✗</span>}
                                   </TableCell>
                                 )}
-                                {secondaryTotalIPMin > 0 && (
+                                {showSecondaryIPValueColumn && (
                                   <TableCell className={`text-right text-xs whitespace-nowrap ${sc.totalIP >= secondaryTotalIPMin ? 'text-emerald-600' : 'text-red-500'}`}>
                                     {formatNumber(sc.totalIP)}
                                     {sc.totalIP < secondaryTotalIPMin && <span className="text-[9px] ml-1">✗</span>}
@@ -5472,13 +5475,13 @@ function ThiDuaPageInner() {
                           )}
                           {showSecondaryTotalColumn && (
                             <>
-                              {secondaryTotalAFYPMin > 0 && (
+                              {showSecondaryAFYPValueColumn && (
                                 <TableCell className={`text-right text-xs whitespace-nowrap ${secondaryCheck.totalAFYP >= secondaryTotalAFYPMin ? 'text-emerald-600' : 'text-red-500'}`}>
                                   {formatNumber(secondaryCheck.totalAFYP)}
                                   {secondaryCheck.totalAFYP < secondaryTotalAFYPMin && <span className="text-[9px] ml-1">✗</span>}
                                 </TableCell>
                               )}
-                              {secondaryTotalIPMin > 0 && (
+                              {showSecondaryIPValueColumn && (
                                 <TableCell className={`text-right text-xs whitespace-nowrap ${secondaryCheck.totalIP >= secondaryTotalIPMin ? 'text-emerald-600' : 'text-red-500'}`}>
                                   {formatNumber(secondaryCheck.totalIP)}
                                   {secondaryCheck.totalIP < secondaryTotalIPMin && <span className="text-[9px] ml-1">✗</span>}
@@ -5536,13 +5539,13 @@ function ThiDuaPageInner() {
                           )}
                           {showSecondaryTotalColumn && (
                             <>
-                              {secondaryTotalAFYPMin > 0 && (
+                              {showSecondaryAFYPValueColumn && (
                                 <TableCell className={`text-right text-xs whitespace-nowrap ${secondaryCheck.totalAFYP >= secondaryTotalAFYPMin ? 'text-emerald-600' : 'text-red-500'}`}>
                                   {formatNumber(secondaryCheck.totalAFYP)}
                                   {secondaryCheck.totalAFYP < secondaryTotalAFYPMin && <span className="text-[9px] ml-1">✗</span>}
                                 </TableCell>
                               )}
-                              {secondaryTotalIPMin > 0 && (
+                              {showSecondaryIPValueColumn && (
                                 <TableCell className={`text-right text-xs whitespace-nowrap ${secondaryCheck.totalIP >= secondaryTotalIPMin ? 'text-emerald-600' : 'text-red-500'}`}>
                                   {formatNumber(secondaryCheck.totalIP)}
                                   {secondaryCheck.totalIP < secondaryTotalIPMin && <span className="text-[9px] ml-1">✗</span>}
@@ -5628,13 +5631,13 @@ function ThiDuaPageInner() {
                             <TableCell className="text-right text-xs text-gray-900 whitespace-nowrap">{formatNumber(value)}</TableCell>
                             {showSecondaryTotalColumn && (
                               <>
-                                {secondaryTotalAFYPMin > 0 && conditionType !== 'total_afyp' && (
+                                {showSecondaryAFYPValueColumn && (
                                   <TableCell className={`text-right text-xs whitespace-nowrap ${secondaryCheck.totalAFYP >= secondaryTotalAFYPMin ? 'text-emerald-600' : 'text-red-500'}`}>
                                     {formatNumber(secondaryCheck.totalAFYP)}
                                     {secondaryCheck.totalAFYP < secondaryTotalAFYPMin && <span className="text-[9px] ml-1">✗</span>}
                                   </TableCell>
                                 )}
-                                {secondaryTotalIPMin > 0 && conditionType !== 'total_ip' && (
+                                {showSecondaryIPValueColumn && (
                                   <TableCell className={`text-right text-xs whitespace-nowrap ${secondaryCheck.totalIP >= secondaryTotalIPMin ? 'text-emerald-600' : 'text-red-500'}`}>
                                     {formatNumber(secondaryCheck.totalIP)}
                                     {secondaryCheck.totalIP < secondaryTotalIPMin && <span className="text-[9px] ml-1">✗</span>}
