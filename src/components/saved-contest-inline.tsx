@@ -424,6 +424,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   const showSecondaryTotalColumn =
     (config.useSecondaryCondition ?? false) &&
     ((config.secondaryTotalAFYPMin ?? 0) > 0 || (config.secondaryTotalIPMin ?? 0) > 0);
+  const showSecondaryContractCountColumn = (config.useSecondaryCondition ?? false) && (config.secondaryContractCountMin ?? 0) > 0;
   const showSecondaryRoundColumn =
     (config.useSecondaryCondition ?? false) &&
     ((config.secondaryLuotHDMin ?? 0) > 0 || (config.secondaryLuotHDCMin ?? 0) > 0);
@@ -973,6 +974,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
         (config.secondaryLuotHDCMin ?? 0) - row.secondaryCheck.luotHDC,
         (config.secondaryLuotHDMin ?? 0) - row.secondaryCheck.luotHD,
       );
+      const contractCountDeficit = Math.max(0, (config.secondaryContractCountMin ?? 0) - row.secondaryCheck.qualifyingContractCount);
+      if (contractCountDeficit > 0) return `- ${contractCountDeficit} HĐ (IP đạt ngưỡng)`;
       if (roundDeficit > 0) return `- ${String(Math.ceil(roundDeficit)).padStart(2, '0')} lượt`;
       const valueDeficit = Math.max(
         0,
@@ -1011,6 +1014,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                 {(config.secondaryTotalIPMin ?? 0) > 0 && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ color: '#ECFDF5', backgroundColor: '#92400E' }}>Tổng IP</TableHead>}
               </>
             )}
+            {showSecondaryContractCountColumn && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ color: '#ECFDF5', backgroundColor: '#9A3412' }}>Số HĐ IP ≥ {formatNumber(config.secondaryContractIPMin ?? 0)}</TableHead>}
             {showSecondaryRoundColumn && (
               <>
                 {(config.secondaryLuotHDMin ?? 0) > 0 && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ color: '#ECFDF5', backgroundColor: '#9A3412' }}>Lượt HĐ {config.secondaryLuotHDFilter === 'tvvm' ? 'TVVm' : ''}</TableHead>}
@@ -1053,6 +1057,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                   {(config.secondaryTotalIPMin ?? 0) > 0 && <TableCell className="text-right text-xs whitespace-nowrap">{formatNumber(row.secondaryCheck.totalIP)}</TableCell>}
                 </>
               )}
+              {showSecondaryContractCountColumn && <TableCell className={`text-center text-xs font-semibold whitespace-nowrap ${row.secondaryCheck.qualifyingContractCount >= (config.secondaryContractCountMin ?? 0) ? 'text-emerald-600' : 'text-red-500'}`}>{row.secondaryCheck.qualifyingContractCount}</TableCell>}
               {showSecondaryRoundColumn && (
                 <>
                   {(config.secondaryLuotHDMin ?? 0) > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{row.secondaryCheck.luotHD}</TableCell>}
