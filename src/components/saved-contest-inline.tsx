@@ -428,6 +428,28 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   const showSecondaryRoundColumn =
     (config.useSecondaryCondition ?? false) &&
     ((config.secondaryLuotHDMin ?? 0) > 0 || (config.secondaryLuotHDCMin ?? 0) > 0);
+  // Chỉ hiển thị cột riêng khi chỉ tiêu bổ sung khác loại với chỉ tiêu chính.
+  const showSecondaryAFYPColumn = Boolean(config.useSecondaryCondition) && (config.secondaryTotalAFYPMin ?? 0) > 0 && config.conditionType !== 'total_afyp';
+  const showSecondaryIPColumn = Boolean(config.useSecondaryCondition) && (config.secondaryTotalIPMin ?? 0) > 0 && config.conditionType !== 'total_ip';
+  const supplementaryColumnCount = [
+    showSecondaryAFYPColumn, showSecondaryIPColumn, showSecondaryContractCountColumn,
+    Boolean(config.useSecondaryCondition) && (config.secondaryLuotHDMin ?? 0) > 0,
+    Boolean(config.useSecondaryCondition) && (config.secondaryLuotHDCMin ?? 0) > 0,
+  ].filter(Boolean).length;
+  const renderSupplementaryHeadings = () => (<>
+    {showSecondaryAFYPColumn && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ backgroundColor: '#92400E', color: '#FEF3C7' }}>Tổng AFYP</TableHead>}
+    {showSecondaryIPColumn && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ backgroundColor: '#92400E', color: '#FEF3C7' }}>Tổng IP</TableHead>}
+    {showSecondaryContractCountColumn && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ backgroundColor: '#9A3412', color: '#FEF3C7' }}><div>SL HĐ</div><div className="text-[9px] font-normal">IP ≥ {formatNumber(config.secondaryContractIPMin ?? 0)}</div></TableHead>}
+    {showSecondaryRoundColumn && (config.secondaryLuotHDMin ?? 0) > 0 && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ backgroundColor: '#9A3412', color: '#FEF3C7' }}>Lượt HĐ</TableHead>}
+    {showSecondaryRoundColumn && (config.secondaryLuotHDCMin ?? 0) > 0 && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ backgroundColor: '#9A3412', color: '#FEF3C7' }}>Lượt HĐC</TableHead>}
+  </>);
+  const renderSupplementaryValues = (sc: ReturnType<typeof evaluateSecondaryConditions>) => (<>
+    {showSecondaryAFYPColumn && <TableCell className="text-right text-xs whitespace-nowrap">{formatNumber(sc.totalAFYP)}</TableCell>}
+    {showSecondaryIPColumn && <TableCell className="text-right text-xs whitespace-nowrap">{formatNumber(sc.totalIP)}</TableCell>}
+    {showSecondaryContractCountColumn && <TableCell className={`text-center text-xs font-semibold whitespace-nowrap ${sc.qualifyingContractCount >= (config.secondaryContractCountMin ?? 0) ? 'text-emerald-600' : 'text-red-500'}`}>{sc.qualifyingContractCount}{sc.qualifyingContractCount < (config.secondaryContractCountMin ?? 0) ? ' ✗' : ''}</TableCell>}
+    {showSecondaryRoundColumn && (config.secondaryLuotHDMin ?? 0) > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{sc.luotHD}</TableCell>}
+    {showSecondaryRoundColumn && (config.secondaryLuotHDCMin ?? 0) > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{sc.luotHDC}</TableCell>}
+  </>);
   const usePhase2 = config.usePhase2 ?? false;
   const nydPhaseBonusByCode = useMemo(() => {
     const result = new Map<string, { phase1Bonus: number; phase2Bonus: number }>();
@@ -607,6 +629,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             {showPerContractIPRewardBase && (
               <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#047857' }}>IP/HĐ</TableHead>
             )}
+            {renderSupplementaryHeadings()}
             {showRateColumn && (
               <TableHead className="text-[10px] font-bold uppercase text-center align-middle bg-violet-100 whitespace-nowrap" style={{ color: '#5B21B6' }}><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
             )}
@@ -623,9 +646,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {isContestDataLoading ? renderLoadingTableRow((usePhase2 ? 11 : 9) + (showPerContractIPRewardBase ? 1 : 0)) : filteredRows.length === 0 ? (
+          {isContestDataLoading ? renderLoadingTableRow((usePhase2 ? 11 : 9) + (showPerContractIPRewardBase ? 1 : 0) + supplementaryColumnCount) : filteredRows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={(usePhase2 ? 11 : 9) + (showPerContractIPRewardBase ? 1 : 0)} className="text-center text-gray-400 py-10 italic text-xs bg-white">
+              <TableCell colSpan={(usePhase2 ? 11 : 9) + (showPerContractIPRewardBase ? 1 : 0) + supplementaryColumnCount} className="text-center text-gray-400 py-10 italic text-xs bg-white">
                 Không có dữ liệu phù hợp.
               </TableCell>
             </TableRow>
@@ -640,6 +663,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               {showPerContractIPRewardBase && (
                 <TableCell className="text-center text-xs text-gray-900 whitespace-nowrap">{formatNumber(row.contract.pdt10DT)}</TableCell>
               )}
+              {renderSupplementaryValues(row.secondaryCheck)}
               {showRateColumn && (
                 <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">
                   {row.effectiveTier ? <span className="font-bold text-violet-600">{formatRate(row.effectiveTier)}</span> : <span className="text-gray-400">—</span>}
@@ -710,6 +734,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>MÃ SỐ ĐẠI LÝ</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>HỌ TÊN TVV</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>{valueLabel}</TableHead>
+            {renderSupplementaryHeadings()}
             {showRateColumn && (
               <TableHead className="text-[10px] font-bold uppercase text-center align-middle bg-violet-100 whitespace-nowrap" style={{ color: '#5B21B6' }}><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
             )}
@@ -726,9 +751,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {isContestDataLoading ? renderLoadingTableRow(usePhase2 ? 10 : 8) : filteredRows.length === 0 ? (
+          {isContestDataLoading ? renderLoadingTableRow((usePhase2 ? 10 : 8) + supplementaryColumnCount) : filteredRows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={usePhase2 ? 10 : 8} className="text-center text-gray-400 py-10 italic text-xs bg-white">
+              <TableCell colSpan={(usePhase2 ? 10 : 8) + supplementaryColumnCount} className="text-center text-gray-400 py-10 italic text-xs bg-white">
                 Không có dữ liệu phù hợp.
               </TableCell>
             </TableRow>
@@ -774,7 +799,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                 <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.agent.agentCode}</TableCell>
                 <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.agent.agentName}</TableCell>
                 <TableCell className="text-center text-xs text-gray-900 whitespace-nowrap font-semibold">{isPassCount ? `${row.value} TVV` : isActivity ? row.value : formatNumber(row.value)}</TableCell>
-                {showRateColumn && (
+                {renderSupplementaryValues(secondaryCheck)}
+              {showRateColumn && (
                   <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">
                     {effectiveTier ? <span className="font-bold text-violet-600">{formatRate(effectiveTier)}</span> : <span className="text-gray-400">—</span>}
                   </TableCell>
@@ -850,7 +876,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             phase2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Value) : 0;
           }
         }
-        return { g, value, tier, effectiveTier, secondaryPassed, totalAFYP, totalIP, phase1Bonus, phase2Bonus };
+        return { g, value, tier, effectiveTier, secondaryCheck, secondaryPassed, totalAFYP, totalIP, phase1Bonus, phase2Bonus };
       })
       .filter((row) => {
         if (hideNotAchieved && !row.effectiveTier) return false;
@@ -894,6 +920,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               <div>{valueLabel}</div>
               {valueSubLabel && <div className="text-[9px] italic font-normal normal-case" style={{ color: '#FCD34D' }}>{valueSubLabel}</div>}
             </TableHead>
+            {renderSupplementaryHeadings()}
             {showRateColumn && (
               <TableHead className="text-[10px] font-bold uppercase text-center align-middle bg-violet-100 whitespace-nowrap" style={{ color: '#5B21B6' }}><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
             )}
@@ -910,9 +937,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {isContestDataLoading ? renderLoadingTableRow(usePhase2 ? 11 : 9) : sortedGroups.length === 0 ? (
+          {isContestDataLoading ? renderLoadingTableRow((usePhase2 ? 11 : 9) + supplementaryColumnCount) : sortedGroups.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={usePhase2 ? 11 : 9} className="text-center text-gray-400 py-10 italic text-xs bg-white">
+              <TableCell colSpan={(usePhase2 ? 11 : 9) + supplementaryColumnCount} className="text-center text-gray-400 py-10 italic text-xs bg-white">
                 Không có dữ liệu phù hợp.
               </TableCell>
             </TableRow>
@@ -924,6 +951,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.g.leader?.agentName || '—'}</TableCell>
               <TableCell className="text-xs text-gray-600 whitespace-nowrap">{row.g.leader?.position || '—'}</TableCell>
               <TableCell className="text-right text-xs text-gray-900 whitespace-nowrap font-semibold">{(isActivity || isPassCountIPAFYP || isPassCount) ? row.value : formatNumber(row.value)}</TableCell>
+              {renderSupplementaryValues(row.secondaryCheck)}
               {showRateColumn && (
                 <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">
                   {row.effectiveTier ? <span className="font-bold text-violet-600">{formatRate(row.effectiveTier)}</span> : <span className="text-gray-400">—</span>}
@@ -1008,19 +1036,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>TÊN NTD</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>CHỨC VỤ</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#ECFDF5', backgroundColor: '#047857' }}>{valueLabel}</TableHead>
-            {showSecondaryTotalColumn && (
-              <>
-                {(config.secondaryTotalAFYPMin ?? 0) > 0 && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ color: '#ECFDF5', backgroundColor: '#92400E' }}>Tổng AFYP</TableHead>}
-                {(config.secondaryTotalIPMin ?? 0) > 0 && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ color: '#ECFDF5', backgroundColor: '#92400E' }}>Tổng IP</TableHead>}
-              </>
-            )}
-            {showSecondaryContractCountColumn && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ color: '#ECFDF5', backgroundColor: '#9A3412' }}>Số HĐ IP ≥ {formatNumber(config.secondaryContractIPMin ?? 0)}</TableHead>}
-            {showSecondaryRoundColumn && (
-              <>
-                {(config.secondaryLuotHDMin ?? 0) > 0 && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ color: '#ECFDF5', backgroundColor: '#9A3412' }}>Lượt HĐ {config.secondaryLuotHDFilter === 'tvvm' ? 'TVVm' : ''}</TableHead>}
-                {(config.secondaryLuotHDCMin ?? 0) > 0 && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ color: '#ECFDF5', backgroundColor: '#9A3412' }}>Lượt HĐC {config.secondaryLuotHDCFilter === 'tvvm' ? 'TVVm' : ''}</TableHead>}
-              </>
-            )}
+            {renderSupplementaryHeadings()}
             {showRateColumn && (
               <TableHead className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap" style={{ color: '#ECFDF5', backgroundColor: '#047857' }}><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
             )}
@@ -1037,9 +1053,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {isContestDataLoading ? renderLoadingTableRow(usePhase2 ? 10 : 8) : filteredRows.length === 0 ? (
+          {isContestDataLoading ? renderLoadingTableRow((usePhase2 ? 10 : 8) + supplementaryColumnCount) : filteredRows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={usePhase2 ? 10 : 8} className="text-center text-gray-400 py-10 italic text-xs bg-white">
+              <TableCell colSpan={(usePhase2 ? 10 : 8) + supplementaryColumnCount} className="text-center text-gray-400 py-10 italic text-xs bg-white">
                 Không có dữ liệu phù hợp.
               </TableCell>
             </TableRow>
@@ -1051,19 +1067,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.nyd.nydName}</TableCell>
               <TableCell className="text-xs text-gray-600 whitespace-nowrap">{row.nyd.position || '—'}</TableCell>
               <TableCell className="text-center text-xs text-gray-900 whitespace-nowrap font-semibold">{isActivity ? row.value : formatNumber(row.value)}</TableCell>
-              {showSecondaryTotalColumn && (
-                <>
-                  {(config.secondaryTotalAFYPMin ?? 0) > 0 && <TableCell className="text-right text-xs whitespace-nowrap">{formatNumber(row.secondaryCheck.totalAFYP)}</TableCell>}
-                  {(config.secondaryTotalIPMin ?? 0) > 0 && <TableCell className="text-right text-xs whitespace-nowrap">{formatNumber(row.secondaryCheck.totalIP)}</TableCell>}
-                </>
-              )}
-              {showSecondaryContractCountColumn && <TableCell className={`text-center text-xs font-semibold whitespace-nowrap ${row.secondaryCheck.qualifyingContractCount >= (config.secondaryContractCountMin ?? 0) ? 'text-emerald-600' : 'text-red-500'}`}>{row.secondaryCheck.qualifyingContractCount}</TableCell>}
-              {showSecondaryRoundColumn && (
-                <>
-                  {(config.secondaryLuotHDMin ?? 0) > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{row.secondaryCheck.luotHD}</TableCell>}
-                  {(config.secondaryLuotHDCMin ?? 0) > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{row.secondaryCheck.luotHDC}</TableCell>}
-                </>
-              )}
+              {renderSupplementaryValues(row.secondaryCheck)}
               {showRateColumn && (
                 <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">
                   {row.effectiveTier ? <span className="font-bold text-violet-600">{formatRate(row.effectiveTier)}</span> : <span className="text-gray-400">—</span>}
