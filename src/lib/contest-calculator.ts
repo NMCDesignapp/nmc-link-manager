@@ -705,6 +705,20 @@ export function hasPercentBonus(tiers: BonusTier[]): boolean {
   );
 }
 
+/**
+ * AFYP/HĐ is the qualification metric, while `percent` is calculated from
+ * the IP of that same contract. Result and export surfaces use this helper to
+ * show both values and avoid treating AFYP as the reward base.
+ */
+export function usesPerContractIPPercentReward(
+  conditionType: ConditionType,
+  tiers: BonusTier[],
+  phase2Tiers: BonusTier[] = [],
+): boolean {
+  return conditionType === 'per_contract_afyp'
+    && [...tiers, ...phase2Tiers].some((tier) => tier.bonusType === 'percent');
+}
+
 // ===== Formatters =====
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('vi-VN', {

@@ -71,6 +71,7 @@ import {
   isTVVmMode,
   isTopNMode,
   hasPercentBonus,
+  usesPerContractIPPercentReward,
   formatCurrency,
   formatNumber,
   formatDate,
@@ -415,6 +416,11 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   // Hỗ trợ TẤT CẢ target: tvv (per-contract + total) / nhom (total/activity/pass-count) / nyd (NTD)
   const isAFYP = config.conditionType === 'per_contract_afyp' || config.conditionType === 'total_afyp';
   const showRateColumn = hasPercentBonus(config.bonusTiers) && !config.usePhase2;
+  const showPerContractIPRewardBase = usesPerContractIPPercentReward(
+    config.conditionType,
+    config.bonusTiers,
+    config.usePhase2 ? config.bonusTiers2 : [],
+  );
   const showSecondaryTotalColumn =
     (config.useSecondaryCondition ?? false) &&
     ((config.secondaryTotalAFYPMin ?? 0) > 0 || (config.secondaryTotalIPMin ?? 0) > 0);
@@ -597,6 +603,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>HỌ TÊN TVV</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>NGÀY HL</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>{isAFYP ? 'AFYP/HĐ' : 'IP/HĐ'}</TableHead>
+            {showPerContractIPRewardBase && (
+              <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#047857' }}>IP/HĐ</TableHead>
+            )}
             {showRateColumn && (
               <TableHead className="text-[10px] font-bold uppercase text-center align-middle bg-violet-100 whitespace-nowrap" style={{ color: '#5B21B6' }}><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
             )}
@@ -613,9 +622,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {isContestDataLoading ? renderLoadingTableRow(usePhase2 ? 11 : 9) : filteredRows.length === 0 ? (
+          {isContestDataLoading ? renderLoadingTableRow((usePhase2 ? 11 : 9) + (showPerContractIPRewardBase ? 1 : 0)) : filteredRows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={usePhase2 ? 11 : 9} className="text-center text-gray-400 py-10 italic text-xs bg-white">
+              <TableCell colSpan={(usePhase2 ? 11 : 9) + (showPerContractIPRewardBase ? 1 : 0)} className="text-center text-gray-400 py-10 italic text-xs bg-white">
                 Không có dữ liệu phù hợp.
               </TableCell>
             </TableRow>
@@ -627,6 +636,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.contract.agentName}</TableCell>
               <TableCell className="text-center text-xs text-gray-600 whitespace-nowrap">{formatDate(row.contract.effectiveDate)}</TableCell>
               <TableCell className="text-center text-xs text-gray-900 whitespace-nowrap">{formatNumber(row.cValue)}</TableCell>
+              {showPerContractIPRewardBase && (
+                <TableCell className="text-center text-xs text-gray-900 whitespace-nowrap">{formatNumber(row.contract.pdt10DT)}</TableCell>
+              )}
               {showRateColumn && (
                 <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">
                   {row.effectiveTier ? <span className="font-bold text-violet-600">{formatRate(row.effectiveTier)}</span> : <span className="text-gray-400">—</span>}
@@ -643,7 +655,14 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                   {row.effectiveTier ? (
                     <span className="inline-flex items-center gap-1">
                       {row.effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}
-                      <span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(row.effectiveTier, row.cValue)}</span>
+                      <span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(
+                        row.effectiveTier,
+                        row.contract.pdt10DT,
+                        undefined,
+                        displayContracts
+                          .filter((contract) => contract.agentCode === row.contract.agentCode)
+                          .reduce((sum, contract) => sum + contract.pdt10DT, 0),
+                      )}</span>
                     </span>
                   ) : <span className="text-gray-400 text-xs">—</span>}
                 </TableCell>

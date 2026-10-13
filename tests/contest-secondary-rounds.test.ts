@@ -10,6 +10,7 @@ import {
   evaluateSecondaryConditions,
   filterByEffectiveDateRule,
   getGroupTVVPassCountForReference,
+  usesPerContractIPPercentReward,
   type BonusTier,
   type ContestConfig,
   type Contract,
@@ -35,6 +36,9 @@ test('thưởng % IP và % Tổng IP độc lập với chỉ tiêu xét AFYP', 
   assert.equal(computeBonusFromTier(percentIP, 30_000_000, undefined, 70_000_000), 3_000_000);
   assert.equal(computeBonusFromTier(percentTotalIP, 30_000_000, undefined, 70_000_000), 7_000_000);
   assert.equal(computeBonusFromTier(percentFYC, 30_000_000, undefined, 70_000_000), 750_000);
+  assert.equal(usesPerContractIPPercentReward('per_contract_afyp', [percentIP]), true);
+  assert.equal(usesPerContractIPPercentReward('per_contract_afyp', [tier]), false);
+  assert.equal(usesPerContractIPPercentReward('per_contract_ip', [percentIP]), false);
 });
 
 const makeContract = (agentCode: string, recruiterCode: string, ip: number): Contract => ({
