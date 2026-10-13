@@ -295,3 +295,53 @@ test('TVV bắt đầu đúng ngày hiệu lực chức vụ vẫn được tín
 
   assert.equal(filtered.length, 1);
 });
+
+test('Tổng IP 45 triệu kết hợp ít nhất 2 HĐ riêng biệt có IP từ 12 triệu', () => {
+  const options = {
+    useSecondaryCondition: true,
+    secondaryTotalIPMin: 45_000_000,
+    secondaryContractCountMin: 2,
+    secondaryContractIPMin: 12_000_000,
+  };
+  // IP 22 + 11 + 12 = 45 triệu; chỉ hợp đồng 22 và 12 triệu đạt ngưỡng đếm.
+  const passing = [
+    makeContract('TVV-1', 'TN-1', 22_000_000),
+    makeContract('TVV-2', 'TN-1', 11_000_000),
+    makeContract('TVV-3', 'TN-1', 12_000_000),
+  ];
+  const actual = evaluateSecondaryConditions(passing, options);
+  assert.equal(actual.totalIP, 45_000_000);
+  assert.equal(actual.qualifyingContractCount, 2);
+  assert.equal(actual.passed, true);
+
+  // Cùng tổng IP nhưng chỉ có 1 HĐ từ 12 triệu trở lên: không đạt.
+  const insufficientCount = [
+    makeContract('TVV-1', 'TN-1', 23_000_000),
+    makeContract('TVV-2', 'TN-1', 11_000_000),
+    makeContract('TVV-3', 'TN-1', 11_000_000),
+  ];
+  const failedCount = evaluateSecondaryConditions(insufficientCount, options);
+  assert.equal(failedCount.totalIP, 45_000_000);
+  assert.equal(failedCount.qualifyingContractCount, 1);
+  assert.equal(failedCount.passed, false);
+
+  // Có đủ 2 HĐ đạt ngưỡng, nhưng Tổng IP chỉ 44 triệu: không đạt.
+  const insufficientIP = [
+    makeContract('TVV-1', 'TN-1', 20_000_000),
+    makeContract('TVV-2', 'TN-1', 12_000_000),
+    makeContract('TVV-3', 'TN-1', 12_000_000),
+  ];
+  assert.equal(evaluateSecondaryConditions(insufficientIP, options).passed, false);
+});
+
+test('Không đếm trùng số HĐ, và chương trình cũ không bật chỉ tiêu vẫn không bị ảnh hưởng', () => {
+  const a = makeContract('TVV-A', 'TN-A', 15_000_000);
+  const b = makeContract('TVV-B', 'TN-A', 20_000_000);
+  const duplicate = { ...a, id: 'different-database-row' };
+  const options = { useSecondaryCondition: true, secondaryContractCountMin: 3, secondaryContractIPMin: 12_000_000 };
+  const result = evaluateSecondaryConditions([a, duplicate, b], options);
+  assert.equal(result.qualifyingContractCount, 2);
+  assert.equal(result.passed, false);
+  assert.equal(evaluateSecondaryConditions([a, b], { useSecondaryCondition: false, secondaryContractCountMin: 3, secondaryContractIPMin: 12_000_000 }).passed, true);
+  assert.equal(evaluateSecondaryConditions([a, b], { useSecondaryCondition: true }).passed, true);
+});
