@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const recruitedAgentScopeKey = (id: string) => `contest-recruited-agent-scope-${id}`;
+const secondaryContractCountKey = (id: string) => `contest-secondary-contract-count-${id}`;
 
 const contestDetailSelect = {
   id: true, title: true, startDate: true, endDate: true, issueDate: true,
@@ -51,6 +52,19 @@ export async function GET(request: NextRequest) {
       console.warn('[contest-detail-lite] recruitedAgentScope fallback read failed:', (error as Error)?.message);
     }
 
+    let secondaryContractCountMin = 0;
+    let secondaryContractIPMin = 0;
+    try {
+      const setting = await db.setting.findUnique({ where: { key: secondaryContractCountKey(id) }, select: { value: true } });
+      const parsed = JSON.parse(setting?.value || 'null');
+      const count = Number(parsed?.secondaryContractCountMin);
+      const ip = Number(parsed?.secondaryContractIPMin);
+      if (Number.isFinite(count)) secondaryContractCountMin = Math.max(0, Math.floor(count));
+      if (Number.isFinite(ip)) secondaryContractIPMin = Math.max(0, ip);
+    } catch (error) {
+      console.warn('[contest-detail-lite] secondary contract count read failed:', (error as Error)?.message);
+    }
+
     const version = contest.updatedAt instanceof Date
       ? contest.updatedAt.getTime()
       : new Date(contest.updatedAt).getTime();
@@ -59,6 +73,8 @@ export async function GET(request: NextRequest) {
       {
         ...contest,
         recruitedAgentScope,
+        secondaryContractCountMin,
+        secondaryContractIPMin,
         posterUrl: `/api/contest-poster/${encodeURIComponent(contest.id)}?v=${Number.isFinite(version) ? version : 0}`,
       },
       { headers: { 'Cache-Control': 'no-store, max-age=0, must-revalidate' } },
