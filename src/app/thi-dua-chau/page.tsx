@@ -2725,6 +2725,7 @@ function ThiDuaPageInner() {
     const expSecIP = showSecondaryTotalColumn && secondaryTotalIPMin > 0;
     const expSecLuotHD = showSecondaryRoundColumn && secondaryLuotHDMin > 0;
     const expSecLuotHDC = showSecondaryRoundColumn && secondaryLuotHDCMin > 0;
+    const expSecCount = showSecondaryContractCountColumn;
 
     // Hai cột phục vụ kiểm tra điều kiện NTD: ngày hiệu lực chức vụ của người
     // tuyển dụng và ngày bắt đầu làm việc của TVV được tính vào chương trình.
@@ -2806,6 +2807,7 @@ function ThiDuaPageInner() {
         ...(expSecIP ? ['Tổng IP'] : []),
         ...(expSecLuotHD ? [`Lượt HĐ ${secondaryLuotHDFilter === 'tvvm' ? 'TVVm' : ''}`.trim()] : []),
         ...(expSecLuotHDC ? [`Lượt HĐC ${secondaryLuotHDCFilter === 'tvvm' ? 'TVVm' : ''}`.trim()] : []),
+        ...(expSecCount ? [`Số HĐ IP từ ${vndToNgan(secondaryContractIPMin)} nđ`] : []),
         'Họ tên TVV',
         ...(showTVVStartDate ? ['Ngày bắt đầu làm việc'] : []),
         ...(showTVVmContributions ? ['Mã TVV', 'Tổng IP TVV trong kỳ', 'Lượt TVVm'] : []),
@@ -2869,6 +2871,7 @@ function ThiDuaPageInner() {
           if (expSecIP) row.push(sc.totalIP);
           if (expSecLuotHD) row.push(sc.luotHD);
           if (expSecLuotHDC) row.push(sc.luotHDC);
+          if (expSecCount) row.push(sc.qualifyingContractCount);
           row.push('');
           if (showTVVStartDate) row.push('');
           if (showTVVmContributions) row.push('', '', '');
@@ -2904,6 +2907,7 @@ function ThiDuaPageInner() {
             if (expSecIP) row.push(cIdx === 0 ? sc.totalIP : '');
             if (expSecLuotHD) row.push(cIdx === 0 ? sc.luotHD : '');
             if (expSecLuotHDC) row.push(cIdx === 0 ? sc.luotHDC : '');
+            if (expSecCount) row.push(cIdx === 0 ? sc.qualifyingContractCount : '');
             row.push(c.agentName || '');
             if (showTVVStartDate) row.push(tvvStartDateFor(c));
             if (showTVVmContributions && contributionDetails) {
@@ -3852,6 +3856,7 @@ function ThiDuaPageInner() {
   // Có hiển thị cột điều kiện bổ sung Tổng AFYP/Tổng IP trong bảng kết quả không?
   const showSecondaryTotalColumn = useSecondaryCondition && (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0);
   const showSecondaryRoundColumn = useSecondaryCondition && (secondaryLuotHDMin > 0 || secondaryLuotHDCMin > 0);
+  const showSecondaryContractCountColumn = useSecondaryCondition && secondaryContractCountMin > 0;
   // Có hiển thị cột điều kiện bổ sung per-contract (AFYP/IP tối thiểu mỗi HĐ) không?
   const showSecondaryPerContractColumn = useSecondaryCondition && (secondaryAFYPMin > 0 || secondaryIPMin > 0);
   const isAFYP = conditionType === 'per_contract_afyp' || conditionType === 'total_afyp';
@@ -5055,6 +5060,7 @@ function ThiDuaPageInner() {
                               {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                             </>
                           )}
+                          {showSecondaryContractCountColumn && <TableHead className="text-yellow-100 min-w-[90px] font-bold uppercase text-center bg-orange-800/60"><div>Số HĐ IP ≥</div><div className="text-[9px] font-normal">{vndToNgan(secondaryContractIPMin)} nđ</div></TableHead>}
                           {showSecondaryRoundColumn && (
                             <>
                               {secondaryLuotHDMin > 0 && <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center bg-orange-800/60"><div>Lượt HĐ</div><div className="text-[9px] italic font-normal normal-case">{secondaryLuotHDFilter === 'tvvm' ? 'TVVm' : 'Tất cả'}</div></TableHead>}
@@ -5334,6 +5340,7 @@ function ThiDuaPageInner() {
                               </>
                             );
                           })()}
+                          {showSecondaryContractCountColumn && <TableCell className={`text-center text-xs font-semibold whitespace-nowrap ${secondaryCheck.qualifyingContractCount >= secondaryContractCountMin ? 'text-emerald-600' : 'text-red-500'}`}>{secondaryCheck.qualifyingContractCount}{secondaryCheck.qualifyingContractCount < secondaryContractCountMin && <span className="text-[9px] ml-1">✗</span>}</TableCell>}
                           {showSecondaryRoundColumn && (
                             <>
                               {secondaryLuotHDMin > 0 && <TableCell className={`text-center text-xs whitespace-nowrap ${secondaryCheck.luotHD >= secondaryLuotHDMin ? 'text-emerald-600' : 'text-red-500'}`}>{secondaryCheck.luotHD}{secondaryCheck.luotHD < secondaryLuotHDMin && <span className="text-[9px] ml-1">✗</span>}</TableCell>}
