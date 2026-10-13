@@ -876,7 +876,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             phase2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Value) : 0;
           }
         }
-        return { g, value, tier, effectiveTier, secondaryPassed, totalAFYP, totalIP, phase1Bonus, phase2Bonus };
+        return { g, value, tier, effectiveTier, secondaryCheck, secondaryPassed, totalAFYP, totalIP, phase1Bonus, phase2Bonus };
       })
       .filter((row) => {
         if (hideNotAchieved && !row.effectiveTier) return false;
