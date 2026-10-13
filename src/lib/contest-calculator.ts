@@ -183,6 +183,8 @@ export interface ContestConfig {
   secondaryLuotHDCFilter?: string;
   secondaryTotalAFYPMin?: number;
   secondaryTotalIPMin?: number;
+  secondaryContractCountMin?: number;
+  secondaryContractIPMin?: number;
   hideNotAchieved?: boolean;
   includeIndividualNTD?: boolean;
   includeIndividualTN?: boolean;
@@ -481,6 +483,8 @@ export interface SecondaryConditionOptions {
   useSecondaryCondition?: boolean;
   secondaryTotalAFYPMin?: number;
   secondaryTotalIPMin?: number;
+  secondaryContractCountMin?: number;
+  secondaryContractIPMin?: number;
   secondaryLuotHDMin?: number;
   secondaryLuotHDCMin?: number;
   secondaryLuotHDFilter?: string;
@@ -495,6 +499,7 @@ export interface SecondaryConditionResult {
   totalIP: number;
   luotHD: number;
   luotHDC: number;
+  qualifyingContractCount: number;
 }
 
 /**
@@ -512,6 +517,15 @@ export function evaluateSecondaryConditions(
 ): SecondaryConditionResult {
   const totalAFYP = contracts.reduce((sum, contract) => sum + contract.afyp, 0);
   const totalIP = contracts.reduce((sum, contract) => sum + contract.pdt10DT, 0);
+  // Một số hợp đồng có thể xuất hiện nhiều dòng nhập; chỉ đếm 1 lần theo số HĐ.
+  const qualifyingContractKeys = new Set<string>();
+  const contractIPMin = Math.max(0, Number(options.secondaryContractIPMin) || 0);
+  contracts.forEach((contract, index) => {
+    if (contract.pdt10DT < contractIPMin) return;
+    const number = (contract.contractNumber || '').trim().toUpperCase();
+    qualifyingContractKeys.add(number ? `number:${number}` : `row:${contract.id || index}`);
+  });
+  const qualifyingContractCount = qualifyingContractKeys.size;
   const structureStartDates = buildStructureStartDateMap(tvvStructList);
 
   const luotHDMode: ConditionType = options.secondaryLuotHDFilter === 'tvvm'
@@ -538,16 +552,17 @@ export function evaluateSecondaryConditions(
   );
 
   if (!options.useSecondaryCondition) {
-    return { passed: true, totalAFYP, totalIP, luotHD, luotHDC };
+    return { passed: true, totalAFYP, totalIP, luotHD, luotHDC, qualifyingContractCount };
   }
 
   const passed =
     totalAFYP >= (options.secondaryTotalAFYPMin ?? 0) &&
     totalIP >= (options.secondaryTotalIPMin ?? 0) &&
     luotHD >= (options.secondaryLuotHDMin ?? 0) &&
-    luotHDC >= (options.secondaryLuotHDCMin ?? 0);
+    luotHDC >= (options.secondaryLuotHDCMin ?? 0) &&
+    qualifyingContractCount >= (options.secondaryContractCountMin ?? 0);
 
-  return { passed, totalAFYP, totalIP, luotHD, luotHDC };
+  return { passed, totalAFYP, totalIP, luotHD, luotHDC, qualifyingContractCount };
 }
 
 // ===== Unicode normalize (NFC vs NFD Vietnamese) =====
@@ -857,6 +872,8 @@ export function parseContestConfig(raw: any): ContestConfig {
     secondaryLuotHDCFilter: raw.secondaryLuotHDCFilter ?? 'all',
     secondaryTotalAFYPMin: raw.secondaryTotalAFYPMin ?? 0,
     secondaryTotalIPMin: raw.secondaryTotalIPMin ?? 0,
+    secondaryContractCountMin: raw.secondaryContractCountMin ?? 0,
+    secondaryContractIPMin: raw.secondaryContractIPMin ?? 0,
     hideNotAchieved: raw.hideNotAchieved ?? false,
     includeIndividualNTD: raw.includeIndividualNTD ?? false,
     includeIndividualTN: raw.includeIndividualTN ?? false,
