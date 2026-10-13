@@ -5060,13 +5060,11 @@ function ThiDuaPageInner() {
                               {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                             </>
                           )}
-                          {showSecondaryContractCountColumn && <TableHead className="text-yellow-100 min-w-[90px] font-bold uppercase text-center bg-orange-800/60"><div>Số HĐ IP ≥</div><div className="text-[9px] font-normal">{vndToNgan(secondaryContractIPMin)} nđ</div></TableHead>}
-                          {showSecondaryRoundColumn && (
-                            <>
-                              {secondaryLuotHDMin > 0 && <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center bg-orange-800/60"><div>Lượt HĐ</div><div className="text-[9px] italic font-normal normal-case">{secondaryLuotHDFilter === 'tvvm' ? 'TVVm' : 'Tất cả'}</div></TableHead>}
-                              {secondaryLuotHDCMin > 0 && <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center bg-orange-800/60"><div>Lượt HĐC</div><div className="text-[9px] italic font-normal normal-case">{secondaryLuotHDCFilter === 'tvvm' ? 'TVVm' : 'Tất cả'}</div></TableHead>}
-                            </>
-                          )}
+                          {showSecondaryContractCountColumn && <TableHead className="text-yellow-100 min-w-[85px] font-bold uppercase text-center bg-orange-800/60"><div>SL HĐ</div><div className="text-[9px] font-normal">IP ≥ {vndToNgan(secondaryContractIPMin)} nđ</div></TableHead>}
+                          {showSecondaryRoundColumn && (<>
+  {secondaryLuotHDMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-orange-800/60">Lượt HĐ</TableHead>}
+  {secondaryLuotHDCMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-orange-800/60">Lượt HĐC</TableHead>}
+</>)}
                           {showRateColumn && !usePhase2 && (
                             <TableHead className="text-yellow-100 min-w-[50px] font-bold uppercase text-center bg-violet-800 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
                           )}
@@ -5109,6 +5107,11 @@ function ThiDuaPageInner() {
                               </div>
                               {!includeTNInPassCount && <div className="text-[9px] font-bold text-amber-400 italic">(KO tính TN)</div>}
                             </TableHead>
+                            {showSecondaryContractCountColumn && <TableHead className="text-yellow-100 min-w-[85px] font-bold uppercase text-center bg-orange-800/60"><div>SL HĐ</div><div className="text-[9px] font-normal">IP ≥ {vndToNgan(secondaryContractIPMin)} nđ</div></TableHead>}
+                            {showSecondaryRoundColumn && (<>
+  {secondaryLuotHDMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-orange-800/60">Lượt HĐ</TableHead>}
+  {secondaryLuotHDCMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-orange-800/60">Lượt HĐC</TableHead>}
+</>)}
                             <TableHead className="text-yellow-100 min-w-[80px] font-bold uppercase text-center bg-emerald-700">
                               <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> THƯỞNG</div>
                             </TableHead>
@@ -5136,7 +5139,12 @@ function ThiDuaPageInner() {
                                 {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                               </>
                             )}
-                            {showRateColumn && !usePhase2 && (
+                            {showSecondaryContractCountColumn && <TableHead className="text-yellow-100 min-w-[85px] font-bold uppercase text-center bg-orange-800/60"><div>SL HĐ</div><div className="text-[9px] font-normal">IP ≥ {vndToNgan(secondaryContractIPMin)} nđ</div></TableHead>}
+                          {showSecondaryRoundColumn && (<>
+  {secondaryLuotHDMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-orange-800/60">Lượt HĐ</TableHead>}
+  {secondaryLuotHDCMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-orange-800/60">Lượt HĐC</TableHead>}
+</>)}
+                          {showRateColumn && !usePhase2 && (
                               <TableHead className="text-yellow-100 min-w-[50px] font-bold uppercase text-center bg-violet-800 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
                             )}
                             {usePhase2 ? (
@@ -5180,6 +5188,11 @@ function ThiDuaPageInner() {
                               {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                             </>
                           )}
+                          {showSecondaryContractCountColumn && <TableHead className="text-yellow-100 min-w-[85px] font-bold uppercase text-center bg-orange-800/60"><div>SL HĐ</div><div className="text-[9px] font-normal">IP ≥ {vndToNgan(secondaryContractIPMin)} nđ</div></TableHead>}
+                          {showSecondaryRoundColumn && (<>
+  {secondaryLuotHDMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-orange-800/60">Lượt HĐ</TableHead>}
+  {secondaryLuotHDCMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-orange-800/60">Lượt HĐC</TableHead>}
+</>)}
                           {showRateColumn && !usePhase2 && (
                             <TableHead className="text-yellow-100 min-w-[50px] font-bold uppercase text-center bg-violet-800 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
                           )}
@@ -5219,6 +5232,11 @@ function ThiDuaPageInner() {
                               {secondaryTotalIPMin > 0 && conditionType !== 'total_ip' && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                             </>
                           )}
+                          {showSecondaryContractCountColumn && <TableHead className="text-yellow-100 min-w-[85px] font-bold uppercase text-center bg-orange-800/60"><div>SL HĐ</div><div className="text-[9px] font-normal">IP ≥ {vndToNgan(secondaryContractIPMin)} nđ</div></TableHead>}
+                          {showSecondaryRoundColumn && (<>
+  {secondaryLuotHDMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-orange-800/60">Lượt HĐ</TableHead>}
+  {secondaryLuotHDCMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-orange-800/60">Lượt HĐC</TableHead>}
+</>)}
                           {showRateColumn && !usePhase2 && (
                             <TableHead className="text-yellow-100 min-w-[50px] font-bold uppercase text-center bg-violet-800 whitespace-nowrap"><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
                           )}
@@ -5343,13 +5361,11 @@ function ThiDuaPageInner() {
                             );
                           })()}
                           {showSecondaryContractCountColumn && <TableCell className={`text-center text-xs font-semibold whitespace-nowrap ${secondaryCheck.qualifyingContractCount >= secondaryContractCountMin ? 'text-emerald-600' : 'text-red-500'}`}>{secondaryCheck.qualifyingContractCount}{secondaryCheck.qualifyingContractCount < secondaryContractCountMin && <span className="text-[9px] ml-1">✗</span>}</TableCell>}
-                          {showSecondaryRoundColumn && (
-                            <>
-                              {secondaryLuotHDMin > 0 && <TableCell className={`text-center text-xs whitespace-nowrap ${secondaryCheck.luotHD >= secondaryLuotHDMin ? 'text-emerald-600' : 'text-red-500'}`}>{secondaryCheck.luotHD}{secondaryCheck.luotHD < secondaryLuotHDMin && <span className="text-[9px] ml-1">✗</span>}</TableCell>}
-                              {secondaryLuotHDCMin > 0 && <TableCell className={`text-center text-xs whitespace-nowrap ${secondaryCheck.luotHDC >= secondaryLuotHDCMin ? 'text-emerald-600' : 'text-red-500'}`}>{secondaryCheck.luotHDC}{secondaryCheck.luotHDC < secondaryLuotHDCMin && <span className="text-[9px] ml-1">✗</span>}</TableCell>}
-                            </>
-                          )}
-                          {showRateColumn && !usePhase2 && (
+                            {showSecondaryRoundColumn && (<>
+  {secondaryLuotHDMin > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{secondaryCheck.luotHD}</TableCell>}
+  {secondaryLuotHDCMin > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{secondaryCheck.luotHDC}</TableCell>}
+</>)}
+                            {showRateColumn && !usePhase2 && (
                             <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{effectiveTier ? <span className="font-bold text-violet-600">{formatRate(effectiveTier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
                           )}
                           {usePhase2 && phaseBonus ? (
@@ -5403,6 +5419,11 @@ function ThiDuaPageInner() {
                               <span className="text-gray-900 font-bold text-base">{tvvPassCount}</span>
                               <span className="text-gray-500 text-xs ml-1">TVV</span>
                             </TableCell>
+                            {showSecondaryContractCountColumn && <TableCell className={`text-center text-xs font-semibold whitespace-nowrap ${secondaryCheck.qualifyingContractCount >= secondaryContractCountMin ? 'text-emerald-600' : 'text-red-500'}`}>{secondaryCheck.qualifyingContractCount}{secondaryCheck.qualifyingContractCount < secondaryContractCountMin && <span className="text-[9px] ml-1">✗</span>}</TableCell>}
+                            {showSecondaryRoundColumn && (<>
+  {secondaryLuotHDMin > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{secondaryCheck.luotHD}</TableCell>}
+  {secondaryLuotHDCMin > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{secondaryCheck.luotHDC}</TableCell>}
+</>)}
                             <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : effectiveTier.bonusType === 'money_per_tvv' ? <UserCheck className="w-4 h-4 text-indigo-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, 0, tvvPassCount)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                             <TableCell className="whitespace-nowrap">{!effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">- {remaining} TVV</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">Chưa đạt</span> : null}</TableCell>
                           </TableRow>
@@ -5454,7 +5475,12 @@ function ThiDuaPageInner() {
                               )}
                             </>
                           )}
-                          {showRateColumn && !usePhase2 && (
+                          {showSecondaryContractCountColumn && <TableCell className={`text-center text-xs font-semibold whitespace-nowrap ${secondaryCheck.qualifyingContractCount >= secondaryContractCountMin ? 'text-emerald-600' : 'text-red-500'}`}>{secondaryCheck.qualifyingContractCount}{secondaryCheck.qualifyingContractCount < secondaryContractCountMin && <span className="text-[9px] ml-1">✗</span>}</TableCell>}
+                            {showSecondaryRoundColumn && (<>
+  {secondaryLuotHDMin > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{secondaryCheck.luotHD}</TableCell>}
+  {secondaryLuotHDCMin > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{secondaryCheck.luotHDC}</TableCell>}
+</>)}
+                            {showRateColumn && !usePhase2 && (
                             <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{effectiveTier ? <span className="font-bold text-violet-600">{formatRate(effectiveTier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
                           )}
                           {usePhase2 ? (
@@ -5513,7 +5539,12 @@ function ThiDuaPageInner() {
                               )}
                             </>
                           )}
-                          {showRateColumn && !usePhase2 && (
+                          {showSecondaryContractCountColumn && <TableCell className={`text-center text-xs font-semibold whitespace-nowrap ${secondaryCheck.qualifyingContractCount >= secondaryContractCountMin ? 'text-emerald-600' : 'text-red-500'}`}>{secondaryCheck.qualifyingContractCount}{secondaryCheck.qualifyingContractCount < secondaryContractCountMin && <span className="text-[9px] ml-1">✗</span>}</TableCell>}
+                            {showSecondaryRoundColumn && (<>
+  {secondaryLuotHDMin > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{secondaryCheck.luotHD}</TableCell>}
+  {secondaryLuotHDCMin > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{secondaryCheck.luotHDC}</TableCell>}
+</>)}
+                            {showRateColumn && !usePhase2 && (
                             <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{effectiveTier ? <span className="font-bold text-violet-600">{formatRate(effectiveTier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
                           )}
                           {usePhase2 ? (
@@ -5600,6 +5631,11 @@ function ThiDuaPageInner() {
                                 )}
                               </>
                             )}
+                            {showSecondaryContractCountColumn && <TableCell className={`text-center text-xs font-semibold whitespace-nowrap ${secondaryCheck.qualifyingContractCount >= secondaryContractCountMin ? 'text-emerald-600' : 'text-red-500'}`}>{secondaryCheck.qualifyingContractCount}{secondaryCheck.qualifyingContractCount < secondaryContractCountMin && <span className="text-[9px] ml-1">✗</span>}</TableCell>}
+                            {showSecondaryRoundColumn && (<>
+  {secondaryLuotHDMin > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{secondaryCheck.luotHD}</TableCell>}
+  {secondaryLuotHDCMin > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{secondaryCheck.luotHDC}</TableCell>}
+</>)}
                             {showRateColumn && !usePhase2 && (
                               <TableCell className="text-center bg-violet-50 text-xs whitespace-nowrap">{effectiveTier ? <span className="font-bold text-violet-600">{formatRate(effectiveTier)}</span> : <span className="text-gray-400">—</span>}</TableCell>
                             )}
