@@ -5293,15 +5293,17 @@ function ThiDuaPageInner() {
                         0,
                         secondaryLuotHDCMin - secondaryCheck.luotHDC,
                         secondaryLuotHDMin - secondaryCheck.luotHD,
-                        secondaryContractCountMin - secondaryCheck.qualifyingContractCount,
                       );
+                      const secondaryContractCountDeficit = Math.max(0, secondaryContractCountMin - secondaryCheck.qualifyingContractCount);
                       const secondaryValueDeficit = Math.max(
                         0,
                         secondaryTotalAFYPMin - secondaryCheck.totalAFYP,
                         secondaryTotalIPMin - secondaryCheck.totalIP,
                       );
                       const nydDeficitNote = tier && !secondaryCheck.passed
-                        ? secondaryRoundDeficit > 0
+                        ? secondaryContractCountDeficit > 0
+                          ? `- ${secondaryContractCountDeficit} HĐ IP đạt ngưỡng`
+                          : secondaryRoundDeficit > 0
                           ? `- ${String(Math.ceil(secondaryRoundDeficit)).padStart(2, '0')} lượt`
                           : secondaryValueDeficit > 0
                             ? `- ${formatNumber(secondaryValueDeficit)}`
