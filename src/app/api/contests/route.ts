@@ -40,6 +40,36 @@ const contestCompatSelect = {
 const recruitedAgentScopeKey = (id: string) => `contest-recruited-agent-scope-${id}`;
 const recruitmentConfigKey = (id: string) => `contest-recruitment-config-${id}`;
 
+type ExtraContractCount = { secondaryContractCountMin: number; secondaryContractIPMin: number };
+const secondaryContractCountKey = (id: string) => `contest-secondary-contract-count-${id}`;
+const nonNegativeNumber = (value: unknown): number => {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, number) : 0;
+};
+const normalizeExtraContractCount = (value: any): ExtraContractCount => ({
+  secondaryContractCountMin: Math.floor(nonNegativeNumber(value?.secondaryContractCountMin)),
+  secondaryContractIPMin: nonNegativeNumber(value?.secondaryContractIPMin),
+});
+async function loadExtraContractCount<T extends { id: string }>(contests: T[]): Promise<Array<T & ExtraContractCount>> {
+  if (!contests.length) return [];
+  const keys = contests.map(contest => secondaryContractCountKey(contest.id));
+  const settings = await db.setting.findMany({ where: { key: { in: keys } }, select: { key: true, value: true } });
+  const byKey = new Map(settings.map(item => [item.key, item.value]));
+  return contests.map(contest => {
+    let stored: unknown = null;
+    try { stored = JSON.parse(byKey.get(secondaryContractCountKey(contest.id)) || 'null'); } catch {}
+    return { ...contest, ...normalizeExtraContractCount(stored) };
+  });
+}
+async function saveExtraContractCount(id: string, value: ExtraContractCount): Promise<ExtraContractCount> {
+  const normalized = normalizeExtraContractCount(value);
+  const key = secondaryContractCountKey(id);
+  const raw = JSON.stringify(normalized);
+  await db.setting.upsert({ where: { key }, update: { value: raw }, create: { key, value: raw } });
+  return normalized;
+}
+
+
 async function loadRecruitedAgentScopes<T extends { id: string }>(contests: T[]): Promise<Array<T & { recruitedAgentScope: string }>> {
   if (!contests.length) return [];
   const keys = contests.map((contest) => recruitedAgentScopeKey(contest.id));
@@ -206,7 +236,8 @@ async function readContests(request: NextRequest) {
     if (!contest) return NextResponse.json({ error: 'Không tìm thấy chương trình thi đua' }, { status: 404 });
     const [withScope] = await loadRecruitedAgentScopes([contest]);
     const [withRecruitment] = await loadRecruitmentConfigs([withScope]);
-    return NextResponse.json(await normalizePoster(withRecruitment), { headers: noStore });
+    const [withExtraCount] = await loadExtraContractCount([withRecruitment]);
+    return NextResponse.json(await normalizePoster(withExtraCount), { headers: noStore });
   }
   const contests = await db.contest.findMany({
     orderBy: { createdAt: 'desc' },
@@ -225,10 +256,11 @@ async function readContests(request: NextRequest) {
   });
   const scopedWithScope = await loadRecruitedAgentScopes(scopedContests as any[]);
   const scopedWithRecruitment = await loadRecruitmentConfigs(scopedWithScope);
+  const scopedWithExtraCount = await loadExtraContractCount(scopedWithRecruitment);
   if (summary) {
-    return NextResponse.json(scopedWithRecruitment.map(summaryWithPosterUrl), { headers: noStore });
+    return NextResponse.json(scopedWithExtraCount.map(summaryWithPosterUrl), { headers: noStore });
   }
-  const normalized = await Promise.all(scopedWithRecruitment.map((contest: any) => normalizePoster(contest)));
+  const normalized = await Promise.all(scopedWithExtraCount.map((contest: any) => normalizePoster(contest)));
   return NextResponse.json(normalized, { headers: noStore });
 }
 
@@ -259,6 +291,7 @@ export async function POST(request: NextRequest) {
       secondaryLuotHDMin, secondaryLuotHDCMin,
       secondaryLuotHDFilter, secondaryLuotHDCFilter,
       secondaryTotalAFYPMin, secondaryTotalIPMin,
+      secondaryContractCountMin, secondaryContractIPMin,
       hideNotAchieved, includeIndividualNTD, includeIndividualTN,
       luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
       referenceContestId, includeTNInPassCount,
@@ -328,6 +361,7 @@ export async function POST(request: NextRequest) {
 
     await saveRecruitedAgentScope(contest.id, recruitedAgentScope);
     await saveRecruitmentConfig(contest.id, recruitmentConfig);
+    const extraContractCount = await saveExtraContractCount(contest.id, { secondaryContractCountMin, secondaryContractIPMin });
 
     if (rawPoster.startsWith('data:')) {
       const storedUrl = await persistContestPoster(contest.id, rawPoster);
@@ -337,7 +371,7 @@ export async function POST(request: NextRequest) {
     console.log('[POST /api/contests] Saved', contest.id, `${Date.now() - startTime}ms`);
     return NextResponse.json({
       message: existing ? 'Đã cập nhật chương trình thi đua' : 'Đã lưu chương trình thi đua',
-      contest: { ...contest, recruitedAgentScope: recruitedAgentScope === 'tvvm' ? 'tvvm' : 'all', recruitmentConfig: recruitmentConfig || null, posterUrl: posterPublicUrl(contest) },
+      contest: { ...contest, ...extraContractCount, recruitedAgentScope: recruitedAgentScope === 'tvvm' ? 'tvvm' : 'all', recruitmentConfig: recruitmentConfig || null, posterUrl: posterPublicUrl(contest) },
     });
   } catch (error: any) {
     console.error('[POST /api/contests] Error:', error);
@@ -356,6 +390,7 @@ export async function DELETE(request: NextRequest) {
     try {
       await db.setting.deleteMany({ where: { key: recruitedAgentScopeKey(id) } });
       await db.setting.deleteMany({ where: { key: recruitmentConfigKey(id) } });
+      await db.setting.deleteMany({ where: { key: secondaryContractCountKey(id) } });
     } catch {}
     return NextResponse.json({ message: 'Đã xóa chương trình thi đua', deleted: result.count > 0, alreadyDeleted: result.count === 0 }, { headers: noStore });
   } catch (error: any) {
@@ -370,17 +405,29 @@ export async function PATCH(request: NextRequest) {
     if (!id) return NextResponse.json({ error: 'Thiếu ID chương trình thi đua' }, { status: 400 });
     const recruitedAgentScopeUpdate = updates.recruitedAgentScope;
     const recruitmentConfigUpdate = updates.recruitmentConfig;
+    const extraCountUpdate = updates.secondaryContractCountMin;
+    const extraIPUpdate = updates.secondaryContractIPMin;
     delete updates.recruitedAgentScope;
     delete updates.recruitmentConfig;
+    delete updates.secondaryContractCountMin;
+    delete updates.secondaryContractIPMin;
     if (typeof updates.posterUrl === 'string' && updates.posterUrl.startsWith('data:')) {
       updates.posterUrl = await persistContestPoster(id, updates.posterUrl);
     }
     const contest = await db.contest.update({ where: { id }, data: updates, select: contestCompatSelect });
     if (recruitedAgentScopeUpdate !== undefined) await saveRecruitedAgentScope(id, recruitedAgentScopeUpdate);
     if (recruitmentConfigUpdate !== undefined) await saveRecruitmentConfig(id, recruitmentConfigUpdate);
+    if (extraCountUpdate !== undefined || extraIPUpdate !== undefined) {
+      const [current] = await loadExtraContractCount([{ id }]);
+      await saveExtraContractCount(id, {
+        secondaryContractCountMin: extraCountUpdate ?? current.secondaryContractCountMin,
+        secondaryContractIPMin: extraIPUpdate ?? current.secondaryContractIPMin,
+      });
+    }
     const [withScope] = await loadRecruitedAgentScopes([contest]);
     const [withRecruitment] = await loadRecruitmentConfigs([withScope]);
-    return NextResponse.json({ message: 'Đã cập nhật chương trình thi đua', contest: { ...withRecruitment, posterUrl: posterPublicUrl(contest) } });
+    const [withExtraCount] = await loadExtraContractCount([withRecruitment]);
+    return NextResponse.json({ message: 'Đã cập nhật chương trình thi đua', contest: { ...withExtraCount, posterUrl: posterPublicUrl(contest) } });
   } catch (error: any) {
     return NextResponse.json({ error: 'Không thể cập nhật chương trình thi đua', details: error?.message }, { status: 500 });
   }

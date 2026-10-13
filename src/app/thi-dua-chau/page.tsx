@@ -149,6 +149,7 @@ interface SavedContest {
   secondaryLuotHDMin?: number; secondaryLuotHDCMin?: number;
   secondaryLuotHDFilter?: string; secondaryLuotHDCFilter?: string;
   secondaryTotalAFYPMin?: number; secondaryTotalIPMin?: number;
+  secondaryContractCountMin?: number; secondaryContractIPMin?: number;
   hideNotAchieved?: boolean; includeIndividualNTD?: boolean; includeIndividualTN?: boolean;
   luotHDThreshold?: number; luotHDCTThreshold?: number;
   tvv90MaxMonths?: number; tvv90MinIP?: number;
@@ -723,6 +724,8 @@ function ThiDuaPageInner() {
   const [secondaryLuotHDCFilter, setSecondaryLuotHDCFilter] = useState<'all' | 'tvvm'>('all');
   const [secondaryTotalAFYPMin, setSecondaryTotalAFYPMin] = useState(0);
   const [secondaryTotalIPMin, setSecondaryTotalIPMin] = useState(0);
+  const [secondaryContractCountMin, setSecondaryContractCountMin] = useState(0);
+  const [secondaryContractIPMin, setSecondaryContractIPMin] = useState(0);
   // Options
   const [hideNotAchieved, setHideNotAchieved] = useState(false);
   const [includeIndividualNTD, setIncludeIndividualNTD] = useState(false);
@@ -2190,6 +2193,7 @@ function ThiDuaPageInner() {
 
     const passesSecondaryConditions = (rows: Contract[]) => evaluateSecondaryConditions(rows, {
       useSecondaryCondition, secondaryTotalAFYPMin, secondaryTotalIPMin,
+      secondaryContractCountMin, secondaryContractIPMin,
       secondaryLuotHDMin, secondaryLuotHDCMin, secondaryLuotHDFilter, secondaryLuotHDCFilter,
       luotHDThreshold, luotHDCTThreshold,
     }, tvvStructList).passed;
@@ -2232,7 +2236,8 @@ function ThiDuaPageInner() {
   }, [
     useTopRanking, conditionType, targetType, perContractDisplayContracts, tvvTotalRows, groupedData, nydData,
     displayContracts, getContractValue, getGroupValue, calculateBonus, includeIndividualNTD, topN, topRewardAmounts,
-    useSecondaryCondition, secondaryTotalAFYPMin, secondaryTotalIPMin, secondaryLuotHDMin, secondaryLuotHDCMin,
+    useSecondaryCondition, secondaryTotalAFYPMin, secondaryTotalIPMin,
+    secondaryContractCountMin, secondaryContractIPMin, secondaryLuotHDMin, secondaryLuotHDCMin,
     secondaryLuotHDFilter, secondaryLuotHDCFilter, luotHDThreshold, luotHDCTThreshold, tvvStructList,
     topEligibilityType, topEligibilityMin,
   ]);
@@ -2324,6 +2329,8 @@ function ThiDuaPageInner() {
       useSecondaryCondition,
       secondaryTotalAFYPMin,
       secondaryTotalIPMin,
+      secondaryContractCountMin,
+      secondaryContractIPMin,
       secondaryLuotHDMin,
       secondaryLuotHDCMin,
       secondaryLuotHDFilter,
@@ -2335,6 +2342,8 @@ function ThiDuaPageInner() {
     useSecondaryCondition,
     secondaryTotalAFYPMin,
     secondaryTotalIPMin,
+    secondaryContractCountMin,
+    secondaryContractIPMin,
     secondaryLuotHDMin,
     secondaryLuotHDCMin,
     secondaryLuotHDFilter,
@@ -2402,6 +2411,7 @@ function ThiDuaPageInner() {
         useSecondaryCondition,
         secondaryLuotHDMin, secondaryLuotHDCMin, secondaryLuotHDFilter, secondaryLuotHDCFilter,
         secondaryTotalAFYPMin, secondaryTotalIPMin,
+        secondaryContractCountMin, secondaryContractIPMin,
         hideNotAchieved, includeIndividualNTD, includeIndividualTN,
         luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
         referenceContestId: referenceContestId || undefined,
@@ -2547,6 +2557,8 @@ function ThiDuaPageInner() {
     setSecondaryLuotHDCFilter(savedRoundScope);
     setSecondaryTotalAFYPMin(contest.secondaryTotalAFYPMin ?? 0);
     setSecondaryTotalIPMin(contest.secondaryTotalIPMin ?? 0);
+    setSecondaryContractCountMin(contest.secondaryContractCountMin ?? 0);
+    setSecondaryContractIPMin(contest.secondaryContractIPMin ?? 0);
     // Options
     setHideNotAchieved(contest.hideNotAchieved ?? false);
     setIncludeIndividualNTD(contest.includeIndividualNTD ?? false);
@@ -2713,6 +2725,7 @@ function ThiDuaPageInner() {
     const expSecIP = showSecondaryTotalColumn && secondaryTotalIPMin > 0;
     const expSecLuotHD = showSecondaryRoundColumn && secondaryLuotHDMin > 0;
     const expSecLuotHDC = showSecondaryRoundColumn && secondaryLuotHDCMin > 0;
+    const expSecCount = showSecondaryContractCountColumn;
 
     // Hai cột phục vụ kiểm tra điều kiện NTD: ngày hiệu lực chức vụ của người
     // tuyển dụng và ngày bắt đầu làm việc của TVV được tính vào chương trình.
@@ -2794,6 +2807,7 @@ function ThiDuaPageInner() {
         ...(expSecIP ? ['Tổng IP'] : []),
         ...(expSecLuotHD ? [`Lượt HĐ ${secondaryLuotHDFilter === 'tvvm' ? 'TVVm' : ''}`.trim()] : []),
         ...(expSecLuotHDC ? [`Lượt HĐC ${secondaryLuotHDCFilter === 'tvvm' ? 'TVVm' : ''}`.trim()] : []),
+        ...(expSecCount ? [`Số HĐ IP từ ${vndToNgan(secondaryContractIPMin)} nđ`] : []),
         'Họ tên TVV',
         ...(showTVVStartDate ? ['Ngày bắt đầu làm việc'] : []),
         ...(showTVVmContributions ? ['Mã TVV', 'Tổng IP TVV trong kỳ', 'Lượt TVVm'] : []),
@@ -2857,6 +2871,7 @@ function ThiDuaPageInner() {
           if (expSecIP) row.push(sc.totalIP);
           if (expSecLuotHD) row.push(sc.luotHD);
           if (expSecLuotHDC) row.push(sc.luotHDC);
+          if (expSecCount) row.push(sc.qualifyingContractCount);
           row.push('');
           if (showTVVStartDate) row.push('');
           if (showTVVmContributions) row.push('', '', '');
@@ -2892,6 +2907,7 @@ function ThiDuaPageInner() {
             if (expSecIP) row.push(cIdx === 0 ? sc.totalIP : '');
             if (expSecLuotHD) row.push(cIdx === 0 ? sc.luotHD : '');
             if (expSecLuotHDC) row.push(cIdx === 0 ? sc.luotHDC : '');
+            if (expSecCount) row.push(cIdx === 0 ? sc.qualifyingContractCount : '');
             row.push(c.agentName || '');
             if (showTVVStartDate) row.push(tvvStartDateFor(c));
             if (showTVVmContributions && contributionDetails) {
@@ -3840,6 +3856,7 @@ function ThiDuaPageInner() {
   // Có hiển thị cột điều kiện bổ sung Tổng AFYP/Tổng IP trong bảng kết quả không?
   const showSecondaryTotalColumn = useSecondaryCondition && (secondaryTotalAFYPMin > 0 || secondaryTotalIPMin > 0);
   const showSecondaryRoundColumn = useSecondaryCondition && (secondaryLuotHDMin > 0 || secondaryLuotHDCMin > 0);
+  const showSecondaryContractCountColumn = useSecondaryCondition && secondaryContractCountMin > 0;
   // Có hiển thị cột điều kiện bổ sung per-contract (AFYP/IP tối thiểu mỗi HĐ) không?
   const showSecondaryPerContractColumn = useSecondaryCondition && (secondaryAFYPMin > 0 || secondaryIPMin > 0);
   const isAFYP = conditionType === 'per_contract_afyp' || conditionType === 'total_afyp';
@@ -4721,6 +4738,21 @@ function ThiDuaPageInner() {
                         <Input type="number" placeholder="0" value={secondaryLuotHDCMin || ''} onChange={(e) => setSecondaryLuotHDCMin(parseInt(e.target.value) || 0)} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" />
                       </div>
                     </div>
+                    {/* Đếm số HĐ có IP đạt ngưỡng — độc lập với lượt HĐ/HĐC và Tổng IP. */}
+                    <div className="rounded-lg border border-orange-400/25 bg-orange-950/10 p-2 space-y-2">
+                      <div className="text-[10px] font-bold text-orange-200">Đếm số lượng hợp đồng đạt IP</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-orange-200/80">Số HĐ tối thiểu</Label>
+                          <Input type="number" min={0} step={1} placeholder="VD: 2" value={secondaryContractCountMin || ''} onChange={(e) => setSecondaryContractCountMin(Math.max(0, Math.floor(Number(e.target.value) || 0)))} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-orange-200/80">IP mỗi HĐ từ (nđ)</Label>
+                          <Input type="number" min={0} inputMode="decimal" placeholder="VD: 12000" value={secondaryContractIPMin ? vndToNgan(secondaryContractIPMin) : ''} onChange={(e) => setSecondaryContractIPMin(Math.max(0, nganToVnd(Number(e.target.value) || 0)))} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" />
+                        </div>
+                      </div>
+                      <p className="text-[10px] leading-4 text-orange-100/70">Chỉ đếm các HĐ có IP đạt ngưỡng; mỗi số HĐ chỉ đếm một lần. Tổng IP của điều kiện chính vẫn tính toàn bộ HĐ hợp lệ trong kỳ.</p>
+                    </div>
                     {/* Điều kiện bổ sung nhận thưởng — phải đạt mới được thưởng */}
                     <div className="text-[10px] text-amber-400/60 font-medium uppercase tracking-wider mt-2">Điều kiện nhận thưởng</div>
                     <div className="grid grid-cols-2 gap-2">
@@ -5028,6 +5060,7 @@ function ThiDuaPageInner() {
                               {secondaryTotalIPMin > 0 && <TableHead className="text-yellow-100 min-w-[70px] font-bold uppercase text-center bg-amber-800/60"><div>Tổng IP</div><div className="text-[9px] italic text-red-300 font-normal normal-case">(chỉ tiêu phụ)</div></TableHead>}
                             </>
                           )}
+                          {showSecondaryContractCountColumn && <TableHead className="text-yellow-100 min-w-[90px] font-bold uppercase text-center bg-orange-800/60"><div>Số HĐ IP ≥</div><div className="text-[9px] font-normal">{vndToNgan(secondaryContractIPMin)} nđ</div></TableHead>}
                           {showSecondaryRoundColumn && (
                             <>
                               {secondaryLuotHDMin > 0 && <TableHead className="text-yellow-100 min-w-[65px] font-bold uppercase text-center bg-orange-800/60"><div>Lượt HĐ</div><div className="text-[9px] italic font-normal normal-case">{secondaryLuotHDFilter === 'tvvm' ? 'TVVm' : 'Tất cả'}</div></TableHead>}
@@ -5261,13 +5294,16 @@ function ThiDuaPageInner() {
                         secondaryLuotHDCMin - secondaryCheck.luotHDC,
                         secondaryLuotHDMin - secondaryCheck.luotHD,
                       );
+                      const secondaryContractCountDeficit = Math.max(0, secondaryContractCountMin - secondaryCheck.qualifyingContractCount);
                       const secondaryValueDeficit = Math.max(
                         0,
                         secondaryTotalAFYPMin - secondaryCheck.totalAFYP,
                         secondaryTotalIPMin - secondaryCheck.totalIP,
                       );
                       const nydDeficitNote = tier && !secondaryCheck.passed
-                        ? secondaryRoundDeficit > 0
+                        ? secondaryContractCountDeficit > 0
+                          ? `- ${secondaryContractCountDeficit} HĐ IP đạt ngưỡng`
+                          : secondaryRoundDeficit > 0
                           ? `- ${String(Math.ceil(secondaryRoundDeficit)).padStart(2, '0')} lượt`
                           : secondaryValueDeficit > 0
                             ? `- ${formatNumber(secondaryValueDeficit)}`
@@ -5306,6 +5342,7 @@ function ThiDuaPageInner() {
                               </>
                             );
                           })()}
+                          {showSecondaryContractCountColumn && <TableCell className={`text-center text-xs font-semibold whitespace-nowrap ${secondaryCheck.qualifyingContractCount >= secondaryContractCountMin ? 'text-emerald-600' : 'text-red-500'}`}>{secondaryCheck.qualifyingContractCount}{secondaryCheck.qualifyingContractCount < secondaryContractCountMin && <span className="text-[9px] ml-1">✗</span>}</TableCell>}
                           {showSecondaryRoundColumn && (
                             <>
                               {secondaryLuotHDMin > 0 && <TableCell className={`text-center text-xs whitespace-nowrap ${secondaryCheck.luotHD >= secondaryLuotHDMin ? 'text-emerald-600' : 'text-red-500'}`}>{secondaryCheck.luotHD}{secondaryCheck.luotHD < secondaryLuotHDMin && <span className="text-[9px] ml-1">✗</span>}</TableCell>}
