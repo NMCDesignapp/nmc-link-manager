@@ -598,6 +598,38 @@ export function computeBonusFromTier(
   return tier.bonusAmount;
 }
 
+/**
+ * Reward bases are always derived from IP columns. Qualification may use AFYP,
+ * IP, rounds, or counts, but it must never be reused as the percentage base.
+ */
+export function sumContractIP(
+  contracts: ReadonlyArray<Pick<Contract, 'pdt10DT'>>
+): number {
+  return contracts.reduce((sum, contract) => sum + (contract.pdt10DT || 0), 0);
+}
+
+export function computeBonusFromContracts(
+  tier: BonusTier,
+  rewardContracts: ReadonlyArray<Pick<Contract, 'pdt10DT'>>,
+  rounds?: number,
+  totalIPContracts: ReadonlyArray<Pick<Contract, 'pdt10DT'>> = rewardContracts
+): number {
+  return computeBonusFromTier(
+    tier,
+    sumContractIP(rewardContracts),
+    rounds,
+    sumContractIP(totalIPContracts)
+  );
+}
+
+/** Inclusive milestone range used by every contest calculation surface. */
+export function matchesBonusTier(
+  value: number,
+  tier: Pick<BonusTier, 'minFYP' | 'maxFYP'>
+): boolean {
+  return value >= tier.minFYP && (tier.maxFYP == null || value <= tier.maxFYP);
+}
+
 export function calculateBonusWithTiers(
   fyp: number,
   tiers: BonusTier[]
@@ -605,7 +637,7 @@ export function calculateBonusWithTiers(
   const sorted = [...tiers].sort((a, b) => a.minFYP - b.minFYP);
   for (let i = sorted.length - 1; i >= 0; i--) {
     const tier = sorted[i];
-    if (fyp >= tier.minFYP) return { tier, tierIndex: i };
+    if (matchesBonusTier(fyp, tier)) return { tier, tierIndex: i };
   }
   return { tier: null, tierIndex: -1 };
 }
@@ -638,7 +670,7 @@ export function calculateActivityRoundBonusWithTiers(
   const sorted = [...tiers].sort((a, b) => a.minFYP - b.minFYP);
   for (let i = sorted.length - 1; i >= 0; i--) {
     const tier = sorted[i];
-    if (activityRounds >= tier.minFYP) return { tier, tierIndex: i };
+    if (matchesBonusTier(activityRounds, tier)) return { tier, tierIndex: i };
   }
   return { tier: null, tierIndex: -1 };
 }
@@ -762,6 +794,16 @@ export function formatBonusAmount(
   if (tier.bonusType === 'gift' && tier.bonusText) return tier.bonusText;
   const amount = computeBonusFromTier(tier, ipBase || 0, rounds, totalIPBase ?? ipBase ?? 0);
   return formatCurrency(amount);
+}
+
+export function formatBonusAmountFromContracts(
+  tier: BonusTier,
+  rewardContracts: ReadonlyArray<Pick<Contract, 'pdt10DT'>>,
+  rounds?: number,
+  totalIPContracts: ReadonlyArray<Pick<Contract, 'pdt10DT'>> = rewardContracts
+): string {
+  if (tier.bonusType === 'gift' && tier.bonusText) return tier.bonusText;
+  return formatCurrency(computeBonusFromContracts(tier, rewardContracts, rounds, totalIPContracts));
 }
 
 export function formatRate(tier: BonusTier): string {

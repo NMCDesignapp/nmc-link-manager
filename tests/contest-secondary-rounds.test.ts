@@ -5,7 +5,10 @@ import {
   computeNYDResultRows,
   computeNYDData,
   computeContestStats,
+  computeBonusFromContracts,
   computeBonusFromTier,
+  calculateActivityRoundBonusWithTiers,
+  calculateBonusWithTiers,
   doesTVVPassReferenceContest,
   evaluateSecondaryConditions,
   filterByEffectiveDateRule,
@@ -39,6 +42,32 @@ test('thưởng % IP và % Tổng IP độc lập với chỉ tiêu xét AFYP', 
   assert.equal(usesPerContractIPPercentReward('per_contract_afyp', [percentIP]), true);
   assert.equal(usesPerContractIPPercentReward('per_contract_afyp', [tier]), false);
   assert.equal(usesPerContractIPPercentReward('per_contract_ip', [percentIP]), false);
+});
+
+test('mọi loại thưởng phần trăm luôn lấy đúng cột IP của hợp đồng', () => {
+  const percentIP: BonusTier = { ...tier, bonusType: 'percent', bonusPercent: 5 };
+  const percentTotalIP: BonusTier = { ...tier, bonusType: 'percent_total_ip', bonusPercent: 5 };
+  const percentFYC: BonusTier = { ...tier, bonusType: 'percent_fyc', bonusPercent: 5 };
+  const contractIP = makeContract('TVV-1', 'TTN-A', 4_000_000);
+  const anotherContract = makeContract('TVV-1', 'TTN-A', 6_000_000);
+  contractIP.afyp = 40_000_000;
+  anotherContract.afyp = 60_000_000;
+
+  assert.equal(computeBonusFromContracts(percentIP, [contractIP], undefined, [contractIP, anotherContract]), 200_000);
+  assert.equal(computeBonusFromContracts(percentTotalIP, [contractIP], undefined, [contractIP, anotherContract]), 500_000);
+  assert.equal(computeBonusFromContracts(percentFYC, [contractIP], undefined, [contractIP, anotherContract]), 50_000);
+});
+
+test('mốc Đến là giới hạn thật và không tự nhận mức thưởng trong khoảng trống', () => {
+  const tiers: BonusTier[] = [
+    { ...tier, id: '10-20', minFYP: 10, maxFYP: 20 },
+    { ...tier, id: '30+', minFYP: 30, maxFYP: null },
+  ];
+
+  assert.equal(calculateBonusWithTiers(20, tiers).tier?.id, '10-20');
+  assert.equal(calculateBonusWithTiers(25, tiers).tier, null);
+  assert.equal(calculateBonusWithTiers(30, tiers).tier?.id, '30+');
+  assert.equal(calculateActivityRoundBonusWithTiers(25, tiers).tier, null);
 });
 
 const makeContract = (agentCode: string, recruiterCode: string, ip: number): Contract => ({

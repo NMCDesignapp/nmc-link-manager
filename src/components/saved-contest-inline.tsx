@@ -63,6 +63,7 @@ import {
   calculateLuot,
   buildStructureStartDateMap,
   computeBonusFromTier,
+  computeBonusFromContracts,
   isActivityRoundMode,
   isPerContractMode,
   isTotalMode,
@@ -75,7 +76,7 @@ import {
   formatCurrency,
   formatNumber,
   formatDate,
-  formatBonusAmount,
+  formatBonusAmountFromContracts,
   formatRate,
   getConditionLabel,
   getTargetLabel,
@@ -582,30 +583,6 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     </>
   );
 
-  // ===== Build header cell for a tier (bonus column) =====
-  const renderTierHeader = (tier: BonusTier, idx: number) => {
-    const isActivity = isActivityRoundMode(config.conditionType);
-    return (
-      <TableHead
-        key={tier.id}
-        className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap p-1"
-        style={{ backgroundColor: '#065F46', color: '#FEF3C7', width: '115px', minWidth: '115px' }}
-      >
-        <div className="leading-tight">
-          <div>Mức {idx + 1}</div>
-          <div className="italic font-normal text-[9px]">
-            {isActivity
-              ? `${tier.minFYP}${tier.maxFYP ? ` - ${tier.maxFYP}` : ' ↑'} lượt`
-              : `${formatCurrency(tier.minFYP)}${tier.maxFYP ? ` - ${formatCurrency(tier.maxFYP)}` : ' ↑'}`}
-          </div>
-          <div className="italic font-normal text-[9px]">
-            {tier.bonusType === 'gift' && tier.bonusText ? tier.bonusText : formatBonusAmount(tier)}
-          </div>
-        </div>
-      </TableHead>
-    );
-  };
-
   // ===== Render: TVV per-contract table (per_contract_ip / per_contract_afyp) =====
   const renderTVVPerContractTable = () => {
     const filteredRows = tvvPerContractRows.filter((row) => {
@@ -680,13 +657,12 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                   {row.effectiveTier ? (
                     <span className="inline-flex items-center gap-1">
                       {row.effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}
-                      <span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(
+                      <span className="font-bold text-emerald-600 text-sm">{formatBonusAmountFromContracts(
                         row.effectiveTier,
-                        row.contract.pdt10DT,
+                        [row.contract],
                         undefined,
                         displayContracts
-                          .filter((contract) => contract.agentCode === row.contract.agentCode)
-                          .reduce((sum, contract) => sum + contract.pdt10DT, 0),
+                          .filter((contract) => contract.agentCode === row.contract.agentCode),
                       )}</span>
                     </span>
                   ) : <span className="text-gray-400 text-xs">—</span>}
@@ -816,7 +792,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                     {effectiveTier ? (
                       <span className="inline-flex items-center gap-1">
                         {effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}
-                        <span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(effectiveTier, row.value, isActivity ? row.value : undefined)}</span>
+                        <span className="font-bold text-emerald-600 text-sm">{formatBonusAmountFromContracts(effectiveTier, agentContracts, isActivity ? row.value : undefined)}</span>
                       </span>
                     ) : <span className="text-gray-400 text-xs">—</span>}
                   </TableCell>
@@ -872,8 +848,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             const p2Value = isAFYPLocal ? p2Contracts.reduce((s, c) => s + c.afyp, 0) : p2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
             const p1Res = calculateBonusWithTiers(p1Value, config.bonusTiers);
             const p2Res = calculateBonusWithTiers(p2Value, config.bonusTiers2);
-            phase1Bonus = p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Value) : 0;
-            phase2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Value) : 0;
+            phase1Bonus = p1Res.tier ? computeBonusFromContracts(p1Res.tier, p1Contracts) : 0;
+            phase2Bonus = p2Res.tier ? computeBonusFromContracts(p2Res.tier, p2Contracts) : 0;
           }
         }
         return { g, value, tier, effectiveTier, secondaryCheck, secondaryPassed, totalAFYP, totalIP, phase1Bonus, phase2Bonus };
@@ -968,7 +944,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                   {row.effectiveTier ? (
                     <span className="inline-flex items-center gap-1">
                       {row.effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}
-                      <span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(row.effectiveTier, row.value, (isActivity || isPassCountIPAFYP || isPassCount) ? row.value : undefined)}</span>
+                      <span className="font-bold text-emerald-600 text-sm">{formatBonusAmountFromContracts(row.effectiveTier, row.g.contracts, (isActivity || isPassCountIPAFYP || isPassCount) ? row.value : undefined)}</span>
                     </span>
                   ) : <span className="text-gray-400 text-xs">—</span>}
                 </TableCell>
@@ -1084,7 +1060,14 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                   {row.effectiveTier ? (
                     <span className="flex items-center justify-center gap-1">
                       {row.effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}
-                      <span className="font-bold text-emerald-600 text-sm">{formatBonusAmount(row.effectiveTier, row.value, isActivity ? row.value : undefined)}</span>
+                      <span className="font-bold text-emerald-600 text-sm">{formatBonusAmountFromContracts(
+                        row.effectiveTier,
+                        row.nyd.contracts.filter((contract) => (
+                          (contract.maDaiLyTD === row.nyd.nydCode && contract.agentCode !== row.nyd.nydCode)
+                          || (includeIndividualNTD && contract.agentCode === row.nyd.nydCode)
+                        )),
+                        isActivity ? row.value : row.nyd.recruitCount,
+                      )}</span>
                     </span>
                   ) : <span className="text-gray-400 text-xs">—</span>}
                 </TableCell>

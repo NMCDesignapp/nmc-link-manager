@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -78,6 +79,29 @@ test('ma trận nhãn Excel khớp toàn bộ điều kiện thi đua', () => {
   assert.equal(getContestMetricLabel('per_contract_ip', 'ip', 'nhom'), 'Tổng IP');
   assert.equal(getContestMetricLabel('per_contract_afyp', 'ip', 'nhom'), 'Tổng AFYP');
   assert.equal(getContestMetricLabel('per_contract_afyp', 'ip', 'nyd'), 'Tổng AFYP');
+});
+
+test('mọi bề mặt kết quả dùng hợp đồng IP làm căn cứ thưởng, không dùng nhầm chỉ tiêu xét', () => {
+  const livePage = readFileSync(new URL('../src/app/thi-dua-chau/page.tsx', import.meta.url), 'utf8');
+  const savedPage = readFileSync(new URL('../src/components/saved-contest-inline.tsx', import.meta.url), 'utf8');
+
+  assert.match(livePage, /formatBonusAmountFromContracts/);
+  assert.match(savedPage, /formatBonusAmountFromContracts/);
+  assert.doesNotMatch(livePage, /formatBonusAmount\(effectiveTier,\s*(?:value|groupMetricValue|0,\s*tvvPassCount)/);
+  assert.doesNotMatch(livePage, /formatBonus\(tier,\s*value/);
+  assert.doesNotMatch(savedPage, /formatBonusAmount\(row\.effectiveTier,\s*row\.value/);
+  assert.doesNotMatch(savedPage, /computeBonusFromTier\(p[12]Res\.tier,\s*p[12]Value/);
+});
+
+test('tải ảnh kết quả có giới hạn thời gian, phương án dự phòng và luôn dọn trạng thái tạm', () => {
+  const livePage = readFileSync(new URL('../src/app/thi-dua-chau/page.tsx', import.meta.url), 'utf8');
+
+  assert.match(livePage, /withContestImageTimeout/);
+  assert.match(livePage, /html2canvas\(clone/);
+  assert.match(livePage, /captureRoot\.remove\(\)/);
+  assert.match(livePage, /restoreAllScrollbars\(\)/);
+  assert.match(livePage, /removeAttribute\('data-contest-image-skip'\)/);
+  assert.match(livePage, /setIsDownloadingImage\(false\)/);
 });
 
 test('chi tiết lượt chỉ giữ dòng thực sự tạo lượt từ TÍNH LƯỢT 3tr', () => {
