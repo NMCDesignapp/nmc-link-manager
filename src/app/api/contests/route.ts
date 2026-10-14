@@ -42,6 +42,40 @@ const recruitmentConfigKey = (id: string) => `contest-recruitment-config-${id}`;
 
 type ExtraContractCount = { secondaryContractCountMin: number; secondaryContractIPMin: number };
 const secondaryContractCountKey = (id: string) => `contest-secondary-contract-count-${id}`;
+// Tương thích schema hiện tại: lưu mốc cuối Ngày phát hành theo từng chương trình,
+// không thêm cột Prisma hoặc thay dữ liệu của các chương trình đã tồn tại.
+const issueEndDateKey = (id: string) => `contest-issue-end-date-${id}`;
+function normalizeIssueEndDate(raw: unknown): string | null {
+  if (raw === null || raw === undefined || raw === '') return null;
+  if (typeof raw !== 'string') return null;
+  const date = raw.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const parsed = new Date(date);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date ? date : null;
+}
+async function loadIssueEndDates<T extends { id: string }>(
+  contests: T[],
+): Promise<Array<T & { issueEndDate: string | null }>> {
+  if (!contests.length) return [];
+  const keys = contests.map(contest => issueEndDateKey(contest.id));
+  const settings = await db.setting.findMany({
+    where: { key: { in: keys } }, select: { key: true, value: true },
+  });
+  const values = new Map(settings.map(setting => [setting.key, setting.value]));
+  return contests.map(contest => ({
+    ...contest,
+    issueEndDate: normalizeIssueEndDate(values.get(issueEndDateKey(contest.id))),
+  }));
+}
+async function saveIssueEndDate(id: string, value: string | null): Promise<void> {
+  const key = issueEndDateKey(id);
+  const normalized = normalizeIssueEndDate(value);
+  await db.setting.upsert({
+    where: { key },
+    update: { value: normalized || '' },
+    create: { key, value: normalized || '' },
+  });
+}
 const nonNegativeNumber = (value: unknown): number => {
   const number = Number(value);
   return Number.isFinite(number) ? Math.max(0, number) : 0;
@@ -237,7 +271,8 @@ async function readContests(request: NextRequest) {
     const [withScope] = await loadRecruitedAgentScopes([contest]);
     const [withRecruitment] = await loadRecruitmentConfigs([withScope]);
     const [withExtraCount] = await loadExtraContractCount([withRecruitment]);
-    return NextResponse.json(await normalizePoster(withExtraCount), { headers: noStore });
+    const [withIssueEnd] = await loadIssueEndDates([withExtraCount]);
+    return NextResponse.json(await normalizePoster(withIssueEnd), { headers: noStore });
   }
   const contests = await db.contest.findMany({
     orderBy: { createdAt: 'desc' },
@@ -257,10 +292,11 @@ async function readContests(request: NextRequest) {
   const scopedWithScope = await loadRecruitedAgentScopes(scopedContests as any[]);
   const scopedWithRecruitment = await loadRecruitmentConfigs(scopedWithScope);
   const scopedWithExtraCount = await loadExtraContractCount(scopedWithRecruitment);
+  const scopedWithIssueEnd = await loadIssueEndDates(scopedWithExtraCount);
   if (summary) {
-    return NextResponse.json(scopedWithExtraCount.map(summaryWithPosterUrl), { headers: noStore });
+    return NextResponse.json(scopedWithIssueEnd.map(summaryWithPosterUrl), { headers: noStore });
   }
-  const normalized = await Promise.all(scopedWithExtraCount.map((contest: any) => normalizePoster(contest)));
+  const normalized = await Promise.all(scopedWithIssueEnd.map((contest: any) => normalizePoster(contest)));
   return NextResponse.json(normalized, { headers: noStore });
 }
 
@@ -284,7 +320,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const {
-      title, startDate, endDate, issueDate, conditionType, targetType,
+      title, startDate, endDate, issueDate, issueEndDate, conditionType, targetType,
       bonusTiers, posterUrl, participants,
       usePhase2, phase2StartDate, phase2EndDate, bonusTiers2,
       useSecondaryCondition, secondaryAFYPMin, secondaryIPMin,
@@ -303,6 +339,13 @@ export async function POST(request: NextRequest) {
     }
 
     await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn(), ensureCombinedTopRankingColumns(), ensureRecruitedAgentScopeColumn()]);
+    const normalizedIssueEnd = normalizeIssueEndDate(issueEndDate);
+    if (issueEndDate != null && issueEndDate !== '' && normalizedIssueEnd === null) {
+      return NextResponse.json({ error: 'Ngày phát hành đến không hợp lệ' }, { status: 400 });
+    }
+    if (normalizedIssueEnd && issueDate && normalizedIssueEnd < String(issueDate).slice(0, 10)) {
+      return NextResponse.json({ error: 'Ngày phát hành đến phải từ ngày phát hành bắt đầu trở đi' }, { status: 400 });
+    }
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
     if (isNaN(parsedStart.getTime()) || isNaN(parsedEnd.getTime())) {
@@ -362,6 +405,11 @@ export async function POST(request: NextRequest) {
     await saveRecruitedAgentScope(contest.id, recruitedAgentScope);
     await saveRecruitmentConfig(contest.id, recruitmentConfig);
     const extraContractCount = await saveExtraContractCount(contest.id, { secondaryContractCountMin, secondaryContractIPMin });
+    // Nếu trình chỉnh sửa khác chưa hỗ trợ trường mới, không xóa mốc đã lưu.
+    if (Object.prototype.hasOwnProperty.call(body, 'issueEndDate')) {
+      await saveIssueEndDate(contest.id, normalizedIssueEnd);
+    }
+    const [withIssueEnd] = await loadIssueEndDates([{ id: contest.id }]);
 
     if (rawPoster.startsWith('data:')) {
       const storedUrl = await persistContestPoster(contest.id, rawPoster);
@@ -371,7 +419,7 @@ export async function POST(request: NextRequest) {
     console.log('[POST /api/contests] Saved', contest.id, `${Date.now() - startTime}ms`);
     return NextResponse.json({
       message: existing ? 'Đã cập nhật chương trình thi đua' : 'Đã lưu chương trình thi đua',
-      contest: { ...contest, ...extraContractCount, recruitedAgentScope: recruitedAgentScope === 'tvvm' ? 'tvvm' : 'all', recruitmentConfig: recruitmentConfig || null, posterUrl: posterPublicUrl(contest) },
+      contest: { ...contest, ...extraContractCount, issueEndDate: withIssueEnd.issueEndDate, recruitedAgentScope: recruitedAgentScope === 'tvvm' ? 'tvvm' : 'all', recruitmentConfig: recruitmentConfig || null, posterUrl: posterPublicUrl(contest) },
     });
   } catch (error: any) {
     console.error('[POST /api/contests] Error:', error);
@@ -391,6 +439,7 @@ export async function DELETE(request: NextRequest) {
       await db.setting.deleteMany({ where: { key: recruitedAgentScopeKey(id) } });
       await db.setting.deleteMany({ where: { key: recruitmentConfigKey(id) } });
       await db.setting.deleteMany({ where: { key: secondaryContractCountKey(id) } });
+      await db.setting.deleteMany({ where: { key: issueEndDateKey(id) } });
     } catch {}
     return NextResponse.json({ message: 'Đã xóa chương trình thi đua', deleted: result.count > 0, alreadyDeleted: result.count === 0 }, { headers: noStore });
   } catch (error: any) {
@@ -407,16 +456,23 @@ export async function PATCH(request: NextRequest) {
     const recruitmentConfigUpdate = updates.recruitmentConfig;
     const extraCountUpdate = updates.secondaryContractCountMin;
     const extraIPUpdate = updates.secondaryContractIPMin;
+    const issueEndUpdate = updates.issueEndDate;
+    const normalizedIssueEnd = normalizeIssueEndDate(issueEndUpdate);
+    if (issueEndUpdate !== undefined && issueEndUpdate !== null && issueEndUpdate !== '' && !normalizedIssueEnd) {
+      return NextResponse.json({ error: 'Ngày phát hành đến không hợp lệ' }, { status: 400 });
+    }
     delete updates.recruitedAgentScope;
     delete updates.recruitmentConfig;
     delete updates.secondaryContractCountMin;
     delete updates.secondaryContractIPMin;
+    delete updates.issueEndDate;
     if (typeof updates.posterUrl === 'string' && updates.posterUrl.startsWith('data:')) {
       updates.posterUrl = await persistContestPoster(id, updates.posterUrl);
     }
     const contest = await db.contest.update({ where: { id }, data: updates, select: contestCompatSelect });
     if (recruitedAgentScopeUpdate !== undefined) await saveRecruitedAgentScope(id, recruitedAgentScopeUpdate);
     if (recruitmentConfigUpdate !== undefined) await saveRecruitmentConfig(id, recruitmentConfigUpdate);
+    if (issueEndUpdate !== undefined) await saveIssueEndDate(id, normalizedIssueEnd);
     if (extraCountUpdate !== undefined || extraIPUpdate !== undefined) {
       const [current] = await loadExtraContractCount([{ id }]);
       await saveExtraContractCount(id, {
@@ -427,7 +483,8 @@ export async function PATCH(request: NextRequest) {
     const [withScope] = await loadRecruitedAgentScopes([contest]);
     const [withRecruitment] = await loadRecruitmentConfigs([withScope]);
     const [withExtraCount] = await loadExtraContractCount([withRecruitment]);
-    return NextResponse.json({ message: 'Đã cập nhật chương trình thi đua', contest: { ...withExtraCount, posterUrl: posterPublicUrl(contest) } });
+    const [withIssueEnd] = await loadIssueEndDates([withExtraCount]);
+    return NextResponse.json({ message: 'Đã cập nhật chương trình thi đua', contest: { ...withIssueEnd, posterUrl: posterPublicUrl(contest) } });
   } catch (error: any) {
     return NextResponse.json({ error: 'Không thể cập nhật chương trình thi đua', details: error?.message }, { status: 500 });
   }

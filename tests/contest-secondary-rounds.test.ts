@@ -13,6 +13,9 @@ import {
   getReferenceContestPassingAgentCodes,
   computeTVVTotalRows,
   computeTVVPerContractRows,
+  computeGroupedData,
+  filterContractsByContest,
+  parseContestConfig,
   evaluateSecondaryConditions,
   filterByEffectiveDateRule,
   getGroupTVVPassCountForReference,
@@ -463,4 +466,74 @@ test('bộ tính tham chiếu và bảng TVV không quét lại toàn bộ hợp
     bonusTiers: [{ ...tier, minFYP: 12_000_000 }], participants: [],
   }, members);
   assert.equal(perContract.filter(row => Boolean(row.effectiveTier)).length, 2400);
+});
+
+test('cấu hình lưu phục hồi đầy đủ ngày hiệu lực, phát hành đến và lựa chọn TN', () => {
+  const raw = {
+    ...config,
+    targetType: 'nhom',
+    conditionType: 'total_ip',
+    startDate: '2026-08-01',
+    endDate: '2026-08-31',
+    issueDate: '2026-08-05',
+    issueEndDate: '2026-08-20',
+    useSecondaryCondition: true,
+    secondaryContractCountMin: 2,
+    secondaryContractIPMin: 12_000_000,
+    includeIndividualTN: false,
+    includeIndividualNTD: true,
+    filterByEffectiveDate: true,
+    bonusTiers: JSON.stringify([tier]),
+    bonusTiers2: JSON.stringify([]),
+    participants: JSON.stringify(['N1']),
+  };
+  const restored = parseContestConfig(raw);
+  assert.equal(restored.startDate, '2026-08-01');
+  assert.equal(restored.endDate, '2026-08-31');
+  assert.equal(restored.issueDate, '2026-08-05');
+  assert.equal(restored.issueEndDate, '2026-08-20');
+  assert.equal(restored.includeIndividualTN, false);
+  assert.equal(restored.includeIndividualNTD, true);
+  assert.equal(restored.filterByEffectiveDate, true);
+  assert.equal(restored.secondaryContractCountMin, 2);
+  assert.equal(restored.secondaryContractIPMin, 12_000_000);
+  assert.deepEqual(restored.participants, ['N1']);
+  assert.equal(restored.bonusTiers.length, 1);
+
+  const contracts = [
+    { ...makeContract('A', 'NTD', 11_000_000), id: 'a', effectiveDate: '2026-08-10', issueDate: '2026-08-04T23:59:59Z' },
+    { ...makeContract('B', 'NTD', 12_000_000), id: 'b', effectiveDate: '2026-08-10', issueDate: '2026-08-05T00:00:00Z' },
+    { ...makeContract('C', 'NTD', 13_000_000), id: 'c', effectiveDate: '2026-08-10', issueDate: '2026-08-20T23:59:59Z' },
+    { ...makeContract('D', 'NTD', 14_000_000), id: 'd', effectiveDate: '2026-08-10', issueDate: '2026-08-21T00:00:00Z' },
+    { ...makeContract('E', 'NTD', 15_000_000), id: 'e', effectiveDate: '2026-09-01', issueDate: '2026-08-10T00:00:00Z' },
+  ];
+  const filtered = filterContractsByContest(contracts, { ...restored, useSecondaryCondition: false });
+  assert.deepEqual(filtered.map(contract => contract.id), ['b', 'c']);
+  const oldContest = parseContestConfig({ ...raw, issueEndDate: undefined });
+  assert.equal(oldContest.issueEndDate, null);
+  assert.deepEqual(
+    filterContractsByContest(contracts, { ...oldContest, useSecondaryCondition: false }).map(contract => contract.id),
+    ['b', 'c', 'd'],
+  );
+});
+
+test('lưu tùy chọn tính cá nhân TN thay đổi đúng tổng IP nhóm, không ảnh hưởng dữ liệu hợp đồng', () => {
+  const members = [
+    { id: 'tn', agentCode: 'TN-1', agentName: 'Trưởng nhóm', nhom: 'Nhóm 1', maNhom: 'N1', position: 'Trưởng nhóm', startDate: '2025-01-01' },
+    { id: 'tvv', agentCode: 'TVV-1', agentName: 'TVV', nhom: 'Nhóm 1', maNhom: 'N1', position: 'TVV', startDate: '2025-01-01' },
+  ];
+  const contracts = [
+    { ...makeContract('TN-1', 'NTD', 40_000_000), id: 'tn', maNhom: 'N1' },
+    { ...makeContract('TVV-1', 'NTD', 25_000_000), id: 'tvv', maNhom: 'N1' },
+  ];
+  const basic = { ...config, targetType: 'nhom' as const, conditionType: 'total_ip' as const,
+    useSecondaryCondition: false, participants: ['N1'], includeIndividualTN: false };
+  const withoutLeader = computeGroupedData(contracts, basic, members, [], members, []);
+  const withLeader = computeGroupedData(contracts, { ...basic, includeIndividualTN: true }, members, [], members, []);
+  assert.equal(withoutLeader.length, 1);
+  assert.equal(withoutLeader[0].totalFYP, 25_000_000);
+  assert.deepEqual(withoutLeader[0].contracts.map(c => c.agentCode), ['TVV-1']);
+  assert.equal(withLeader[0].totalFYP, 65_000_000);
+  assert.equal(withLeader[0].contracts.length, 2);
+  assert.equal(contracts.length, 2);
 });

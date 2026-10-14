@@ -165,6 +165,7 @@ export interface ContestConfig {
   startDate: string;
   endDate: string;
   issueDate?: string | null;
+  issueEndDate?: string | null;
   conditionType: ConditionType;
   targetType: TargetType;
   bonusTiers: BonusTier[];
@@ -896,6 +897,7 @@ export function parseContestConfig(raw: any): ContestConfig {
     startDate: raw.startDate,
     endDate: raw.endDate,
     issueDate: raw.issueDate,
+    issueEndDate: raw.issueEndDate ?? null,
     conditionType: (raw.conditionType || 'per_contract_ip') as ConditionType,
     targetType: (raw.targetType || 'tvv') as TargetType,
     bonusTiers,
@@ -955,6 +957,12 @@ export function filterContractsByContest(
   if (config.issueDate) {
     const issueStart = new Date(config.issueDate);
     results = results.filter((c) => new Date(c.issueDate) >= issueStart);
+  }
+  if (config.issueEndDate) {
+    // Giữ đúng phép lọc Ngày phát hành đến trên trang Thi đua khi mở lại.
+    const issueEnd = new Date(config.issueEndDate);
+    issueEnd.setHours(23, 59, 59, 999);
+    results = results.filter((c) => new Date(c.issueDate) <= issueEnd);
   }
   if (config.useSecondaryCondition) {
     if ((config.secondaryAFYPMin ?? 0) > 0)
