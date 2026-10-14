@@ -90,6 +90,9 @@ const createBlankBonusTier = (id: string, bonusType: BonusType = 'money'): Bonus
 const createDefaultBonusTiers = (prefix = 'draft-tier'): BonusTier[] =>
   Array.from({ length: 3 }, (_, index) => createBlankBonusTier(`${prefix}-${index + 1}`));
 
+const CONTEST_SOURCE_PAGE_SIZE = 100;
+const CONTEST_RESULT_PAGE_SIZE = 100;
+
 interface GroupLeader {
   agentCode: string; agentName: string; position: string;
 }
@@ -570,9 +573,27 @@ const ContestSourceRows = React.memo(function ContestSourceRows({ contracts, onD
   contracts: Contract[];
   onDelete: (id: string) => Promise<void>;
 }) {
-  return <TableBody>{contracts.map((c, idx) => (
-    <TableRow key={c.id} className="hover:bg-emerald-500/10 border-emerald-500/20"><TableCell className="text-center text-emerald-400/50 text-xs">{idx + 1}</TableCell><TableCell className="font-mono text-[10px] text-emerald-400 whitespace-nowrap">{c.maNhom}</TableCell><TableCell className="font-mono text-[10px] text-emerald-300/60 whitespace-nowrap">{c.agentCode}</TableCell><TableCell className="text-xs text-emerald-200 whitespace-nowrap">{c.agentName}</TableCell><TableCell className="text-[10px] text-emerald-300/70 whitespace-nowrap">{formatDate(c.effectiveDate)}</TableCell><TableCell className="font-semibold text-emerald-400 text-xs whitespace-nowrap">{formatNumber(c.pdt10DT)}</TableCell><TableCell><Button variant="ghost" size="sm" onClick={() => onDelete(c.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-300"><Trash2 className="w-3 h-3" /></Button></TableCell></TableRow>
-  ))}</TableBody>;
+  const [page, setPage] = useState(0);
+  const pageCount = Math.max(1, Math.ceil(contracts.length / CONTEST_SOURCE_PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const startIndex = safePage * CONTEST_SOURCE_PAGE_SIZE;
+  const visibleContracts = contracts.slice(startIndex, startIndex + CONTEST_SOURCE_PAGE_SIZE);
+
+  return <TableBody>{visibleContracts.map((c, idx) => (
+    <TableRow key={c.id} className="hover:bg-emerald-500/10 border-emerald-500/20"><TableCell className="text-center text-emerald-400/50 text-xs">{startIndex + idx + 1}</TableCell><TableCell className="font-mono text-[10px] text-emerald-400 whitespace-nowrap">{c.maNhom}</TableCell><TableCell className="font-mono text-[10px] text-emerald-300/60 whitespace-nowrap">{c.agentCode}</TableCell><TableCell className="text-xs text-emerald-200 whitespace-nowrap">{c.agentName}</TableCell><TableCell className="text-[10px] text-emerald-300/70 whitespace-nowrap">{formatDate(c.effectiveDate)}</TableCell><TableCell className="font-semibold text-emerald-400 text-xs whitespace-nowrap">{formatNumber(c.pdt10DT)}</TableCell><TableCell><Button variant="ghost" size="sm" onClick={() => onDelete(c.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-300"><Trash2 className="w-3 h-3" /></Button></TableCell></TableRow>
+  ))}
+  {pageCount > 1 && (
+    <TableRow className="border-emerald-500/20 bg-gray-950/70 hover:bg-gray-950/70">
+      <TableCell colSpan={7} className="py-2">
+        <div className="flex items-center justify-center gap-2 text-[10px] text-emerald-200/70">
+          <Button type="button" variant="outline" size="sm" disabled={safePage === 0} onClick={() => setPage(current => Math.max(0, current - 1))} className="h-6 border-emerald-500/30 bg-transparent px-2 text-[10px]">Trước</Button>
+          <span>Hiển thị {startIndex + 1}–{Math.min(startIndex + CONTEST_SOURCE_PAGE_SIZE, contracts.length)} / {contracts.length}</span>
+          <Button type="button" variant="outline" size="sm" disabled={safePage >= pageCount - 1} onClick={() => setPage(current => Math.min(pageCount - 1, current + 1))} className="h-6 border-emerald-500/30 bg-transparent px-2 text-[10px]">Sau</Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  )}
+  </TableBody>;
 });
 
 function getBonusMetricLabel(conditionType: ConditionType): string {
@@ -818,6 +839,7 @@ function ThiDuaPageInner() {
   const [showConfig, setShowConfig] = useState(false);
   const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
   const [isResultExpanded, setIsResultExpanded] = useState(false);
+  const [resultPage, setResultPage] = useState(0);
   const [thiDuaSubjects, setThiDuaSubjects] = useState<string>('');
   const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
   // Bộ đối tượng chính là chọn đơn (1 trong 9).  Mã ở mục “Khác” vẫn có
@@ -1407,6 +1429,19 @@ function ThiDuaPageInner() {
     return contractsFiltered;
   }, [filteredContracts, subjectCodes, targetType, leadersList, ntdCandidates, filterByEffectiveDate, tvvStructList]);
 
+  // Several contest summaries need every contract for the same agent. Build the
+  // index once instead of scanning the full contract list again for every row.
+  const displayContractsByAgent = useMemo(() => {
+    const index = new Map<string, Contract[]>();
+    for (const contract of displayContracts) {
+      if (!contract.agentCode) continue;
+      const rows = index.get(contract.agentCode);
+      if (rows) rows.push(contract);
+      else index.set(contract.agentCode, [contract]);
+    }
+    return index;
+  }, [displayContracts]);
+
   // filteredRevenueData & displayRevenueData removed — all data now sourced from Contracts table only
 
   // NYD data computation - use Recruiter table as primary reference
@@ -1538,11 +1573,11 @@ function ThiDuaPageInner() {
       const ownRevenue = agentFYPLookup.get(nydCode);
       nyd.ownFYP = ownRevenue ? (isAFYP ? ownRevenue.totalAFYP : ownRevenue.totalFYP) : 0;
       nyd.ownActivityRounds = ownRevenue?.activityRounds ?? 0;
-      nyd.contracts = [...recruitedContracts, ...displayContracts.filter(c => c.agentCode === nydCode)];
+      nyd.contracts = [...recruitedContracts, ...(displayContractsByAgent.get(nydCode) || [])];
     }
 
     return Array.from(nydMap.values());
-  }, [displayContracts, conditionType, ntdCandidates, subjectCodes, staffList, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode, calculateLuotWithStructure, recruitedAgentScope]);
+  }, [displayContracts, displayContractsByAgent, conditionType, ntdCandidates, subjectCodes, staffList, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode, calculateLuotWithStructure, recruitedAgentScope]);
 
   // Nhóm hiển thị luôn lấy theo Cấu trúc. Dữ liệu hợp đồng chỉ là nguồn doanh
   // số nên có thể thiếu tên/mã nhóm, nhưng không được làm trống cột Nhóm.
@@ -1698,24 +1733,27 @@ function ThiDuaPageInner() {
     }
     // Tính activityRounds từ Contracts cho từng agent
     for (const [key, agent] of agentMap) {
-      const agentContracts = displayContracts.filter(c => c.agentCode === key);
+      const agentContracts = displayContractsByAgent.get(key) || [];
       agent.activityRounds = calculateLuotWithStructure(agentContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
     }
+    const normalizedAgentCodes = new Set(Array.from(agentMap.keys(), key => norm(key).toLowerCase()));
     // Thêm TVV từ subjectCodes KHÔNG có trong dữ liệu (không có doanh thu → giá trị 0)
     if (subjectCodes.length > 0) {
       for (const code of subjectCodes) {
         const codeLower = norm(code).toLowerCase();
-        const found = Array.from(agentMap.keys()).some(k => norm(k).toLowerCase() === codeLower);
+        const found = normalizedAgentCodes.has(codeLower);
         if (!found) {
           const info = tvvStructList.find(t => t.agentCode.toLowerCase() === codeLower || norm(t.agentName || '').toLowerCase() === codeLower);
           const group = resolveTvvGroup(info?.agentCode || code, info?.maBanNhom || '');
-          agentMap.set(code, {
-            agentCode: info?.agentCode || code,
+          const resolvedCode = info?.agentCode || code;
+          agentMap.set(resolvedCode, {
+            agentCode: resolvedCode,
             agentName: group.agentName || info?.agentName || code,
             nhom: group.nhom,
             maNhom: group.maNhom,
             totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0,
           });
+          normalizedAgentCodes.add(norm(resolvedCode).toLowerCase());
         }
       }
     } else if (isTopN && tvvStructList && tvvStructList.length > 0) {
@@ -1725,7 +1763,7 @@ function ThiDuaPageInner() {
       for (const t of tvvStructList) {
         if (!t.agentCode) continue;
         const codeLower = t.agentCode.toLowerCase();
-        const found = Array.from(agentMap.keys()).some(k => norm(k).toLowerCase() === codeLower);
+        const found = normalizedAgentCodes.has(codeLower);
         if (!found) {
           const group = resolveTvvGroup(t.agentCode, t.maBanNhom || '');
           agentMap.set(t.agentCode, {
@@ -1735,6 +1773,7 @@ function ThiDuaPageInner() {
             maNhom: group.maNhom,
             totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0,
           });
+          normalizedAgentCodes.add(codeLower);
         }
       }
     } else if (tvvStructList && tvvStructList.length > 0) {
@@ -1747,7 +1786,7 @@ function ThiDuaPageInner() {
       for (const t of tvvStructList) {
         if (!t.agentCode) continue;
         const codeLower = t.agentCode.toLowerCase();
-        const found = Array.from(agentMap.keys()).some(k => norm(k).toLowerCase() === codeLower);
+        const found = normalizedAgentCodes.has(codeLower);
         if (!found) {
           const group = resolveTvvGroup(t.agentCode, t.maBanNhom || '');
           agentMap.set(t.agentCode, {
@@ -1757,6 +1796,7 @@ function ThiDuaPageInner() {
             maNhom: group.maNhom,
             totalFYP: 0, totalAFYP: 0, contractCount: 0, activityRounds: 0,
           });
+          normalizedAgentCodes.add(codeLower);
         }
       }
     }
@@ -1788,7 +1828,7 @@ function ThiDuaPageInner() {
       let phaseInfo = { phase1Bonus: 0, phase2Bonus: 0, phase1Tier: null as BonusTier | null, phase2Tier: null as BonusTier | null };
       if (usePhase2 && phase2StartDate) {
         const p2Start = new Date(phase2StartDate);
-        const agentContracts = displayContracts.filter(c => c.agentCode === agent.agentCode);
+        const agentContracts = displayContractsByAgent.get(agent.agentCode) || [];
         const p1Contracts = agentContracts.filter(c => new Date(c.effectiveDate) < p2Start);
         const p2Contracts = agentContracts.filter(c => new Date(c.effectiveDate) >= p2Start);
         const p1Revenue = p1Contracts.reduce((s, c) => s + c.pdt10DT, 0);
@@ -1862,7 +1902,7 @@ function ThiDuaPageInner() {
       });
     }
     return allRows;
-  }, [displayContracts, targetType, conditionType, subjectCodes, staffList, recruiterList, usePhase2, phase2StartDate, calculateBonus, getRemainingToNextTier, calculateBonusWithTiers, bonusTiers, bonusTiers2, computeBonusFromTier, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, topN, topNMinIP, topNValueType, tvvStructList, phongStructList, adStructList, banNhomStructList, resolveTvvGroup]);
+  }, [displayContracts, displayContractsByAgent, targetType, conditionType, subjectCodes, staffList, recruiterList, usePhase2, phase2StartDate, calculateBonus, getRemainingToNextTier, calculateBonusWithTiers, bonusTiers, bonusTiers2, computeBonusFromTier, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, topN, topNMinIP, topNValueType, tvvStructList, phongStructList, adStructList, banNhomStructList, resolveTvvGroup]);
 
   // Grouped data - CHỈ lấy nhóm từ Staff table (DS TN)
   // TẤT CẢ số liệu (FYP, lượt) đều từ Contracts (bảng HĐ) — không dùng MonthlyRevenue
@@ -2231,12 +2271,12 @@ function ThiDuaPageInner() {
       for (const contract of perContractDisplayContracts) {
         const value = getContractValue(contract);
         const tier = calculateBonus(value).tier;
-        const agentContracts = displayContracts.filter(row => row.agentCode === contract.agentCode);
+        const agentContracts = displayContractsByAgent.get(contract.agentCode) || [];
         candidates.push({ key: `contract:${contract.id}`, value, qualified: Boolean(tier) && passesSecondaryConditions(agentContracts) && passesTopEligibility(agentContracts, contract) });
       }
     } else if (targetType === 'tvv') {
       for (const row of tvvTotalRows) {
-        const agentContracts = displayContracts.filter(contract => contract.agentCode === row.agent.agentCode);
+        const agentContracts = displayContractsByAgent.get(row.agent.agentCode) || [];
         candidates.push({ key: `tvv:${row.agent.agentCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryConditions(agentContracts) && passesTopEligibility(agentContracts) });
       }
     } else if (targetType === 'nhom') {
@@ -2260,7 +2300,7 @@ function ThiDuaPageInner() {
     return buildCombinedTopRanking(candidates, topN, topRewardAmounts);
   }, [
     useTopRanking, conditionType, targetType, perContractDisplayContracts, tvvTotalRows, groupedData, nydData,
-    displayContracts, getContractValue, getGroupValue, calculateBonus, includeIndividualNTD, topN, topRewardAmounts,
+    displayContracts, displayContractsByAgent, getContractValue, getGroupValue, calculateBonus, includeIndividualNTD, topN, topRewardAmounts,
     useSecondaryCondition, secondaryTotalAFYPMin, secondaryTotalIPMin,
     secondaryContractCountMin, secondaryContractIPMin, secondaryLuotHDMin, secondaryLuotHDCMin,
     secondaryLuotHDFilter, secondaryLuotHDCFilter, luotHDThreshold, luotHDCTThreshold, tvvStructList,
@@ -2546,6 +2586,7 @@ function ThiDuaPageInner() {
 
   // Load contest with all new fields
   const handleLoadContest = (contestId: string) => {
+    setResultPage(0);
     setSelectedContestId(contestId); const contest = savedContests.find(c => c.id === contestId); if (!contest) return;
     setContestTitle(contest.title); setStartDate(new Date(contest.startDate).toISOString().slice(0, 10)); setEndDate(new Date(contest.endDate).toISOString().slice(0, 10));
     setConditionType(contest.conditionType as ConditionType);
@@ -3480,6 +3521,10 @@ function ThiDuaPageInner() {
     setIsDownloadingImage(true);
     try {
       const { getFontEmbedCSS, toBlob } = await import('html-to-image');
+      if (resultPage > 0) {
+        setResultPage(0);
+        await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      }
       if (!resultContentRef.current) {
         toast({ title: 'Lỗi', description: 'Không có nội dung để tải', variant: 'destructive' });
         return;
@@ -3740,6 +3785,10 @@ function ThiDuaPageInner() {
     setIsDownloadingImage(true);
     try {
       const { toBlob } = await import('html-to-image');
+      if (resultPage > 0) {
+        setResultPage(0);
+        await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      }
       if (!resultContentRef.current) {
         toast({ title: 'Lỗi', description: 'Không có nội dung để chia sẻ', variant: 'destructive' });
         return;
@@ -3819,11 +3868,11 @@ function ThiDuaPageInner() {
     let tvvTotalBonus: number;
     if (targetType === 'tvv' && !isPerContractMode(conditionType)) {
       tvvAchievedCount = tvvTotalRows.filter(r => {
-        const entityContracts = displayContracts.filter(c => c.agentCode === r.agent.agentCode);
+        const entityContracts = displayContractsByAgent.get(r.agent.agentCode) || [];
         return r.tier && checkSecondaryTotalCondition(entityContracts).passed;
       }).length;
       tvvTotalBonus = tvvTotalRows.reduce((sum, r) => {
-        const entityContracts = displayContracts.filter(c => c.agentCode === r.agent.agentCode);
+        const entityContracts = displayContractsByAgent.get(r.agent.agentCode) || [];
         if (!r.tier || !checkSecondaryTotalCondition(entityContracts).passed) return sum;
         const entityIP = entityContracts.reduce((total, contract) => total + contract.pdt10DT, 0);
         return sum + computeBonusFromTier(r.tier, entityIP, isActivityRoundMode(conditionType) ? r.value : undefined, entityIP);
@@ -3831,11 +3880,11 @@ function ThiDuaPageInner() {
     } else {
       const contractValue = (c: Contract) => conditionType === 'per_contract_afyp' ? c.afyp : c.pdt10DT;
       tvvAchievedCount = perContractDisplayContracts.filter(c => {
-        const entityContracts = displayContracts.filter(row => row.agentCode === c.agentCode);
+        const entityContracts = displayContractsByAgent.get(c.agentCode) || [];
         return calculateBonus(contractValue(c)).tier && checkSecondaryTotalCondition(entityContracts).passed;
       }).length;
       tvvTotalBonus = perContractDisplayContracts.reduce((sum, c) => {
-        const entityContracts = displayContracts.filter(row => row.agentCode === c.agentCode);
+        const entityContracts = displayContractsByAgent.get(c.agentCode) || [];
         if (!checkSecondaryTotalCondition(entityContracts).passed) return sum;
         const { tier } = calculateBonus(contractValue(c));
         if (!tier) return sum;
@@ -3943,7 +3992,7 @@ function ThiDuaPageInner() {
       baseTotalBonus, totalBonusDisplay, displayTotalFYP,
       totalFYPValue, totalValue, matchedTotalTier, totalRemaining
     };
-  }, [displayContracts, perContractDisplayContracts, groupedData, nydData, tvvTotalRows, conditionType, targetType, includeIndividualTN, includeIndividualNTD, usePhase2, phase2Results, calculateBonus, calculateActivityRoundBonus, getActivityRoundBonusAmount, getRemainingToNextTier, checkSecondaryTotalCondition]);
+  }, [displayContracts, displayContractsByAgent, perContractDisplayContracts, groupedData, nydData, tvvTotalRows, conditionType, targetType, includeIndividualTN, includeIndividualNTD, usePhase2, phase2Results, calculateBonus, calculateActivityRoundBonus, getActivityRoundBonusAmount, getRemainingToNextTier, checkSecondaryTotalCondition]);
 
   const { totalFYP, tvvAchievedCount, tvvTotalBonus, nhomAchievedCount, nhomTotalFYP, nhomTotalBonus, arAchievedCount, arNotAchievedCount, arTotalBonus, nydAchievedCount, nydNotAchievedCount, nydTotalBonus, achievedCount, notAchievedCount, baseTotalBonus, totalBonusDisplay, displayTotalFYP, totalFYPValue, totalValue, matchedTotalTier, totalRemaining } = stats;
 
@@ -3986,6 +4035,7 @@ function ThiDuaPageInner() {
       toast({ title: 'Thông báo', description: 'Không tìm thấy hợp đồng nào phù hợp' });
       return;
     }
+    setResultPage(0);
     setFilteredContracts(results);
     setIsResultDialogOpen(true);
   };
@@ -4121,6 +4171,46 @@ function ThiDuaPageInner() {
       return { nyd: n, tier, tierIndex, remaining, value, secondaryCheck, effectiveTier };
     }).sort((a, b) => b.value - a.value);
   }, [nydData, conditionType, includeIndividualNTD, calculateBonus, getRemainingToNextTier, checkSecondaryTotalCondition]);
+
+  // Prepare the expensive per-contract result once and render only one page in
+  // the dialog. Excel/copy calculations continue to use the complete arrays.
+  const perContractResultRows = useMemo(() => {
+    if (targetType !== 'tvv' || !isPerContractMode(conditionType)) return [];
+    return perContractDisplayContracts.map(contract => {
+      const cValue = getContractValue(contract);
+      const { tier } = calculateBonus(cValue);
+      const remaining = getRemainingToNextTier(cValue);
+      const agentContracts = displayContractsByAgent.get(contract.agentCode) || [];
+      const phaseInfo = getRowPhaseBonus(cValue, contract.pdt10DT, sumContractIP(agentContracts), contract.effectiveDate);
+      const secondaryCheck = checkSecondaryTotalCondition(agentContracts);
+      const secondaryPassed = secondaryCheck.passed;
+      const effectiveTier = secondaryPassed ? tier : null;
+      return { contract, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier, agentContracts };
+    }).sort((a, b) => b.cValue - a.cValue);
+  }, [targetType, conditionType, perContractDisplayContracts, getContractValue, calculateBonus, getRemainingToNextTier, displayContractsByAgent, getRowPhaseBonus, checkSecondaryTotalCondition]);
+
+  const filteredPerContractResultRows = useMemo(
+    () => hideNotAchieved ? perContractResultRows.filter(row => row.tier) : perContractResultRows,
+    [hideNotAchieved, perContractResultRows],
+  );
+  const filteredTvvTotalRows = useMemo(
+    () => tvvTotalRows.filter(row => (!hideNotAchieved || row.tier) && (row.agent.nhom || row.agent.maNhom)),
+    [hideNotAchieved, tvvTotalRows],
+  );
+  const paginatedResultTotal = targetType === 'tvv'
+    ? (isPerContractMode(conditionType) ? filteredPerContractResultRows.length : filteredTvvTotalRows.length)
+    : 0;
+  const resultPageCount = Math.max(1, Math.ceil(paginatedResultTotal / CONTEST_RESULT_PAGE_SIZE));
+  const safeResultPage = Math.min(resultPage, resultPageCount - 1);
+  const resultPageStart = safeResultPage * CONTEST_RESULT_PAGE_SIZE;
+  const visiblePerContractResultRows = useMemo(
+    () => filteredPerContractResultRows.slice(resultPageStart, resultPageStart + CONTEST_RESULT_PAGE_SIZE),
+    [filteredPerContractResultRows, resultPageStart],
+  );
+  const visibleTvvTotalRows = useMemo(
+    () => filteredTvvTotalRows.slice(resultPageStart, resultPageStart + CONTEST_RESULT_PAGE_SIZE),
+    [filteredTvvTotalRows, resultPageStart],
+  );
 
   const renderSavedContestMenuRow = (contest: SavedContest, showStartDate = false) => (
     <div key={contest.id} className="group flex items-center gap-1 rounded-md">
@@ -5599,23 +5689,11 @@ function ThiDuaPageInner() {
                           <TableCell className="whitespace-nowrap">{getCombinedTopNote(`nhom:${group.maNhom}`) ? <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Crown className="w-4 h-4" />{getCombinedTopNote(`nhom:${group.maNhom}`)}</span> : !effectiveTier && remaining !== null ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : isActivityRoundMode(conditionType) ? `- ${String(Math.ceil(remaining)).padStart(2, '0')} lượt` : `- ${formatNumber(remaining)}`}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span> : null}</TableCell>
                         </TableRow>
                       );
-                    }) : isPerContractMode(conditionType) ? perContractDisplayContracts.map((c) => {
-                      const cValue = getContractValue(c);
-                      const { tier } = calculateBonus(cValue);
-                      const remaining = getRemainingToNextTier(cValue);
-                      // Kiểm tra điều kiện bổ sung Tổng AFYP/Tổng IP cho TVV
-                      const agentContracts = displayContracts.filter(ac => ac.agentCode === c.agentCode);
-                      const phaseInfo = getRowPhaseBonus(cValue, c.pdt10DT, sumContractIP(agentContracts), c.effectiveDate);
-                      const secondaryCheck = checkSecondaryTotalCondition(agentContracts);
-                      const secondaryPassed = secondaryCheck.passed;
-                      const effectiveTier = secondaryPassed ? tier : null;
-                      return { contract: c, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier, agentContracts };
-                    }).sort((a, b) => b.cValue - a.cValue).map(({ contract, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier, agentContracts }, idx) => {
-                      if (hideNotAchieved && !tier) return null;
+                    }) : isPerContractMode(conditionType) ? visiblePerContractResultRows.map(({ contract, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier, agentContracts }, idx) => {
                       const group = resolveTvvGroup(contract.agentCode, contract.maNhom, contract.nhom);
                       return (
                         <TableRow key={contract.id} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
-                          <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
+                          <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{resultPageStart + idx + 1}</TableCell>
                           <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{group.nhom}</TableCell>
                           <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{contract.agentCode}</TableCell>
                           <TableCell className="text-xs text-gray-800 whitespace-nowrap">{contract.agentName}</TableCell>
@@ -5676,11 +5754,9 @@ function ThiDuaPageInner() {
                         : [];
                       const qualifiedIdxMap = new Map<string, number>(); // agentCode → qualifier rank (0-based)
                       qualifiedRows.forEach((q, qi) => qualifiedIdxMap.set(q.r.agent.agentCode, qi));
-                      return tvvTotalRows.map(({ agent, value, tier, remaining, phaseInfo }, idx) => {
-                        if (hideNotAchieved && !tier) return null;
-                        if (!agent.nhom && !agent.maNhom) return null;
+                      return visibleTvvTotalRows.map(({ agent, value, tier, remaining, phaseInfo }, idx) => {
                         // Kiểm tra điều kiện bổ sung Tổng AFYP/Tổng IP
-                        const agentContracts = displayContracts.filter(c => c.agentCode === agent.agentCode);
+                        const agentContracts = displayContractsByAgent.get(agent.agentCode) || [];
                         const secondaryCheck = checkSecondaryTotalCondition(agentContracts);
                         const secondaryPassed = secondaryCheck.passed;
                         // Nếu có điều kiện bổ sung mà không đạt → không được thưởng (nhưng vẫn hiển thị)
@@ -5714,7 +5790,7 @@ function ThiDuaPageInner() {
                             : null;
                         return (
                           <TableRow key={agent.agentCode} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
-                            <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
+                            <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{resultPageStart + idx + 1}</TableCell>
                             <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{agent.nhom || '—'}</TableCell>
                             <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{agent.agentCode}</TableCell>
                             <TableCell className="text-xs text-gray-800 whitespace-nowrap">{agent.agentName}</TableCell>
@@ -5762,6 +5838,13 @@ function ThiDuaPageInner() {
               </div>
             </div>
           </div>
+          {paginatedResultTotal > CONTEST_RESULT_PAGE_SIZE && (
+            <div className="flex items-center justify-center gap-3 border-t border-gray-200 bg-white px-3 py-2 text-xs text-gray-600">
+              <Button type="button" variant="outline" size="sm" disabled={safeResultPage === 0} onClick={() => setResultPage(current => Math.max(0, current - 1))} className="h-7 border-gray-300 px-3 text-xs text-gray-700">Trước</Button>
+              <span>Hiển thị {resultPageStart + 1}–{Math.min(resultPageStart + CONTEST_RESULT_PAGE_SIZE, paginatedResultTotal)} / {paginatedResultTotal}</span>
+              <Button type="button" variant="outline" size="sm" disabled={safeResultPage >= resultPageCount - 1} onClick={() => setResultPage(current => Math.min(resultPageCount - 1, current + 1))} className="h-7 border-gray-300 px-3 text-xs text-gray-700">Sau</Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

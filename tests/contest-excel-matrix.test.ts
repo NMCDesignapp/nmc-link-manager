@@ -89,8 +89,8 @@ test('mọi bề mặt kết quả dùng hợp đồng IP làm căn cứ thưở
   assert.match(savedPage, /formatBonusAmountFromContracts/);
   assert.match(livePage, /return \{ c, cValue, tier, effectiveTier, sc, agentContracts \};/);
   assert.match(livePage, /map\(\(\{ c, cValue, tier, effectiveTier, sc, agentContracts \}, idx\) =>/);
-  assert.match(livePage, /return \{ contract: c, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier, agentContracts \};/);
-  assert.match(livePage, /map\(\(\{ contract, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier, agentContracts \}, idx\) =>/);
+  assert.match(livePage, /return \{ contract, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier, agentContracts \};/);
+  assert.match(livePage, /visiblePerContractResultRows\.map\(\(\{ contract, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier, agentContracts \}, idx\) =>/);
   assert.doesNotMatch(livePage, /formatBonusAmount\(effectiveTier,\s*(?:value|groupMetricValue|0,\s*tvvPassCount)/);
   assert.doesNotMatch(livePage, /formatBonus\(tier,\s*value/);
   assert.doesNotMatch(savedPage, /formatBonusAmount\(row\.effectiveTier,\s*row\.value/);
@@ -106,6 +106,19 @@ test('tải ảnh kết quả có giới hạn thời gian, phương án dự ph
   assert.match(livePage, /restoreAllScrollbars\(\)/);
   assert.match(livePage, /removeAttribute\('data-contest-image-skip'\)/);
   assert.match(livePage, /setIsDownloadingImage\(false\)/);
+});
+
+test('trang thi đua phân trang bảng lớn và tái sử dụng chỉ mục hợp đồng theo TVV', () => {
+  const livePage = readFileSync(new URL('../src/app/thi-dua-chau/page.tsx', import.meta.url), 'utf8');
+
+  assert.match(livePage, /const CONTEST_SOURCE_PAGE_SIZE = 100/);
+  assert.match(livePage, /const CONTEST_RESULT_PAGE_SIZE = 100/);
+  assert.match(livePage, /const displayContractsByAgent = useMemo/);
+  assert.match(livePage, /visiblePerContractResultRows\.map/);
+  assert.match(livePage, /visibleTvvTotalRows\.map/);
+  assert.match(livePage, /Hiển thị \{resultPageStart \+ 1\}/);
+  assert.match(livePage, /rows = perContractDisplayContracts\.map/);
+  assert.match(livePage, /rows = tvvTotalRows\.map/);
 });
 
 test('chi tiết lượt chỉ giữ dòng thực sự tạo lượt từ TÍNH LƯỢT 3tr', () => {
