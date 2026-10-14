@@ -1375,6 +1375,9 @@ export function computeTVVTotalRows(
     : config.luotHDThreshold;
   const structureStartDates = buildStructureStartDateMap(tvvStructList);
 
+  const agentContractsByCode = new Map<string, Contract[]>();
+  const knownAgentCodes = new Set<string>();
+  const phase2Boundary = config.usePhase2 && config.phase2StartDate ? new Date(config.phase2StartDate) : null;
   const agentMap = new Map<
     string,
     {
@@ -1391,6 +1394,10 @@ export function computeTVVTotalRows(
   for (const c of displayContracts) {
     const key = c.agentCode;
     if (!key) continue;
+    const bucket = agentContractsByCode.get(key);
+    if (bucket) bucket.push(c);
+    else agentContractsByCode.set(key, [c]);
+    knownAgentCodes.add(norm(key).toLowerCase());
     const existing = agentMap.get(key);
     if (existing) {
       existing.totalFYP += c.pdt10DT;
@@ -1410,9 +1417,7 @@ export function computeTVVTotalRows(
     }
   }
   for (const [key, agent] of agentMap) {
-    const agentContracts = displayContracts.filter(
-      (c) => c.agentCode === key
-    );
+    const agentContracts = agentContractsByCode.get(key) || [];
     agent.activityRounds = calculateLuot(
       agentContracts,
       luotThreshold,
@@ -1426,9 +1431,7 @@ export function computeTVVTotalRows(
   if (subjectCodes.length > 0) {
     for (const code of subjectCodes) {
       const codeLower = norm(code).toLowerCase();
-      const found = Array.from(agentMap.keys()).some(
-        (k) => norm(k).toLowerCase() === codeLower
-      );
+      const found = knownAgentCodes.has(codeLower);
       if (!found) {
         const structMember = tvvStructList?.find(
           (t) =>
@@ -1449,6 +1452,7 @@ export function computeTVVTotalRows(
           : null;
         const info = structMember || staff || recruiter;
         const resolvedCode = info?.agentCode || code;
+        knownAgentCodes.add(norm(resolvedCode).toLowerCase());
         agentMap.set(resolvedCode, {
           agentCode: resolvedCode,
           agentName: info?.agentName || code,
@@ -1468,10 +1472,9 @@ export function computeTVVTotalRows(
     for (const t of tvvStructList) {
       if (!t.agentCode) continue;
       const codeLower = t.agentCode.toLowerCase();
-      const found = Array.from(agentMap.keys()).some(
-        (k) => norm(k).toLowerCase() === codeLower
-      );
+      const found = knownAgentCodes.has(codeLower);
       if (!found) {
+        knownAgentCodes.add(codeLower);
         agentMap.set(t.agentCode, {
           agentCode: t.agentCode,
           agentName: t.agentName || t.agentCode,
@@ -1494,10 +1497,9 @@ export function computeTVVTotalRows(
     for (const t of tvvStructList) {
       if (!t.agentCode) continue;
       const codeLower = t.agentCode.toLowerCase();
-      const found = Array.from(agentMap.keys()).some(
-        (k) => norm(k).toLowerCase() === codeLower
-      );
+      const found = knownAgentCodes.has(codeLower);
       if (!found) {
+        knownAgentCodes.add(codeLower);
         agentMap.set(t.agentCode, {
           agentCode: t.agentCode,
           agentName: t.agentName || t.agentCode,
@@ -1540,16 +1542,13 @@ export function computeTVVTotalRows(
         phase1Tier: null as BonusTier | null,
         phase2Tier: null as BonusTier | null,
       };
-      if (config.usePhase2 && config.phase2StartDate) {
-        const p2Start = new Date(config.phase2StartDate);
-        const agentContracts = displayContracts.filter(
-          (c) => c.agentCode === agent.agentCode
-        );
+      if (phase2Boundary) {
+        const agentContracts = agentContractsByCode.get(agent.agentCode) || [];
         const p1Contracts = agentContracts.filter(
-          (c) => new Date(c.effectiveDate) < p2Start
+          (c) => new Date(c.effectiveDate) < phase2Boundary
         );
         const p2Contracts = agentContracts.filter(
-          (c) => new Date(c.effectiveDate) >= p2Start
+          (c) => new Date(c.effectiveDate) >= phase2Boundary
         );
         const p1Revenue = p1Contracts.reduce((s, c) => s + c.pdt10DT, 0);
         const p2Revenue = p2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
