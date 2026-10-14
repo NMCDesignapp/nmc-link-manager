@@ -3188,8 +3188,8 @@ function ThiDuaPageInner() {
             const agentContracts = displayContracts.filter(ac => ac.agentCode === c.agentCode);
             const sc = checkSecondaryTotalCondition(agentContracts);
             const effectiveTier = sc.passed ? tier : null;
-            return { c, cValue, tier, effectiveTier, sc };
-          }).sort((a, b) => b.cValue - a.cValue).map(({ c, cValue, tier, effectiveTier, sc }, idx) => {
+            return { c, cValue, tier, effectiveTier, sc, agentContracts };
+          }).sort((a, b) => b.cValue - a.cValue).map(({ c, cValue, tier, effectiveTier, sc, agentContracts }, idx) => {
             const base: (string | number)[] = [idx + 1, c.nhom || '—', c.agentCode, c.agentName, c.contractNumber || '', formatDate(c.effectiveDate), formatDate(c.issueDate), cValue];
             if (useSecondaryCondition && secondaryAFYPMin > 0 && !isAFYP) base.push(c.afyp);
             if (useSecondaryCondition && secondaryIPMin > 0 && isAFYP) base.push(c.pdt10DT);
