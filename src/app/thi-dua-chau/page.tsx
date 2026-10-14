@@ -149,7 +149,7 @@ interface TVVStructItem {
 
 interface SavedContest {
   id: string; title: string; startDate: string; endDate: string;
-  issueDate: string | null; conditionType: string; targetType: string;
+  issueDate: string | null; issueEndDate?: string | null; conditionType: string; targetType: string;
   bonusTiers: string; posterUrl?: string; participants?: string;
   usePhase2?: boolean; phase2StartDate?: string | null; phase2EndDate?: string | null; bonusTiers2?: string;
   useSecondaryCondition?: boolean; secondaryAFYPMin?: number; secondaryIPMin?: number;
@@ -2471,6 +2471,7 @@ function ThiDuaPageInner() {
     try {
       const res = await fetch('/api/contests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
         title: contestTitle, startDate, endDate, issueDate: issueStartDate || undefined,
+        issueEndDate: issueEndDate || null,
         conditionType, targetType: (conditionType === 'tvv_pass_count' || conditionType === 'pass_count_ip_afyp') ? 'nhom' : targetType, bonusTiers: JSON.stringify(bonusTiers),
         posterUrl, participants: JSON.stringify(subjectCodes),
         usePhase2, phase2StartDate: phase2StartDate || undefined, phase2EndDate: phase2EndDate || undefined,
@@ -2595,7 +2596,7 @@ function ThiDuaPageInner() {
     // tvv_pass_count chỉ dành cho nhóm → tự động set targetType = 'nhom'
     setTargetType((contest.conditionType === 'tvv_pass_count' || contest.conditionType === 'pass_count_ip_afyp' ? 'nhom' : (contest.targetType || 'tvv')) as TargetType);
     if (contest.issueDate) setIssueStartDate(new Date(contest.issueDate).toISOString().slice(0, 10)); else setIssueStartDate('');
-    setIssueEndDate(''); // issueEndDate not stored in contest yet
+    setIssueEndDate(contest.issueEndDate ? String(contest.issueEndDate).slice(0, 10) : '');
     try { const tiers = JSON.parse(contest.bonusTiers); if (Array.isArray(tiers)) setBonusTiers(tiers.length > 0 ? tiers : createDefaultBonusTiers()); } catch { setBonusTiers(createDefaultBonusTiers()); }
     // Startup only preloads the lightweight contest summary. Load the potentially
     // large poster only when this particular contest is opened.
@@ -2670,8 +2671,8 @@ function ThiDuaPageInner() {
       activityMetric: 'total_ip', activityComparator: 'gte', activityThreshold: 0, activityBonusAmount: 0,
     });
     // pass_count_ip_afyp: load IP min + AFYP min (reuse secondaryIPMin + secondaryAFYPMin)
-    setPassCountIPMin(contest.secondaryIPMin || 6000000);
-    setPassCountAFYPMin(contest.secondaryAFYPMin || 12000000);
+    setPassCountIPMin(contest.secondaryIPMin ?? 6000000);
+    setPassCountAFYPMin(contest.secondaryAFYPMin ?? 12000000);
     setTimeout(() => handleSearchRef.current(), 100);
   };
 
