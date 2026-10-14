@@ -3780,83 +3780,6 @@ function ThiDuaPageInner() {
     }
   };
 
-  // Share image function - capture result as image and share via Web Share API
-  const handleShareImage = async () => {
-    setIsDownloadingImage(true);
-    try {
-      const { toBlob } = await import('html-to-image');
-      if (resultPage > 0) {
-        setResultPage(0);
-        await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-      }
-      if (!resultContentRef.current) {
-        toast({ title: 'Lỗi', description: 'Không có nội dung để chia sẻ', variant: 'destructive' });
-        return;
-      }
-      // Temporarily set width to fit-content for tight capture (no white side borders)
-      const el = resultContentRef.current;
-      const origWidth = el.style.width;
-      const origOverflow = el.style.overflow;
-      const skippedRows = Array.from(
-        el.querySelectorAll<HTMLElement>('#result-table-container tbody > tr'),
-      ).slice(20);
-      let blob: Blob | null = null;
-      try {
-        el.style.width = 'fit-content';
-        el.style.overflow = 'hidden';
-        skippedRows.forEach(row => row.setAttribute('data-contest-image-skip', 'true'));
-        hideAllScrollbars();
-        blob = await withContestImageTimeout(
-          toBlob(el, {
-            quality: 1,
-            pixelRatio: 2,
-            backgroundColor: '#ffffff',
-            cacheBust: false,
-            skipFonts: true,
-            filter: node => node.getAttribute?.('data-contest-image-skip') !== 'true',
-          }),
-          CONTEST_IMAGE_RENDER_TIMEOUT_MS,
-          'Tạo ảnh chia sẻ quá thời gian',
-        );
-      } finally {
-        el.style.width = origWidth;
-        el.style.overflow = origOverflow;
-        skippedRows.forEach(row => row.removeAttribute('data-contest-image-skip'));
-        restoreAllScrollbars();
-      }
-      if (!blob) {
-        toast({ title: 'Lỗi', description: 'Không thể tạo ảnh', variant: 'destructive' });
-        return;
-      }
-      const file = new File([blob], `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.png`, { type: 'image/png' });
-
-      // Try Web Share API first (mobile-friendly)
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          title: contestTitle || 'Kết quả thi đua',
-          text: `${contestTitle} — Từ ${startDate ? formatDate(startDate) : '...'} đến ${endDate ? formatDate(endDate) : '...'}`,
-          files: [file],
-        });
-        toast({ title: 'Thành công', description: 'Đã chia sẻ ảnh' });
-      } else {
-        // Fallback: download the image
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.download = `ket_qua_thi_dua_${new Date().toISOString().slice(0, 10)}.png`;
-        link.href = url;
-        link.click();
-        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-        toast({ title: 'Thành công', description: 'Đã tải ảnh xuống (trình duyệt không hỗ trợ chia sẻ)' });
-      }
-    } catch (error) {
-      if ((error as Error)?.name === 'AbortError') return; // User cancelled share
-      console.error('Share image error:', error);
-      toast({ title: 'Lỗi', description: 'Không thể chia sẻ ảnh', variant: 'destructive' });
-    } finally {
-      setIsDownloadingImage(false);
-    }
-  };
-
   // Consolidated stats computation - single useMemo for all derived values
   const stats = useMemo(() => {
     // Tổng IP/AFYP: dùng displayContracts (nguồn duy nhất) cho TẤT CẢ chế độ
@@ -5206,11 +5129,6 @@ function ThiDuaPageInner() {
               {!isEmbedMode && (
                 <Button variant="outline" size="sm" onClick={() => setIsResultExpanded(!isResultExpanded)} className="border-gray-300 text-gray-700 h-7 w-7 p-0 hover:bg-gray-100">
                   {isResultExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-                </Button>
-              )}
-              {(!isEmbedMode || showEmbedActions) && (
-                <Button variant="outline" size="sm" onClick={handleShareImage} disabled={isDownloadingImage} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100">
-                  {isDownloadingImage ? <Loader2 className="w-3 h-3 sm:mr-1 animate-spin" /> : <ImageIcon className="w-3 h-3 sm:mr-1" />}<span className="hidden sm:inline">Chia sẻ ảnh</span>
                 </Button>
               )}
               {(!isEmbedMode || showEmbedActions) && (
