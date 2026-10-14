@@ -10,6 +10,9 @@ import {
   calculateActivityRoundBonusWithTiers,
   calculateBonusWithTiers,
   doesTVVPassReferenceContest,
+  getReferenceContestPassingAgentCodes,
+  computeTVVTotalRows,
+  computeTVVPerContractRows,
   evaluateSecondaryConditions,
   filterByEffectiveDateRule,
   getGroupTVVPassCountForReference,
@@ -373,4 +376,91 @@ test('Không đếm trùng số HĐ, và chương trình cũ không bật chỉ 
   assert.equal(result.passed, false);
   assert.equal(evaluateSecondaryConditions([a, b], { useSecondaryCondition: false, secondaryContractCountMin: 3, secondaryContractIPMin: 12_000_000 }).passed, true);
   assert.equal(evaluateSecondaryConditions([a, b], { useSecondaryCondition: true }).passed, true);
+});
+
+test('đếm TVV tham chiếu hàng loạt khớp kết quả từng TVV, cả IP và chỉ tiêu HĐ độc lập', () => {
+  const contracts = [
+    { ...makeContract('TVV-1', 'NTD', 22_000_000), id: 'c1', contractNumber: 'HD-1' },
+    { ...makeContract('TVV-1', 'NTD', 12_000_000), id: 'c2', contractNumber: 'HD-2' },
+    { ...makeContract('TVV-1', 'NTD', 11_000_000), id: 'c3', contractNumber: 'HD-3' },
+    { ...makeContract('TVV-2', 'NTD', 30_000_000), id: 'c4', contractNumber: 'HD-4' },
+    { ...makeContract('TVV-3', 'NTD', 10_000_000), id: 'c5', contractNumber: 'HD-5' },
+  ];
+  const members = ['TVV-1', 'TVV-2', 'TVV-3'].map((code) => structure(code, 'NTD'));
+  const ref = {
+    ...config, targetType: 'tvv', conditionType: 'total_ip',
+    bonusTiers: JSON.stringify([{ ...tier, minFYP: 45_000_000 }]),
+    bonusTiers2: JSON.stringify([]),
+    participants: JSON.stringify([]),
+    useSecondaryCondition: true,
+    secondaryContractCountMin: 2,
+    secondaryContractIPMin: 12_000_000,
+    secondaryLuotHDCMin: 0,
+    secondaryLuotHDMin: 0,
+  };
+  const passing = getReferenceContestPassingAgentCodes(ref, contracts, [], [], members);
+  assert.deepEqual([...passing], ['TVV-1']);
+  for (const code of ['TVV-1', 'TVV-2', 'TVV-3']) {
+    assert.equal(passing.has(code), doesTVVPassReferenceContest(code, ref, contracts, [], [], members));
+  }
+  assert.equal(getReferenceContestPassingAgentCodes(null, contracts, [], [], members).size, 0);
+  assert.equal(getReferenceContestPassingAgentCodes({ ...ref, targetType: 'nhom' }, contracts, [], [], members).size, 0);
+});
+
+test('đếm TVV tham chiếu từng HĐ không tính trùng TVV; không có dữ liệu không tự đạt', () => {
+  const contracts = [
+    { ...makeContract('TVV-1', 'NTD', 15_000_000), id: 'a', contractNumber: 'a' },
+    { ...makeContract('TVV-1', 'NTD', 20_000_000), id: 'b', contractNumber: 'b' },
+    { ...makeContract('TVV-2', 'NTD', 7_000_000), id: 'c', contractNumber: 'c' },
+  ];
+  const members = ['TVV-1', 'TVV-2', 'TVV-3'].map(code => structure(code, 'NTD'));
+  const ref = {
+    ...config, conditionType: 'per_contract_ip', targetType: 'tvv',
+    bonusTiers: JSON.stringify([{ ...tier, minFYP: 12_000_000 }]),
+    bonusTiers2: JSON.stringify([]),
+    participants: JSON.stringify([]),
+    useSecondaryCondition: false,
+  };
+  assert.deepEqual([...getReferenceContestPassingAgentCodes(ref, contracts, [], [], members)], ['TVV-1']);
+  assert.equal(getReferenceContestPassingAgentCodes(ref, [], [], [], []).size, 0);
+});
+
+test('bộ tính tham chiếu và bảng TVV không quét lại toàn bộ hợp đồng theo từng TVV', () => {
+  const manyContracts: Contract[] = [];
+  const members: TVVStructMember[] = [];
+  for (let i = 0; i < 1200; i++) {
+    const code = `TVV-${i}`;
+    members.push(structure(code, 'NTD'));
+    manyContracts.push({
+      ...makeContract(code, 'NTD', 12_000_000),
+      id: `hda-${i}`, contractNumber: `hda-${i}`,
+    });
+    manyContracts.push({
+      ...makeContract(code, 'NTD', 13_000_000),
+      id: `hdb-${i}`, contractNumber: `hdb-${i}`,
+    });
+  }
+  const ref = {
+    ...config, targetType: 'tvv', conditionType: 'total_ip',
+    useSecondaryCondition: false,
+    bonusTiers: JSON.stringify([{ ...tier, minFYP: 20_000_000 }]),
+    bonusTiers2: JSON.stringify([]),
+    participants: JSON.stringify([]),
+  };
+  const start = performance.now();
+  const passing = getReferenceContestPassingAgentCodes(ref, manyContracts, [], [], members);
+  assert.equal(passing.size, 1200);
+  const elapsed = performance.now() - start;
+  assert.ok(elapsed < 4500, `Tính 1200 TVV tham chiếu mất ${Math.round(elapsed)}ms; có thể vẫn quét lặp`);
+  const rows = computeTVVTotalRows(manyContracts, {
+    ...config, targetType: 'tvv', useSecondaryCondition: false,
+    bonusTiers: [{ ...tier, minFYP: 20_000_000 }], participants: [],
+  }, [], [], members);
+  assert.equal(rows.filter(row => Boolean(row.tier)).length, 1200);
+  const perContract = computeTVVPerContractRows(manyContracts, {
+    ...config, targetType: 'tvv', conditionType: 'per_contract_ip',
+    useSecondaryCondition: false,
+    bonusTiers: [{ ...tier, minFYP: 12_000_000 }], participants: [],
+  }, members);
+  assert.equal(perContract.filter(row => Boolean(row.effectiveTier)).length, 2400);
 });

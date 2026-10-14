@@ -54,7 +54,8 @@ import {
   computeNYDData,
   computeNYDResultRows,
   evaluateSecondaryConditions,
-  getGroupTVVPassCountForReference,
+  getGroupTVVAgentCodes,
+  getReferenceContestPassingAgentCodes,
   getGroupTVVPassCountIPAFYP,
   calculateNYDPhaseOutcome,
   calculateBonusWithTiers,
@@ -339,18 +340,31 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     () => (appData.contests || []).find((item: any) => item.id === config.referenceContestId) || null,
     [appData.contests, config.referenceContestId]
   );
+  // Tránh tính lại kết quả CTĐK cho từng TVV/từng nhóm khi mở Sao Việt.
+  const referencePassingCodes = useMemo(() => {
+    if (config.conditionType !== 'tvv_pass_count' || !referenceContest) return new Set<string>();
+    return getReferenceContestPassingAgentCodes(
+      referenceContest, allContracts, staffList, recruiterList, tvvStructList, priorityTvvCodes,
+    );
+  }, [config.conditionType, referenceContest, allContracts, staffList, recruiterList, tvvStructList, priorityTvvCodes]);
+
+  const referencePassCountByGroup = useMemo(() => {
+    const counts = new Map<string, number>();
+    if (config.conditionType !== 'tvv_pass_count' || !referenceContest) return counts;
+    for (const group of groupedData) {
+      const leaderCode = group.leader?.agentCode || '';
+      let count = 0;
+      for (const code of getGroupTVVAgentCodes(group, allContracts, staffList, tvvStructList)) {
+        if (!(config.includeTNInPassCount ?? false) && leaderCode && code === leaderCode) continue;
+        if (referencePassingCodes.has(code)) count++;
+      }
+      counts.set(group.maNhom, count);
+    }
+    return counts;
+  }, [config.conditionType, config.includeTNInPassCount, referenceContest, referencePassingCodes, groupedData, allContracts, staffList, tvvStructList]);
   const resolveGroupMetricValue = useCallback((group: GroupData): number => {
     if (config.conditionType === 'tvv_pass_count') {
-      return getGroupTVVPassCountForReference(
-        group,
-        referenceContest,
-        allContracts,
-        staffList,
-        recruiterList,
-        tvvStructList,
-        config.includeTNInPassCount ?? false,
-        priorityTvvCodes
-      );
+      return referencePassCountByGroup.get(group.maNhom) || 0;
     }
     if (config.conditionType === 'pass_count_ip_afyp') {
       return getGroupTVVPassCountIPAFYP(group, displayContracts, staffList, config, tvvStructList);
@@ -360,13 +374,10 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     return group.totalFYP;
   }, [
     config,
-    referenceContest,
-    allContracts,
-    staffList,
-    recruiterList,
-    tvvStructList,
-    priorityTvvCodes,
+    referencePassCountByGroup,
     displayContracts,
+    staffList,
+    tvvStructList,
   ]);
 
   // Step 4: stats summary

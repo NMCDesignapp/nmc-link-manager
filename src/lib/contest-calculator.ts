@@ -1375,6 +1375,9 @@ export function computeTVVTotalRows(
     : config.luotHDThreshold;
   const structureStartDates = buildStructureStartDateMap(tvvStructList);
 
+  const agentContractsByCode = new Map<string, Contract[]>();
+  const knownAgentCodes = new Set<string>();
+  const phase2Boundary = config.usePhase2 && config.phase2StartDate ? new Date(config.phase2StartDate) : null;
   const agentMap = new Map<
     string,
     {
@@ -1391,6 +1394,10 @@ export function computeTVVTotalRows(
   for (const c of displayContracts) {
     const key = c.agentCode;
     if (!key) continue;
+    const bucket = agentContractsByCode.get(key);
+    if (bucket) bucket.push(c);
+    else agentContractsByCode.set(key, [c]);
+    knownAgentCodes.add(norm(key).toLowerCase());
     const existing = agentMap.get(key);
     if (existing) {
       existing.totalFYP += c.pdt10DT;
@@ -1410,9 +1417,7 @@ export function computeTVVTotalRows(
     }
   }
   for (const [key, agent] of agentMap) {
-    const agentContracts = displayContracts.filter(
-      (c) => c.agentCode === key
-    );
+    const agentContracts = agentContractsByCode.get(key) || [];
     agent.activityRounds = calculateLuot(
       agentContracts,
       luotThreshold,
@@ -1426,9 +1431,7 @@ export function computeTVVTotalRows(
   if (subjectCodes.length > 0) {
     for (const code of subjectCodes) {
       const codeLower = norm(code).toLowerCase();
-      const found = Array.from(agentMap.keys()).some(
-        (k) => norm(k).toLowerCase() === codeLower
-      );
+      const found = knownAgentCodes.has(codeLower);
       if (!found) {
         const structMember = tvvStructList?.find(
           (t) =>
@@ -1449,6 +1452,7 @@ export function computeTVVTotalRows(
           : null;
         const info = structMember || staff || recruiter;
         const resolvedCode = info?.agentCode || code;
+        knownAgentCodes.add(norm(resolvedCode).toLowerCase());
         agentMap.set(resolvedCode, {
           agentCode: resolvedCode,
           agentName: info?.agentName || code,
@@ -1468,10 +1472,9 @@ export function computeTVVTotalRows(
     for (const t of tvvStructList) {
       if (!t.agentCode) continue;
       const codeLower = t.agentCode.toLowerCase();
-      const found = Array.from(agentMap.keys()).some(
-        (k) => norm(k).toLowerCase() === codeLower
-      );
+      const found = knownAgentCodes.has(codeLower);
       if (!found) {
+        knownAgentCodes.add(codeLower);
         agentMap.set(t.agentCode, {
           agentCode: t.agentCode,
           agentName: t.agentName || t.agentCode,
@@ -1494,10 +1497,9 @@ export function computeTVVTotalRows(
     for (const t of tvvStructList) {
       if (!t.agentCode) continue;
       const codeLower = t.agentCode.toLowerCase();
-      const found = Array.from(agentMap.keys()).some(
-        (k) => norm(k).toLowerCase() === codeLower
-      );
+      const found = knownAgentCodes.has(codeLower);
       if (!found) {
+        knownAgentCodes.add(codeLower);
         agentMap.set(t.agentCode, {
           agentCode: t.agentCode,
           agentName: t.agentName || t.agentCode,
@@ -1540,16 +1542,13 @@ export function computeTVVTotalRows(
         phase1Tier: null as BonusTier | null,
         phase2Tier: null as BonusTier | null,
       };
-      if (config.usePhase2 && config.phase2StartDate) {
-        const p2Start = new Date(config.phase2StartDate);
-        const agentContracts = displayContracts.filter(
-          (c) => c.agentCode === agent.agentCode
-        );
+      if (phase2Boundary) {
+        const agentContracts = agentContractsByCode.get(agent.agentCode) || [];
         const p1Contracts = agentContracts.filter(
-          (c) => new Date(c.effectiveDate) < p2Start
+          (c) => new Date(c.effectiveDate) < phase2Boundary
         );
         const p2Contracts = agentContracts.filter(
-          (c) => new Date(c.effectiveDate) >= p2Start
+          (c) => new Date(c.effectiveDate) >= phase2Boundary
         );
         const p1Revenue = p1Contracts.reduce((s, c) => s + c.pdt10DT, 0);
         const p2Revenue = p2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
@@ -1715,6 +1714,28 @@ export function computeTVVPerContractRows(
     }
   }
 
+  // Cache theo TVV: các phép tổng hợp hợp đồng không được quét toàn bộ
+  // danh sách cho mỗi hợp đồng (trước đây O(HĐ²), gây đứng khi chọn CTĐK).
+  const contractsByAgent = new Map<string, Contract[]>();
+  const totalIPByAgent = new Map<string, number>();
+  for (const contract of displayContracts) {
+    const code = contract.agentCode;
+    const agentRows = contractsByAgent.get(code);
+    if (agentRows) agentRows.push(contract);
+    else contractsByAgent.set(code, [contract]);
+    totalIPByAgent.set(code, (totalIPByAgent.get(code) || 0) + contract.pdt10DT);
+  }
+  const secondaryByAgent = new Map<string, SecondaryConditionResult>();
+  const secondaryFor = (code: string): SecondaryConditionResult => {
+    let value = secondaryByAgent.get(code);
+    if (!value) {
+      value = evaluateSecondaryConditions(contractsByAgent.get(code) || [], config, tvvStructList);
+      secondaryByAgent.set(code, value);
+    }
+    return value;
+  };
+  const phase2Date = usePhase2 && phase2StartDate ? new Date(phase2StartDate) : null;
+
   return contractsForRows
     .map((c) => {
       const cValue = getContractValue(c);
@@ -1727,25 +1748,21 @@ export function computeTVVPerContractRows(
         phase1Tier: null as BonusTier | null,
         phase2Tier: null as BonusTier | null,
       };
-      if (usePhase2 && phase2StartDate) {
-        const p2Start = new Date(phase2StartDate);
-        const isPhase1 = new Date(c.effectiveDate) < p2Start;
+      if (phase2Date) {
+        const isPhase1 = new Date(c.effectiveDate) < phase2Date;
         if (isPhase1) {
           const p1Res = calculateBonusWithTiers(cValue, bonusTiers);
-          const totalAgentIP = displayContracts.filter(row => row.agentCode === c.agentCode).reduce((sum, row) => sum + row.pdt10DT, 0);
+          const totalAgentIP = totalIPByAgent.get(c.agentCode) || 0;
           phaseInfo.phase1Bonus = p1Res.tier ? computeBonusFromTier(p1Res.tier, c.pdt10DT, undefined, totalAgentIP) : 0;
           phaseInfo.phase1Tier = p1Res.tier;
         } else {
           const p2Res = calculateBonusWithTiers(cValue, bonusTiers2);
-          const totalAgentIP = displayContracts.filter(row => row.agentCode === c.agentCode).reduce((sum, row) => sum + row.pdt10DT, 0);
+          const totalAgentIP = totalIPByAgent.get(c.agentCode) || 0;
           phaseInfo.phase2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, c.pdt10DT, undefined, totalAgentIP) : 0;
           phaseInfo.phase2Tier = p2Res.tier;
         }
       }
-      const agentContracts = displayContracts.filter(
-        (ac) => ac.agentCode === c.agentCode
-      );
-      const secondaryCheck = evaluateSecondaryConditions(agentContracts, config, tvvStructList);
+      const secondaryCheck = secondaryFor(c.agentCode);
       const secondaryPassed = secondaryCheck.passed;
       const effectiveTier = secondaryPassed ? tier : null;
       return {
@@ -2200,23 +2217,78 @@ export function getGroupTVVPassCountIPAFYP(
 
   const agentCodes = getGroupTVVAgentCodes(g, displayContracts, staffList, tvvStructList);
 
+  const totalsByAgent = new Map<string, { ip: number; afyp: number }>();
+  for (const contract of displayContracts) {
+    const total = totalsByAgent.get(contract.agentCode) || { ip: 0, afyp: 0 };
+    total.ip += contract.pdt10DT;
+    total.afyp += contract.afyp;
+    totalsByAgent.set(contract.agentCode, total);
+  }
   let count = 0;
   for (const code of agentCodes) {
     if (!includeTNInPassCount && tnAgentCode && code === tnAgentCode) continue;
-    const tvvContracts = displayContracts.filter((c) => c.agentCode === code);
-    const totalIP = tvvContracts.reduce((s, c) => s + c.pdt10DT, 0);
-    const totalAFYP = tvvContracts.reduce((s, c) => s + c.afyp, 0);
-    if (totalIP >= passCountIPMin && totalAFYP >= passCountAFYPMin) count++;
+    const total = totalsByAgent.get(code);
+    if ((total?.ip || 0) >= passCountIPMin && (total?.afyp || 0) >= passCountAFYPMin) count++;
   }
   return count;
 }
 
 /**
- * Kiểm tra một TVV có đạt chương trình TVV tham chiếu hay không.
- * Hàm này cố ý đi qua đúng chuỗi lọc/tính dùng cho bảng kết quả đã lưu để
- * Trang Thi đua và Sao Việt toàn chặng không tự diễn giải chương trình tham
- * chiếu theo hai cách khác nhau.
+ * Tính kết quả chương trình TVV tham chiếu đúng MỘT lần cho toàn bộ TVV.
+ * Kết quả dùng lại trong từng nhóm/thống kê/bảng; tránh lọc & tính toàn bộ
+ * dữ liệu hàng trăm/ngàn lần gây treo UI khi chọn điều kiện đếm TVV đạt.
+ * Tập mã rỗng khi không có chương trình hợp lệ hoặc không đủ dữ liệu.
  */
+export function getReferenceContestPassingAgentCodes(
+  rawReferenceContest: any,
+  allContracts: Contract[],
+  staffList: StaffMember[],
+  recruiterList: RecruiterMember[],
+  tvvStructList: TVVStructMember[] = [],
+  priorityAgentCodes?: ReadonlySet<string>,
+): Set<string> {
+  const passing = new Set<string>();
+  if (!rawReferenceContest) return passing;
+  const referenceConfig = parseContestConfig(rawReferenceContest);
+  if (referenceConfig.targetType !== 'tvv' || isTVVPassCountMode(referenceConfig.conditionType)) return passing;
+
+  const dateFiltered = filterContractsByContest(allContracts, referenceConfig);
+  const display = filterDisplayContracts(
+    dateFiltered, referenceConfig, staffList, recruiterList, tvvStructList,
+  );
+
+  if (isPerContractMode(referenceConfig.conditionType)) {
+    for (const row of computeTVVPerContractRows(display, referenceConfig, tvvStructList)) {
+      if (row.effectiveTier) passing.add(row.contract.agentCode);
+    }
+    return passing;
+  }
+
+  const contractsByAgent = new Map<string, Contract[]>();
+  for (const contract of display) {
+    const found = contractsByAgent.get(contract.agentCode);
+    if (found) found.push(contract);
+    else contractsByAgent.set(contract.agentCode, [contract]);
+  }
+  const secondaryPassCache = new Map<string, boolean>();
+  for (const row of computeTVVTotalRows(
+    display, referenceConfig, staffList, recruiterList, tvvStructList, priorityAgentCodes,
+  )) {
+    if (!row.tier || !row.agent.agentCode) continue;
+    const code = row.agent.agentCode;
+    let passed = secondaryPassCache.get(code);
+    if (passed === undefined) {
+      passed = evaluateSecondaryConditions(
+        contractsByAgent.get(code) || [], referenceConfig, tvvStructList,
+      ).passed;
+      secondaryPassCache.set(code, passed);
+    }
+    if (passed) passing.add(code);
+  }
+  return passing;
+}
+
+/** Backward-compatible single-TVV query; prefer the batched set above for groups. */
 export function doesTVVPassReferenceContest(
   agentCode: string,
   rawReferenceContest: any,
@@ -2226,38 +2298,11 @@ export function doesTVVPassReferenceContest(
   tvvStructList: TVVStructMember[] = [],
   priorityAgentCodes?: ReadonlySet<string>
 ): boolean {
-  if (!rawReferenceContest || !agentCode) return false;
-  const referenceConfig = parseContestConfig(rawReferenceContest);
-  if (referenceConfig.targetType !== 'tvv' || isTVVPassCountMode(referenceConfig.conditionType)) {
-    return false;
-  }
-
-  const dateFiltered = filterContractsByContest(allContracts, referenceConfig);
-  const display = filterDisplayContracts(
-    dateFiltered,
-    referenceConfig,
-    staffList,
-    recruiterList,
-    tvvStructList
-  );
-
-  if (isPerContractMode(referenceConfig.conditionType)) {
-    return computeTVVPerContractRows(display, referenceConfig, tvvStructList)
-      .some((row) => row.contract.agentCode === agentCode && row.effectiveTier !== null);
-  }
-
-  return computeTVVTotalRows(
-    display,
-    referenceConfig,
-    staffList,
-    recruiterList,
-    tvvStructList,
-    priorityAgentCodes
-  ).some((row) => {
-    if (row.agent.agentCode !== agentCode || !row.tier) return false;
-    const agentContracts = display.filter((contract) => contract.agentCode === agentCode);
-    return evaluateSecondaryConditions(agentContracts, referenceConfig, tvvStructList).passed;
-  });
+  if (!agentCode) return false;
+  return getReferenceContestPassingAgentCodes(
+    rawReferenceContest, allContracts, staffList, recruiterList,
+    tvvStructList, priorityAgentCodes,
+  ).has(agentCode);
 }
 
 /** Danh sách TVV của nhóm luôn ưu tiên nguồn Cấu trúc; chỉ fallback khi nguồn này trống. */
@@ -2297,16 +2342,10 @@ export function getGroupTVVPassCountForReference(
   priorityAgentCodes?: ReadonlySet<string>
 ): number {
   if (!rawReferenceContest) return 0;
+  const passing = getReferenceContestPassingAgentCodes(
+    rawReferenceContest, allContracts, staffList, recruiterList, tvvStructList, priorityAgentCodes,
+  );
   const leaderCode = group.leader?.agentCode || '';
   return getGroupTVVAgentCodes(group, allContracts, staffList, tvvStructList)
-    .filter((agentCode) => includeLeader || !leaderCode || agentCode !== leaderCode)
-    .filter((agentCode) => doesTVVPassReferenceContest(
-      agentCode,
-      rawReferenceContest,
-      allContracts,
-      staffList,
-      recruiterList,
-      tvvStructList,
-      priorityAgentCodes
-    )).length;
+    .filter((agentCode) => (includeLeader || !leaderCode || agentCode !== leaderCode) && passing.has(agentCode)).length;
 }
