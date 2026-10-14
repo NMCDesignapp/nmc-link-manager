@@ -47,7 +47,7 @@ import {
 import {
   calculateNYDPhaseOutcome,
   computeBonusFromContracts,
-  doesTVVPassReferenceContest,
+  getReferenceContestPassingAgentCodes,
   evaluateSecondaryConditions,
   filterQualifyingActivityContracts,
   getContestMetricLabel,
@@ -2309,82 +2309,84 @@ function ThiDuaPageInner() {
 
   const getCombinedTopNote = useCallback((key: string) => combinedTopRankByKey.get(key)?.note || '', [combinedTopRankByKey]);
 
-  // Helper: kiểm tra 1 TVV có đạt điều kiện của chương trình tham chiếu không
-  // Dùng cho conditionType = 'tvv_pass_count'
-  // Lọc HĐ theo ngày của CHƯƠNG TRÌNH THAM CHIẾU (không dùng displayContracts)
-  // TVV đạt = đạt bất kỳ mức thưởng nào trong chương trình tham chiếu
-  // Logic giống hệt cách tính kết quả trên trang thi đua TVV
-  const checkTVVPassContest = useCallback((agentCode: string): boolean => {
-    if (!referenceContestId) return false;
-    const refContest = savedContests.find(sc => sc.id === referenceContestId);
-    if (!refContest) return false;
-    return doesTVVPassReferenceContest(
-      agentCode,
-      refContest,
-      contracts,
-      staffList,
-      recruiterList,
-      tvvStructList
+  // Nhóm TVV chỉ được dựng lại khi dữ liệu Cấu trúc/HĐ thay đổi, không
+  // quét tất cả nguồn cho từng nhóm, từng lần thống kê hoặc mở popup.
+  const groupTVVCodes = useMemo(() => {
+    const groups = new Map<string, Set<string>>();
+    const add = (group: string | undefined | null, code: string | undefined | null) => {
+      if (!group || !code) return;
+      const key = norm(group).toLowerCase();
+      const codes = groups.get(key);
+      if (codes) codes.add(code);
+      else groups.set(key, new Set([code]));
+    };
+    if (tvvStructList.length > 0) {
+      tvvStructList.forEach(member => add(member.maBanNhom, member.agentCode));
+    } else {
+      contracts.forEach(contract => add(contract.maNhom, contract.agentCode));
+      staffList.forEach(member => add(member.maNhom, member.agentCode));
+    }
+    return groups;
+  }, [tvvStructList, contracts, staffList]);
+
+  // Quan trọng: tính CTĐK tham chiếu MỘT lần theo dữ liệu hiện có.
+  // Không tính lại toàn bộ chương trình cho từng TVV trong mỗi nhóm.
+  const referencePassingAgentCodes = useMemo(() => {
+    if (conditionType !== 'tvv_pass_count' || !referenceContestId) return new Set<string>();
+    const reference = savedContests.find(contest => contest.id === referenceContestId);
+    if (!reference) return new Set<string>();
+    return getReferenceContestPassingAgentCodes(
+      reference, contracts, staffList, recruiterList, tvvStructList,
     );
-  }, [referenceContestId, savedContests, contracts, staffList, recruiterList, tvvStructList]);
+  }, [conditionType, referenceContestId, savedContests, contracts, staffList, recruiterList, tvvStructList]);
 
-  // Đếm số TVV đạt CTĐK trong mỗi nhóm (cho tvv_pass_count mode)
-  const getGroupTVVPassCount = useCallback((g: GroupData): number => {
-    if (conditionType !== 'tvv_pass_count' || !referenceContestId) return 0;
-    // Xác định agentCode của Trưởng Nhóm để loại trừ nếu cần
-    const tnAgentCode = g.leader?.agentCode || '';
-    // Lấy danh sách TVV từ Cấu trúc để cùng nguồn đối tượng với bảng TVV.
-    const agentCodes = new Set<string>();
-    if (tvvStructList.length > 0) {
-      for (const member of tvvStructList) {
-        if (member.maBanNhom === g.maNhom && member.agentCode) agentCodes.add(member.agentCode);
-      }
-    } else {
-      const groupAllContracts = contracts.filter(c => c.maNhom === g.maNhom || (c.maNhom && c.maNhom.toLowerCase() === g.maNhom.toLowerCase()));
-      for (const c of groupAllContracts) { if (c.agentCode) agentCodes.add(c.agentCode); }
-      const groupStaff = staffList.filter(s => s.maNhom === g.maNhom || (s.maNhom && s.maNhom.toLowerCase() === g.maNhom.toLowerCase()));
-      for (const s of groupStaff) agentCodes.add(s.agentCode);
+  // IP+AFYP cũng là phép đếm trên từng TVV, do đó tổng hợp đúng một lần.
+  const passingIPAFYPAgentCodes = useMemo(() => {
+    if (conditionType !== 'pass_count_ip_afyp') return new Set<string>();
+    const totals = new Map<string, { ip: number; afyp: number }>();
+    for (const contract of displayContracts) {
+      if (!contract.agentCode) continue;
+      const value = totals.get(contract.agentCode) || { ip: 0, afyp: 0 };
+      value.ip += contract.pdt10DT;
+      value.afyp += contract.afyp;
+      totals.set(contract.agentCode, value);
     }
+    const passing = new Set<string>();
+    // Giữ cách tính cho TVV doanh số 0 nếu người dùng đặt cả hai ngưỡng = 0.
+    for (const codes of groupTVVCodes.values()) {
+      for (const code of codes) {
+        const totalsForTvv = totals.get(code);
+        if ((totalsForTvv?.ip || 0) >= passCountIPMin && (totalsForTvv?.afyp || 0) >= passCountAFYPMin) {
+          passing.add(code);
+        }
+      }
+    }
+    return passing;
+  }, [conditionType, displayContracts, groupTVVCodes, passCountIPMin, passCountAFYPMin]);
 
+  const countPassingTVVs = useCallback((group: GroupData, passing: ReadonlySet<string>) => {
+    const codes = groupTVVCodes.get(norm(group.maNhom || '').toLowerCase());
+    if (!codes) return 0;
+    const leaderCode = group.leader?.agentCode || '';
     let count = 0;
-    for (const code of agentCodes) {
-      // Mặc định: không đếm cá nhân TN (vì họ đã đạt ở chương trình cá nhân kìa)
-      // Chỉ đếm TN khi includeTNInPassCount = true
-      if (!includeTNInPassCount && tnAgentCode && code === tnAgentCode) continue;
-      if (checkTVVPassContest(code)) count++;
+    for (const code of codes) {
+      if (!includeTNInPassCount && leaderCode && code === leaderCode) continue;
+      if (passing.has(code)) count++;
     }
     return count;
-  }, [conditionType, referenceContestId, contracts, staffList, tvvStructList, checkTVVPassContest, includeTNInPassCount]);
+  }, [groupTVVCodes, includeTNInPassCount]);
 
-  // Đếm số TVV đạt IP+AFYP trong mỗi nhóm (cho pass_count_ip_afyp mode)
-  // Điều kiện: TVV có tổng IP (pdt10DT) >= passCountIPMin AND tổng AFYP >= passCountAFYPMin
-  const getGroupTVVPassCountIPAFYP = useCallback((g: GroupData): number => {
-    if (conditionType !== 'pass_count_ip_afyp') return 0;
-    const tnAgentCode = g.leader?.agentCode || '';
-    // Cùng nguồn đối tượng TVV từ Cấu trúc; chỉ fallback khi Cấu trúc chưa tải.
-    const agentCodes = new Set<string>();
-    if (tvvStructList.length > 0) {
-      for (const member of tvvStructList) {
-        if (member.maBanNhom === g.maNhom && member.agentCode) agentCodes.add(member.agentCode);
-      }
-    } else {
-      const groupContracts = displayContracts.filter(c => c.maNhom === g.maNhom || (c.maNhom && c.maNhom.toLowerCase() === g.maNhom.toLowerCase()));
-      for (const c of groupContracts) { if (c.agentCode) agentCodes.add(c.agentCode); }
-      const groupStaff = staffList.filter(s => s.maNhom === g.maNhom || (s.maNhom && s.maNhom.toLowerCase() === g.maNhom.toLowerCase()));
-      for (const s of groupStaff) agentCodes.add(s.agentCode);
-    }
+  const getGroupTVVPassCount = useCallback((group: GroupData): number =>
+    conditionType === 'tvv_pass_count' && referenceContestId
+      ? countPassingTVVs(group, referencePassingAgentCodes)
+      : 0,
+  [conditionType, referenceContestId, referencePassingAgentCodes, countPassingTVVs]);
 
-    let count = 0;
-    for (const code of agentCodes) {
-      if (!includeTNInPassCount && tnAgentCode && code === tnAgentCode) continue;
-      // Tính tổng IP + AFYP của TVV này trong displayContracts
-      const tvvContracts = displayContracts.filter(c => c.agentCode === code);
-      const totalIP = tvvContracts.reduce((s, c) => s + c.pdt10DT, 0);
-      const totalAFYP = tvvContracts.reduce((s, c) => s + c.afyp, 0);
-      if (totalIP >= passCountIPMin && totalAFYP >= passCountAFYPMin) count++;
-    }
-    return count;
-  }, [conditionType, displayContracts, staffList, tvvStructList, includeTNInPassCount, passCountIPMin, passCountAFYPMin]);
+  const getGroupTVVPassCountIPAFYP = useCallback((group: GroupData): number =>
+    conditionType === 'pass_count_ip_afyp'
+      ? countPassingTVVs(group, passingIPAFYPAgentCodes)
+      : 0,
+  [conditionType, passingIPAFYPAgentCodes, countPassingTVVs]);
 
   // Tất cả chỉ tiêu phụ được đánh giá độc lập trên cùng đúng một đối tượng.
   // Ví dụ NTD A: mọi TVVm hợp lệ của A cùng tạo Tổng IP, còn Lượt HĐC chỉ
