@@ -959,9 +959,9 @@ export function filterContractsByContest(
     results = results.filter((c) => new Date(c.issueDate) >= issueStart);
   }
   if (config.issueEndDate) {
-    // YYYY-MM-DD is interpreted in UTC, including the entire selected end day.
+    // Giữ đúng phép lọc Ngày phát hành đến trên trang Thi đua khi mở lại.
     const issueEnd = new Date(config.issueEndDate);
-    issueEnd.setUTCHours(23, 59, 59, 999);
+    issueEnd.setHours(23, 59, 59, 999);
     results = results.filter((c) => new Date(c.issueDate) <= issueEnd);
   }
   if (config.useSecondaryCondition) {
