@@ -5609,8 +5609,8 @@ function ThiDuaPageInner() {
                       const secondaryCheck = checkSecondaryTotalCondition(agentContracts);
                       const secondaryPassed = secondaryCheck.passed;
                       const effectiveTier = secondaryPassed ? tier : null;
-                      return { contract: c, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier };
-                    }).sort((a, b) => b.cValue - a.cValue).map(({ contract, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier }, idx) => {
+                      return { contract: c, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier, agentContracts };
+                    }).sort((a, b) => b.cValue - a.cValue).map(({ contract, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier, agentContracts }, idx) => {
                       if (hideNotAchieved && !tier) return null;
                       const group = resolveTvvGroup(contract.agentCode, contract.maNhom, contract.nhom);
                       return (

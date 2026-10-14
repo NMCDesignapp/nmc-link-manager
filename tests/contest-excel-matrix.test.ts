@@ -89,6 +89,8 @@ test('mọi bề mặt kết quả dùng hợp đồng IP làm căn cứ thưở
   assert.match(savedPage, /formatBonusAmountFromContracts/);
   assert.match(livePage, /return \{ c, cValue, tier, effectiveTier, sc, agentContracts \};/);
   assert.match(livePage, /map\(\(\{ c, cValue, tier, effectiveTier, sc, agentContracts \}, idx\) =>/);
+  assert.match(livePage, /return \{ contract: c, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier, agentContracts \};/);
+  assert.match(livePage, /map\(\(\{ contract, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier, agentContracts \}, idx\) =>/);
   assert.doesNotMatch(livePage, /formatBonusAmount\(effectiveTier,\s*(?:value|groupMetricValue|0,\s*tvvPassCount)/);
   assert.doesNotMatch(livePage, /formatBonus\(tier,\s*value/);
   assert.doesNotMatch(savedPage, /formatBonusAmount\(row\.effectiveTier,\s*row\.value/);
