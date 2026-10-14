@@ -6,6 +6,7 @@ export const revalidate = 0;
 
 const recruitedAgentScopeKey = (id: string) => `contest-recruited-agent-scope-${id}`;
 const secondaryContractCountKey = (id: string) => `contest-secondary-contract-count-${id}`;
+const issueEndDateKey = (id: string) => `contest-issue-end-date-${id}`;
 
 const contestDetailSelect = {
   id: true, title: true, startDate: true, endDate: true, issueDate: true,
@@ -65,6 +66,15 @@ export async function GET(request: NextRequest) {
       console.warn('[contest-detail-lite] secondary contract count read failed:', (error as Error)?.message);
     }
 
+    // Luôn đọc cùng mốc Ngày phát hành đến mà trang Thi đua đã lưu.
+    // Không tự đoán mốc này từ ngày hiệu lực hoặc ngày phát hành bắt đầu.
+    const storedIssueEnd = await db.setting.findUnique({
+      where: { key: issueEndDateKey(id) }, select: { value: true },
+    });
+    const issueEndDate = storedIssueEnd?.value && /^\d{4}-\d{2}-\d{2}$/.test(storedIssueEnd.value)
+      ? storedIssueEnd.value
+      : null;
+
     const version = contest.updatedAt instanceof Date
       ? contest.updatedAt.getTime()
       : new Date(contest.updatedAt).getTime();
@@ -72,6 +82,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         ...contest,
+        issueEndDate,
         recruitedAgentScope,
         secondaryContractCountMin,
         secondaryContractIPMin,
