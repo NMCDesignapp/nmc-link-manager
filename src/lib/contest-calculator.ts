@@ -2217,23 +2217,22 @@ export function getGroupTVVPassCountIPAFYP(
 
   const agentCodes = getGroupTVVAgentCodes(g, displayContracts, staffList, tvvStructList);
 
+  const totalsByAgent = new Map<string, { ip: number; afyp: number }>();
+  for (const contract of displayContracts) {
+    const total = totalsByAgent.get(contract.agentCode) || { ip: 0, afyp: 0 };
+    total.ip += contract.pdt10DT;
+    total.afyp += contract.afyp;
+    totalsByAgent.set(contract.agentCode, total);
+  }
   let count = 0;
   for (const code of agentCodes) {
     if (!includeTNInPassCount && tnAgentCode && code === tnAgentCode) continue;
-    const tvvContracts = displayContracts.filter((c) => c.agentCode === code);
-    const totalIP = tvvContracts.reduce((s, c) => s + c.pdt10DT, 0);
-    const totalAFYP = tvvContracts.reduce((s, c) => s + c.afyp, 0);
-    if (totalIP >= passCountIPMin && totalAFYP >= passCountAFYPMin) count++;
+    const total = totalsByAgent.get(code);
+    if ((total?.ip || 0) >= passCountIPMin && (total?.afyp || 0) >= passCountAFYPMin) count++;
   }
   return count;
 }
 
-/**
- * Kiểm tra một TVV có đạt chương trình TVV tham chiếu hay không.
- * Hàm này cố ý đi qua đúng chuỗi lọc/tính dùng cho bảng kết quả đã lưu để
- * Trang Thi đua và Sao Việt toàn chặng không tự diễn giải chương trình tham
- * chiếu theo hai cách khác nhau.
- */
 /**
  * Tính kết quả chương trình TVV tham chiếu đúng MỘT lần cho toàn bộ TVV.
  * Kết quả dùng lại trong từng nhóm/thống kê/bảng; tránh lọc & tính toàn bộ
@@ -2343,16 +2342,10 @@ export function getGroupTVVPassCountForReference(
   priorityAgentCodes?: ReadonlySet<string>
 ): number {
   if (!rawReferenceContest) return 0;
+  const passing = getReferenceContestPassingAgentCodes(
+    rawReferenceContest, allContracts, staffList, recruiterList, tvvStructList, priorityAgentCodes,
+  );
   const leaderCode = group.leader?.agentCode || '';
   return getGroupTVVAgentCodes(group, allContracts, staffList, tvvStructList)
-    .filter((agentCode) => includeLeader || !leaderCode || agentCode !== leaderCode)
-    .filter((agentCode) => doesTVVPassReferenceContest(
-      agentCode,
-      rawReferenceContest,
-      allContracts,
-      staffList,
-      recruiterList,
-      tvvStructList,
-      priorityAgentCodes
-    )).length;
+    .filter((agentCode) => (includeLeader || !leaderCode || agentCode !== leaderCode) && passing.has(agentCode)).length;
 }
