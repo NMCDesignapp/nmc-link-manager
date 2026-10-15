@@ -3930,7 +3930,7 @@ function getMonthNum(d: string | null | undefined): number {
 }
 // Tạm thu Sheet 4 thuộc tháng đồng bộ; nguồn khác dùng Ngày PH, fallback Ngày HL.
 function getDoanhSoMonth(c: { issueDate: string | null; effectiveDate: string | null; nguonDuLieu?: string | null }): Date {
-  const sourceMonth = String(c.nguonDuLieu || '').match(/^NMC_TAMTHU:(\d{4})-(\d{2})(?:\||$)/);
+  const sourceMonth = String(c.nguonDuLieu || '').match(/^NMC_(?:TAMTHU|DOANHSO):(\d{4})-(\d{2})(?:\||$)/);
   if (sourceMonth) return new Date(Number(sourceMonth[1]), Number(sourceMonth[2]) - 1, 1);
   const issueD = c.issueDate ? new Date(c.issueDate) : null;
   if (issueD && !isNaN(issueD.getTime())) return issueD;
@@ -5356,11 +5356,13 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     }
 
     // ========== Company total = SUM OF ALL PHONGS (ensure consistency) ==========
-    const totalAFYP = phongs.reduce((s, p) => s + p.afyp, 0);
+    // Tổng Công ty lấy đúng 1 lần mỗi hàng HĐ thuộc tháng nguồn.
+    // Không cộng tổng theo AD/phòng vì một HĐ có thể match nhiều nhãn AD.
+    const totalAFYP = periodContracts.reduce((sum, c) => sum + num(c.afyp), 0);
     const totalKH = phongs.reduce((s, p) => s + p.kh, 0);
-    const totalLhd = phongs.reduce((s, p) => s + p.lhd, 0);
+    const totalLhd = periodContracts.filter(c => num(c.tinhLuot3tr) >= 3000000).length;
     const totalTd = phongs.reduce((s, p) => s + p.td, 0);
-    const totalHdChuan = phongs.reduce((s, p) => s + p.hdChuan, 0);
+    const totalHdChuan = periodContracts.filter(c => num(c.tinhLuot3tr) >= 12000000).length;
 
     const totalIP = periodContracts.reduce((s, c) => s + num(c.pdt10DT), 0);
     const slHD = periodContracts.length;
