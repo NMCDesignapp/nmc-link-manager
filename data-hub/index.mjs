@@ -79,8 +79,7 @@ function revenueWorksheetValues(sheet, options = {}) {
   }
 
   const rows = values.slice(1)
-    // Tạm thu tháng hiện tại lấy toàn bộ dòng có Mã ĐL, không phụ thuộc ngày.
-    // Doanh số lịch sử vẫn giữ điều kiện ngày hiệu lực như trước.
+    // Mọi hàng dữ liệu thực của sheet đều được giữ, không lọc theo cột ngày hay mã.
     .filter(row => requiredIndex < 0 || String(row[requiredIndex] ?? '').trim() !== '')
     .map(row => {
       const next = [...row];
@@ -161,7 +160,7 @@ function historicalRevenueFromWorkbook(file) {
 
   if (!exportedHeaders) exportedHeaders = [...REVENUE_HISTORY_HEADERS, 'Nguồn dữ liệu'];
   const csv = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet([exportedHeaders, ...rows]), {
-    FS: ',', RS: '\\n', forceQuotes: true,
+    FS: ',', RS: '\n', forceQuotes: true,
   });
   return { csv, months };
 }
