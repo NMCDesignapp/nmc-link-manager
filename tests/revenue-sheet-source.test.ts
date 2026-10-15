@@ -51,9 +51,11 @@ test('Doanhso Sheet 1/9/11 lấy đúng tháng theo số Sheet, bỏ Sheet 10 hi
     aoa_to_sheet: (rows: any[][]) => rows,
     sheet_to_csv: (rows: any[][]) => rows.map(row => row.map(cell => JSON.stringify(cell ?? '')).join(',')).join('\n'),
   } };
-  const fn = new Function('readWorkbook', 'bangkokYearMonth', 'revenueWorksheetValues', 'XLSX', 'REVENUE_HISTORY_HEADERS',
+  const fn = new Function('readWorkbook', 'bangkokYearMonth', 'revenueWorksheetValues', 'XLSX', 'REVENUE_HISTORY_HEADERS', 'findHeaderIndex', 'normalizedHeader',
     `${functionSource}\nreturn historicalRevenueFromWorkbook;`)(
       () => workbook, () => '2026-10', (item: any) => item.rows, XLSX, ['Số hợp đồng', 'Ngày phát hành', 'AFYP'],
+      (headers: string[], names: string[]) => headers.findIndex(value => names.includes(value)),
+      (value: string) => String(value ?? '').trim().toLocaleLowerCase('vi-VN'),
     ) as (file: string) => { csv: string; months: string[] };
   const result = fn('Doanhso.xlsx');
   assert.deepEqual(result.months, ['2026-01', '2026-09', '2026-11']);
