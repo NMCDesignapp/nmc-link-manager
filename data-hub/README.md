@@ -3,9 +3,9 @@
 Data Hub chạy trên máy quản trị và là nguồn ưu tiên cho toàn bộ dữ liệu Main App:
 
 - Sao Việt cá nhân, TN KTM, TN tuyển dụng
-- Doanh số lịch sử từ Doanhso.xlsx
-- Doanh số tháng hiện tại từ `Tamthu.xlsx`, sheet `4`: lấy toàn bộ dòng có
-  `Mã ĐL`, không lọc theo Ngày phát hành/Ngày hiệu lực
+- Doanh số từ `Doanhso.xlsx`: Sheet `1` → tháng 1, ... Sheet `12` → tháng 12, KHÔNG phân tháng theo Ngày PH/HL.
+- Riêng tháng hiện tại, `Tamthu.xlsx` Sheet `4` là nguồn DUY NHẤT (bỏ qua Sheet cùng tháng bên Doanhso).
+- Cả hai nguồn giữ đủ mọi hàng Excel có dữ liệu, kể cả thiếu Mã ĐL, ngày phát hành hoặc ngày hiệu lực; chỉ bỏ hàng hoàn toàn trống.
 - Cấu trúc TVV, DS TN, DS TTN, thành viên CLB và TTN tuyển ngang
 
 ## Work log / tài liệu phục hồi
@@ -45,7 +45,7 @@ notepad data-hub.config.json
 7. Bật nguồn Excel bằng `npm run activate`.
 8. Khuyến nghị chạy `REPAIR-NMC-DATA-HUB.cmd` để cài launcher ẩn nền + watchdog + Startup.
 
-Mỗi 15 giây Data Hub kiểm tra checksum của file. Chỉ file thay đổi mới được gửi lên. Main App nhận heartbeat để hiển thị máy tính đang kết nối hay đang ngoại tuyến.
+Mỗi 15 giây Data Hub kiểm tra checksum của file. File thay đổi sẽ được gửi lên. Khi nâng cấp quy tắc sheet-tháng v2, Data Hub tự đồng bộ lại hai nguồn doanh số một lần dù file không đổi, sau khi bản Data Hub local được cập nhật bằng `REPAIR-NMC-DATA-HUB.cmd`. Main App nhận heartbeat để hiển thị máy tính đang kết nối hay đang ngoại tuyến.
 
 ## Chạy ẩn nền và tự khởi động lại
 

@@ -461,7 +461,7 @@ const CONTRACT_COLUMNS = [
 // issueDate (Ngày PH), fallback effectiveDate (Ngày HL).
 // Trả về Invalid Date nếu cả 2 đều trống (các nơi gọi dùng !isNaN(d.getTime()) để filter)
 function getDoanhSoMonth(c: { issueDate: string | null; effectiveDate: string | null; nguonDuLieu?: string | null }): Date {
-  const sourceMonth = String(c.nguonDuLieu || '').match(/^NMC_TAMTHU:(\d{4})-(\d{2})(?:\||$)/);
+  const sourceMonth = String(c.nguonDuLieu || '').match(/^NMC_(?:TAMTHU|DOANHSO):(\d{4})-(\d{2})(?:\||$)/);
   if (sourceMonth) return new Date(Number(sourceMonth[1]), Number(sourceMonth[2]) - 1, 1);
   const issueD = c.issueDate ? new Date(c.issueDate) : null;
   if (issueD && !isNaN(issueD.getTime())) return issueD;

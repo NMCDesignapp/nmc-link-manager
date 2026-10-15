@@ -109,6 +109,11 @@ function getCurrentBangkokMonth() {
 }
 
 const TAMTHU_SOURCE_PREFIX = 'NMC_TAMTHU:';
+const DOANHSO_SOURCE_PREFIX = 'NMC_DOANHSO:';
+const revenueSourceMonth = (source: string): string | null => {
+  const match = source.match(/^NMC_(?:TAMTHU|DOANHSO):(\d{4})-(\d{2})(?:\||$)/);
+  return match ? `${match[1]}-${match[2]}` : null;
+};
 
 function tagTamthuSourceMonth(rawSource: string, month: string): string {
   const original = rawSource.replace(/^NMC_TAMTHU:\d{4}-\d{2}\|?/, '').trim();
@@ -174,26 +179,10 @@ export async function POST(request: NextRequest) {
           const window = getCurrentBangkokMonth();
           currentMonth = window.label;
           currentMonthWindow = window;
-          importRows = importRows.filter(({ row }) => {
-            // Sheet 4 của Tạm thu là toàn bộ doanh số tháng hiện tại. Không
-            // phân loại lại theo ngày; chỉ bỏ dòng không có Mã đại lý.
-            return !!getVal(row, 'Mã ĐL', 'Mã đại lý', 'Mã số', 'agentCode').trim();
-          });
-
+          // Sheet 4: giữ TẤT CẢ các hàng dữ liệu thực, kể cả thiếu Mã ĐL và ngày.
+          // Data Hub đã bỏ hàng hoàn toàn trống khi chuyển Excel sang CSV.
           if (importRows.length === 0) {
             throw new Error(`Không có dòng nào có Mã đại lý trong Tạm thu tháng ${currentMonth}; dữ liệu trên app không bị xóa.`);
-          }
-
-          const realNumbers = new Set<string>();
-          const duplicates = new Set<string>();
-          for (const { row } of importRows) {
-            const contractNumber = getVal(row, 'Số hợp đồng', 'Số HĐ', 'contractNumber').trim();
-            if (!contractNumber) continue;
-            if (realNumbers.has(contractNumber)) duplicates.add(contractNumber);
-            realNumbers.add(contractNumber);
-          }
-          if (duplicates.size > 0) {
-            throw new Error(`Số HĐ trùng trong file tháng ${currentMonth}: ${[...duplicates].slice(0, 10).join(', ')}. Không xóa hoặc cập nhật dữ liệu.`);
           }
 
           results.currentMonth = currentMonth;
@@ -207,6 +196,14 @@ export async function POST(request: NextRequest) {
           const activeMonth = getCurrentBangkokMonth().label;
           if (fromDataHub && requestedSet.has(activeMonth)) throw new Error(`Không được thay thế tháng hiện tại ${activeMonth} từ Doanhso.`);
           importRows = importRows.filter(({ row }) => {
+            if (fromDataHub) {
+              // Doanhso.xlsx: tháng = tên Sheet (đã ghi NMC_DOANHSO:YYYY-MM).
+              // Không lọc bản ghi theo ngày PH/HL, mã TVV hoặc chỉ tiêu.
+              const month = revenueSourceMonth(getVal(row, 'Nguồn dữ liệu', 'Nguồn DL', 'nguonDuLieu'));
+              if (!month) throw new Error('Thiếu nhãn tháng nguồn Doanhso trong dữ liệu Data Hub. Hãy nâng cấp Data Hub trước khi đồng bộ.');
+              return requestedSet.has(month);
+            }
+            // Giữ hợp đồng Google cũ theo quy tắc nhập của nguồn Google.
             const issueDate = parseDate(getVal(row, 'Ngày phát hành', 'Ngày PH', 'Ngày cấp', 'issueDate'));
             const effectiveDate = parseDate(getVal(row, 'Ngày hiệu lực', 'Ngày HL', 'effectiveDate'));
             const date = issueDate || effectiveDate;
@@ -220,24 +217,8 @@ export async function POST(request: NextRequest) {
           if (importRows.length === 0 && !fromDataHub) {
             throw new Error('Nguồn đồng bộ không có HĐ hợp lệ cho các tháng cần cập nhật; dữ liệu app không bị xóa.');
           }
-          const numbers = new Set<string>();
-          const duplicates = new Set<string>();
-          for (const { row } of importRows) {
-            const number = getVal(row, 'Số hợp đồng', 'Số HĐ', 'contractNumber').trim();
-            if (!number) continue;
-            if (numbers.has(number)) duplicates.add(number);
-            numbers.add(number);
-          }
-          if (duplicates.size > 0) throw new Error(`Số HĐ trùng trong nguồn đồng bộ: ${[...duplicates].slice(0, 10).join(', ')}. Không cập nhật dữ liệu.`);
-          for (const month of requestedMonths) {
-            const from = new Date(`${month}-01T00:00:00.000Z`);
-            const until = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth() + 1, 1));
-            const deleted = await db.contract.deleteMany({ where: { OR: [
-              { issueDate: { gte: from, lt: until } },
-              { issueDate: null, effectiveDate: { gte: from, lt: until } },
-            ] } });
-            results.deletedContracts += deleted.count;
-          }
+          // Xóa và tạo mới được thực hiện SAU khi đọc đủ hàng, trong cùng transaction.
+          // HĐ trùng mã cũng phải được giữ đủ dòng; xử lý khóa unique ở bước tạo.
           results.historicalMonths = requestedMonths;
         }
 
@@ -284,23 +265,25 @@ export async function POST(request: NextRequest) {
           const recruiterCode = getVal(row, 'Mã tuyển dụng', 'MÃ TUYỂN DỤNG', 'recruiterCode');
           const sttStr = getVal(row, 'STT', 'stt');
 
-          if (!agentCode) return;
-          if (!replaceDataHubCurrentRevenueMonth && !effectiveDateStr) return;
+          if (!authoritativeReplacement && !agentCode) return;
+          if (!authoritativeReplacement && !effectiveDateStr) return;
           // Blank contract numbers are normalised to a unique import key. They
           // are removed at the next authoritative current-month replacement.
           const finalContractNumber = contractNumber || (() => {
             return `AUTO_${currentMonth.replace('-', '') || 'IMPORT'}_${String(index + 1).padStart(6, '0')}`;
           })();
-          if (seenContractNumbers.has(finalContractNumber)) {
-            throw new Error(`Số HĐ trùng sau khi chuẩn hóa: ${finalContractNumber}`);
+          if (!authoritativeReplacement) {
+            if (seenContractNumbers.has(finalContractNumber)) {
+              throw new Error(`Số HĐ trùng sau khi chuẩn hóa: ${finalContractNumber}`);
+            }
+            seenContractNumbers.add(finalContractNumber);
           }
-          seenContractNumbers.add(finalContractNumber);
 
           const effectiveDate = parseDate(effectiveDateStr);
           const issueDate = parseDate(issueDateStr);
           const startDate = parseDate(startDateStr);
           const ngayBatDauLamViec2 = parseDate(ngayBatDauLamViec2Str);
-          if (!replaceDataHubCurrentRevenueMonth && !effectiveDate) return;
+          if (!authoritativeReplacement && !effectiveDate) return;
 
           const fyp = parseNumber(fypStr) || parseNumber(pdt10DTStr); // FYP fallback to PĐT+10%
           const afyp = parseNumber(afypStr);
@@ -394,38 +377,75 @@ export async function POST(request: NextRequest) {
           }));
         }
 
-        if (authoritativeReplacement && contractsToCreate.length > 0) {
-          if (replaceDataHubCurrentRevenueMonth && currentMonthWindow) {
-            // Xóa snapshot Tạm thu cũ (kể cả snapshot của tháng trước) và dữ
-            // liệu tháng hiện tại theo cơ chế cũ trước khi tạo snapshot mới.
-            const deletedCurrentMonth = await db.contract.deleteMany({
-              where: {
-                OR: [
-                  { nguonDuLieu: { startsWith: TAMTHU_SOURCE_PREFIX } },
-                  { effectiveDate: { gte: currentMonthWindow.from, lt: currentMonthWindow.until } },
-                ],
-              },
-            });
-            results.deletedContracts += deletedCurrentMonth.count;
+        if (authoritativeReplacement) {
+          // Import nguyên vẹn từng hàng của Sheet gốc. Không loại trùng theo HĐ;
+          // do Contract.contractNumber UNIQUE, bản ghi trùng mã được lưu NULL
+          // ở cột khóa, còn số HĐ thật được ghi trong nguồn dữ liệu để truy vết.
+          // Toàn bộ DELETE + CREATE nằm trong transaction: nếu lỗi, DB giữ bản cũ.
+          const result = await db.$transaction(async tx => {
+            let deletedCount = 0;
+            if (replaceDataHubCurrentRevenueMonth && currentMonthWindow) {
+              const window = currentMonthWindow;
+              const removed = await tx.contract.deleteMany({ where: { OR: [
+                { nguonDuLieu: { startsWith: TAMTHU_SOURCE_PREFIX } },
+                { AND: [
+                  { nguonDuLieu: { not: { startsWith: DOANHSO_SOURCE_PREFIX } } },
+                  { OR: [
+                    { issueDate: { gte: window.from, lt: window.until } },
+                    { issueDate: null, effectiveDate: { gte: window.from, lt: window.until } },
+                  ] },
+                ] },
+              ] } });
+              deletedCount += removed.count;
+            }
+            if (replacementRevenueMonths.length > 0) {
+              for (const month of [...new Set(replacementRevenueMonths)]) {
+                const from = new Date(`${month}-01T00:00:00.000Z`);
+                const until = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth() + 1, 1));
+                const removed = await tx.contract.deleteMany({ where: { OR: [
+                  { nguonDuLieu: { startsWith: `${DOANHSO_SOURCE_PREFIX}${month}` } },
+                  { AND: [
+                    { nguonDuLieu: { not: { startsWith: DOANHSO_SOURCE_PREFIX } } },
+                    { nguonDuLieu: { not: { startsWith: TAMTHU_SOURCE_PREFIX } } },
+                    { OR: [
+                      { issueDate: { gte: from, lt: until } },
+                      { issueDate: null, effectiveDate: { gte: from, lt: until } },
+                    ] },
+                  ] },
+                ] } });
+                deletedCount += removed.count;
+              }
+            }
+            const numbers = [...new Set(contractsToCreate.map(c => c.contractNumber).filter(Boolean))];
+            const existing = numbers.length ? await tx.contract.findMany({
+              where: { contractNumber: { in: numbers } },
+              select: { contractNumber: true },
+            }) : [];
+            const usedNumbers = new Set(existing.map(c => c.contractNumber).filter(Boolean));
+            let duplicates = 0;
+            for (const item of contractsToCreate) {
+              const number = item.contractNumber;
+              if (!number) continue;
+              if (usedNumbers.has(number)) {
+                item.contractNumber = null;
+                item.nguonDuLieu = `${item.nguonDuLieu || ''}|SO_HD_GOC:${number}`;
+                duplicates++;
+              } else {
+                usedNumbers.add(number);
+              }
+            }
+            const created = contractsToCreate.length
+              ? await tx.contract.createMany({ data: contractsToCreate })
+              : { count: 0 };
+            if (created.count !== contractsToCreate.length) throw new Error('Số hàng nhập khác Sheet nguồn, đã hủy transaction.');
+            return { deletedCount, importedCount: created.count, duplicates };
+          }, { timeout: 60000 });
+          results.deletedContracts += result.deletedCount;
+          results.contracts = result.importedCount;
+          if (result.duplicates > 0) {
+            // Cảnh báo không phải lỗi: vẫn đưa đủ mọi dòng vào tháng nguồn.
+            console.info(`[Revenue sync] Đã giữ ${result.duplicates} dòng trùng Số HĐ bằng khóa NULL, số gốc nằm trong Nguồn dữ liệu.`);
           }
-          // Số HĐ là khóa nghiệp vụ duy nhất. Một HĐ đang nằm ở tháng cũ do
-          // lần import trước ghi sai ngày không được phép chặn bản ghi Tạm thu
-          // hiện tại. Xóa các bản ghi cùng số trước khi tạo lại từ file nguồn.
-          // Các ô Số HĐ trống giữ NULL và được phép có nhiều dòng.
-          const sourceContractNumbers = [...new Set(
-            contractsToCreate
-              .map(contract => contract.contractNumber)
-              .filter((contractNumber): contractNumber is string => !!contractNumber)
-          )];
-          if (sourceContractNumbers.length > 0) {
-            const duplicateNumbers = await db.contract.deleteMany({
-              where: { contractNumber: { in: sourceContractNumbers } },
-            });
-            results.deletedContracts += duplicateNumbers.count;
-          }
-
-          const created = await db.contract.createMany({ data: contractsToCreate });
-          results.contracts = created.count;
         } else {
           results.contracts = upserted;
         }
