@@ -4067,32 +4067,6 @@ export default function QuanLyPage() {
 
   const renderOverview = () => (
     <div className="nmc-management-overview space-y-3 relative min-h-full">
-      {/* Admin-only archive tools: one central location instead of buttons inside each program page. */}
-      {isAdmin && !isEmbedded && (
-        <section aria-label="Tải bộ ảnh truyền thông" className="rounded-lg border border-amber-400/25 bg-slate-900/60 p-3 shadow-lg">
-          <div className="mb-2 text-[11px] font-extrabold tracking-wide text-amber-200">TẢI BỘ ẢNH TRUYỀN THÔNG (1920 × 1080)</div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <button type="button" onClick={() => void handleDownloadClbCommunicationImages()}
-              disabled={clbsvImageExporting || bulkImageExporting !== null}
-              className="flex items-center justify-center gap-2 rounded-md border border-amber-400/60 bg-amber-300 px-3 py-2 text-xs font-extrabold text-slate-950 hover:bg-amber-200 disabled:cursor-wait disabled:opacity-50"
-              title="7 ảnh CLB Sao Việt (giữ nguyên bộ ảnh và cách xuất cũ)">
-              <ImageIcon className="h-4 w-4" /> Tải ảnh CLB Sao Việt
-            </button>
-            <button type="button" onClick={() => void handleDownloadCommunicationCollection('policy')}
-              disabled={clbsvImageExporting || bulkImageExporting !== null}
-              className="flex items-center justify-center gap-2 rounded-md border border-emerald-400/60 bg-emerald-700 px-3 py-2 text-xs font-extrabold text-white hover:bg-emerald-600 disabled:cursor-wait disabled:opacity-50"
-              title="Tải ảnh 8 chính sách, phân nhóm TB/TN và TVV + TTN">
-              <ImageIcon className="h-4 w-4" /> Tải ảnh Chính sách
-            </button>
-            <button type="button" onClick={() => void handleDownloadCommunicationCollection('contest')}
-              disabled={clbsvImageExporting || bulkImageExporting !== null}
-              className="flex items-center justify-center gap-2 rounded-md border border-violet-400/60 bg-violet-700 px-3 py-2 text-xs font-extrabold text-white hover:bg-violet-600 disabled:cursor-wait disabled:opacity-50"
-              title="Tải ảnh tất cả các chương trình đang hiển thị trong mục Thi đua">
-              <ImageIcon className="h-4 w-4" /> Tải ảnh Thi đua
-            </button>
-          </div>
-        </section>
-      )}
       {/* ===== PHẦN 1: MOBILE MENU — 4 nút/hàng × 2 hàng = 8 ô (7 sheet + 1 Cài đặt), style đồng nhất PHẦN 2 & 3 =====
           ẨN hoàn toàn khi isEmbedded (user đến từ /kpi-standalone) — không cho xem/click các sheet admin */}
       <div className={`md:hidden ${isEmbedded ? 'hidden' : ''}`}>
@@ -12244,6 +12218,29 @@ export default function QuanLyPage() {
       setBulkImageExportProgress({ completed: 0, total: 0, label: '' });
     }
   };
+
+  // The three archive buttons live in Home > Liên kết nhanh.
+  // After navigation to /quan-ly, launch the existing exporter exactly once.
+  // Wait until the shared AppDataProvider has loaded before rendering each table.
+  const homeArchiveLaunchedRef = useRef(false);
+  useEffect(() => {
+    if (!mounted || !isAdmin || isEmbedded || appDataVersion === 0 || homeArchiveLaunchedRef.current) return;
+    const requested = new URLSearchParams(window.location.search).get('downloadImages');
+    if (requested !== 'clb' && requested !== 'policy' && requested !== 'contest') return;
+    homeArchiveLaunchedRef.current = true;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('downloadImages');
+    window.history.replaceState(window.history.state, '', url.toString());
+
+    // React needs a paint cycle to mount the overview and the loaded data.
+    // Không hủy requestAnimationFrame khi các state khác đổi ngay sau effect:
+    // trong React StrictMode cleanup có thể chạy trước frame và làm nút bị vô hiệu.
+    window.requestAnimationFrame(() => {
+      void (requested === 'clb'
+        ? handleDownloadClbCommunicationImages()
+        : handleDownloadCommunicationCollection(requested));
+    });
+  }, [mounted, isAdmin, isEmbedded, appDataVersion]);
 
   // ---------- CLB Sao Việt overview ----------
   // Ba chương trình Sao Việt toàn chặng luôn nằm đầu danh sách. Các chương trình
