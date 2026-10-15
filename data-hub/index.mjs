@@ -68,9 +68,13 @@ function revenueWorksheetValues(sheet, options = {}) {
   const contractNumberIndex = findHeaderIndex(headers, ['Số hợp đồng', 'Số HĐ', 'contractNumber']);
   const effectiveDateIndex = findHeaderIndex(headers, ['Ngày hiệu lực', 'Ngày HL', 'effectiveDate']);
   const agentCodeIndex = findHeaderIndex(headers, ['Mã ĐL', 'Mã đại lý', 'Mã số', 'agentCode']);
-  const requiredIndex = options.requireAgentCode ? agentCodeIndex : effectiveDateIndex;
+  // Sheet 4 (Tạm thu) và từng sheet Doanhso là tập hợp HĐ gốc: chỉ bỏ hàng hoàn toàn trống.
+  // Không lọc theo Mã ĐL, ngày hiệu lực, ngày phát hành hay giá trị thưởng.
+  const requiredIndex = options.allNonEmptyRows
+    ? -1
+    : (options.requireAgentCode ? agentCodeIndex : effectiveDateIndex);
 
-  if (options.requireAgentCode && agentCodeIndex < 0) {
+  if (!options.allNonEmptyRows && options.requireAgentCode && agentCodeIndex < 0) {
     throw new Error('Không tìm thấy cột "Mã ĐL" trong sheet doanh số tháng hiện tại.');
   }
 
@@ -102,7 +106,7 @@ function csvFromWorkbook(file, sheetName, options = {}) {
   // Nếu sheet_to_csv trực tiếp, các hàng trống vẫn thành CSV có dấu phẩy và
   // bị bộ đếm hiểu nhầm là dữ liệu. Chỉ xuất các hàng thực sự có giá trị.
   const values = options.revenueRowsOnly
-    ? revenueWorksheetValues(sheet, { requireAgentCode: options.requireAgentCode === true })
+    ? revenueWorksheetValues(sheet, { allNonEmptyRows: options.allNonEmptyRows === true, requireAgentCode: options.requireAgentCode === true })
     : compactWorksheetValues(sheet);
   if (values.length === 0) return '';
   return XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet(values), { FS: ',', RS: '\n', forceQuotes: true });
@@ -119,32 +123,47 @@ function historicalRevenueFromWorkbook(file) {
   const workbook = readWorkbook(file);
   const currentMonth = bangkokYearMonth();
   const year = currentMonth.slice(0, 4);
-  let header = '';
   const rows = [];
   const months = [];
+  let exportedHeaders = null;
+  let baseHeaders = null;
+  let sourceIndex = -1;
 
   for (const name of workbook.SheetNames) {
     if (!/^(?:[1-9]|1[0-2])$/.test(name)) continue;
     const month = `${year}-${name.padStart(2, '0')}`;
-    // Doanhso owns only completed months. The presence of a numbered sheet is
-    // authoritative even when it is empty, so stale app rows for that month
-    // can be removed. Tamthu remains the sole source of the current month.
-    if (month >= currentMonth) continue;
+    // Tháng hiện tại CHỈ đến từ Tamthu.xlsx/Sheet 4.
+    // Những sheet Doanhso còn lại được gắn tháng theo TÊN sheet, không theo ngày trong dòng.
+    if (month === currentMonth) continue;
     months.push(month);
-    const values = revenueWorksheetValues(workbook.Sheets[name]);
+    const values = revenueWorksheetValues(workbook.Sheets[name], { allNonEmptyRows: true });
     if (values.length === 0) continue;
-    const csv = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet(values), { FS: ',', RS: '\n', forceQuotes: true });
-    const lines = csv.split(/\r?\n/).filter(line => line.trim() !== '');
-    if (!header) header = lines[0];
-    rows.push(...lines.slice(1));
+    const headers = values[0];
+    if (baseHeaders === null) {
+      baseHeaders = headers;
+      sourceIndex = findHeaderIndex(headers, ['Nguồn dữ liệu', 'Nguồn DL', 'nguonDuLieu']);
+      exportedHeaders = sourceIndex < 0 ? [...headers, 'Nguồn dữ liệu'] : [...headers];
+    } else if (
+      headers.length !== baseHeaders.length ||
+      headers.some((header, i) => normalizedHeader(header) !== normalizedHeader(baseHeaders[i]))
+    ) {
+      throw new Error(`Tiêu đề Sheet ${name} trong Doanhso không đồng nhất các tháng trước; dừng đồng bộ để tránh lệch cột.`);
+    }
+    for (const sourceRow of values.slice(1)) {
+      const row = [...sourceRow];
+      const original = sourceIndex >= 0 ? String(row[sourceIndex] ?? '').trim() : '';
+      const value = `NMC_DOANHSO:${month}${original ? `|${original}` : ''}`;
+      if (sourceIndex < 0) row.push(value);
+      else row[sourceIndex] = value;
+      rows.push(row);
+    }
   }
 
-  if (!header) {
-    header = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet([REVENUE_HISTORY_HEADERS]), {
-      FS: ',', RS: '\n', forceQuotes: true,
-    }).trimEnd();
-  }
-  return { csv: [header, ...rows].join('\n'), months };
+  if (!exportedHeaders) exportedHeaders = [...REVENUE_HISTORY_HEADERS, 'Nguồn dữ liệu'];
+  const csv = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet([exportedHeaders, ...rows]), {
+    FS: ',', RS: '\\n', forceQuotes: true,
+  });
+  return { csv, months };
 }
 
 function rowsFromWorkbook(file, sheetName) {
@@ -171,7 +190,7 @@ async function inputFromSource(source) {
   if (extension === '.xlsx' || extension === '.xls' || extension === '.xlsm') {
     return csvFromWorkbook(source.file, source.sheet, {
       revenueRowsOnly: source.kind === 'revenue',
-      requireAgentCode: source.kind === 'revenue' && source.replaceCurrentMonth === true,
+      allNonEmptyRows: source.kind === 'revenue' && source.replaceCurrentMonth === true,
     });
   }
   throw new Error(`Định dạng chưa hỗ trợ: ${extension}. Hãy dùng CSV hoặc Excel.`);
