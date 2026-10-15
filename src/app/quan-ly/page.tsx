@@ -12233,12 +12233,13 @@ export default function QuanLyPage() {
     window.history.replaceState(window.history.state, '', url.toString());
 
     // React needs a paint cycle to mount the overview and the loaded data.
-    const frame = window.requestAnimationFrame(() => {
+    // Không hủy requestAnimationFrame khi các state khác đổi ngay sau effect:
+    // trong React StrictMode cleanup có thể chạy trước frame và làm nút bị vô hiệu.
+    window.requestAnimationFrame(() => {
       void (requested === 'clb'
         ? handleDownloadClbCommunicationImages()
         : handleDownloadCommunicationCollection(requested));
     });
-    return () => window.cancelAnimationFrame(frame);
   }, [mounted, isAdmin, isEmbedded, appDataVersion]);
 
   // ---------- CLB Sao Việt overview ----------
