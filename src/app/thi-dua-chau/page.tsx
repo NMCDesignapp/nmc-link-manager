@@ -5164,6 +5164,7 @@ function ThiDuaPageInner() {
               <Trophy className="w-5 h-5 text-emerald-600" />
               {isEmbedMode ? (contestTitle || 'Kết quả chi tiết') : 'Kết quả chi tiết'}
             </DialogTitle>
+            <DialogDescription className="sr-only">Bảng kết quả chi tiết của chương trình thi đua đang chọn.</DialogDescription>
             <div className="contest-result-toolbar-actions flex shrink-0 items-center gap-1">
               {!isEmbedMode && (
                 <Button variant="outline" size="sm" onClick={() => setIsResultExpanded(!isResultExpanded)} className="border-gray-300 text-gray-700 h-7 w-7 p-0 hover:bg-gray-100">
