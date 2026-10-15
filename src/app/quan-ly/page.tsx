@@ -4067,6 +4067,32 @@ export default function QuanLyPage() {
 
   const renderOverview = () => (
     <div className="nmc-management-overview space-y-3 relative min-h-full">
+      {/* Admin-only archive tools: one central location instead of buttons inside each program page. */}
+      {isAdmin && !isEmbedded && (
+        <section aria-label="Tải bộ ảnh truyền thông" className="rounded-lg border border-amber-400/25 bg-slate-900/60 p-3 shadow-lg">
+          <div className="mb-2 text-[11px] font-extrabold tracking-wide text-amber-200">TẢI BỘ ẢNH TRUYỀN THÔNG (1920 × 1080)</div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <button type="button" onClick={() => void handleDownloadClbCommunicationImages()}
+              disabled={clbsvImageExporting || bulkImageExporting !== null}
+              className="flex items-center justify-center gap-2 rounded-md border border-amber-400/60 bg-amber-300 px-3 py-2 text-xs font-extrabold text-slate-950 hover:bg-amber-200 disabled:cursor-wait disabled:opacity-50"
+              title="7 ảnh CLB Sao Việt (giữ nguyên bộ ảnh và cách xuất cũ)">
+              <ImageIcon className="h-4 w-4" /> Tải ảnh CLB Sao Việt
+            </button>
+            <button type="button" onClick={() => void handleDownloadCommunicationCollection('policy')}
+              disabled={clbsvImageExporting || bulkImageExporting !== null}
+              className="flex items-center justify-center gap-2 rounded-md border border-emerald-400/60 bg-emerald-700 px-3 py-2 text-xs font-extrabold text-white hover:bg-emerald-600 disabled:cursor-wait disabled:opacity-50"
+              title="Tải ảnh 8 chính sách, phân nhóm TB/TN và TVV + TTN">
+              <ImageIcon className="h-4 w-4" /> Tải ảnh Chính sách
+            </button>
+            <button type="button" onClick={() => void handleDownloadCommunicationCollection('contest')}
+              disabled={clbsvImageExporting || bulkImageExporting !== null}
+              className="flex items-center justify-center gap-2 rounded-md border border-violet-400/60 bg-violet-700 px-3 py-2 text-xs font-extrabold text-white hover:bg-violet-600 disabled:cursor-wait disabled:opacity-50"
+              title="Tải ảnh tất cả các chương trình đang hiển thị trong mục Thi đua">
+              <ImageIcon className="h-4 w-4" /> Tải ảnh Thi đua
+            </button>
+          </div>
+        </section>
+      )}
       {/* ===== PHẦN 1: MOBILE MENU — 4 nút/hàng × 2 hàng = 8 ô (7 sheet + 1 Cài đặt), style đồng nhất PHẦN 2 & 3 =====
           ẨN hoàn toàn khi isEmbedded (user đến từ /kpi-standalone) — không cho xem/click các sheet admin */}
       <div className={`md:hidden ${isEmbedded ? 'hidden' : ''}`}>
@@ -5610,6 +5636,8 @@ export default function QuanLyPage() {
   // CLB Sao Việt settings modal — quản lý poster cho 3 chương trình CLBSV (ngoài detail tables)
   const [clbsvSettingsOpen, setClbsvSettingsOpen] = useState<boolean>(false);
   const [clbsvImageExporting, setClbsvImageExporting] = useState(false);
+  const [bulkImageExporting, setBulkImageExporting] = useState<'policy' | 'contest' | null>(null);
+  const [bulkImageExportProgress, setBulkImageExportProgress] = useState({ completed: 0, total: 0, label: '' });
   const [clbsvImageExportProgress, setClbsvImageExportProgress] = useState({
     completed: 0,
     total: 7,
@@ -11865,7 +11893,7 @@ export default function QuanLyPage() {
   };
 
   const handleDownloadClbCommunicationImages = async () => {
-    if (!isAdmin || isEmbedded || clbsvImageExporting) return;
+    if (!isAdmin || isEmbedded || clbsvImageExporting || bulkImageExporting) return;
 
     const waitForBrowserPaint = async () => {
       await new Promise<void>((resolve) => {
@@ -11951,6 +11979,7 @@ export default function QuanLyPage() {
     ];
 
     const originalState = {
+      activeSheet,
       clbsvOpen,
       saovietNhomFilter,
       saovietNameFilter,
@@ -11971,6 +12000,8 @@ export default function QuanLyPage() {
     };
 
     setClbsvImageExporting(true);
+    setActiveSheet('clb-saoviet');
+    setClbsvOpen(null);
     setSaovietNhomFilter([]);
     setSaovietNameFilter('');
     setClbsvNhomFilter([]);
@@ -12069,8 +12100,148 @@ export default function QuanLyPage() {
       setClbsvOpen(null);
       await waitForBrowserPaint();
       setClbsvOpen(originalState.clbsvOpen);
+      setActiveSheet(originalState.activeSheet);
       setClbsvImageExporting(false);
       setClbsvImageExportProgress({ completed: 0, total: 7, label: '' });
+    }
+  };
+
+
+  // Xuất bộ ảnh Chính sách/Thi đua bằng chính template 16:9 của CLB Sao Việt.
+  // Chỉ đọc bảng đang hiển thị; tuyệt đối không thay đổi phép tính hoặc dữ liệu lưu.
+  const handleDownloadCommunicationCollection = async (kind: 'policy' | 'contest') => {
+    if (!isAdmin || isEmbedded || clbsvImageExporting || bulkImageExporting) return;
+    const original = { activeSheet, policyOpen, saovietOpen, savedContestsList,
+      quyTvvNhomFilter, quyTvvNameFilter, tvvmNhomFilter, tvvmNameFilter,
+      nsTvvNhomFilter, nsTvvNameFilter, tuyenLuyenNhomFilter, tuyenLuyenNameFilter,
+      dongHanhNhomFilter, dongHanhNameFilter, quyTnNhomFilter, quyTnNameFilter,
+      ptkdNhomFilter, ptkdNameFilter };
+    const paint = async () => {
+      await new Promise<void>(resolve => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())));
+      await new Promise<void>(resolve => window.setTimeout(resolve, 0));
+    };
+    const findTable = async (selector: string, label: string) => {
+      for (let n = 0; n < 150; n++) {
+        const table = document.querySelector<HTMLTableElement>(selector);
+        if (table?.querySelector('tbody')) return table;
+        await new Promise<void>(resolve => window.setTimeout(resolve, 80));
+      }
+      throw new Error(`Không thể tải bảng chi tiết: ${label}. Hãy kiểm tra nguồn dữ liệu và thử lại.`);
+    };
+    const fileSafe = (name: string) => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd').replace(/Đ/g, 'D').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
+    setBulkImageExporting(kind);
+    setBulkImageExportProgress({ completed: 0, total: 0, label: 'Đang chuẩn bị dữ liệu...' });
+    try {
+      // Hủy lọc tạm thời để bộ ảnh của từng chính sách lấy toàn bộ danh sách.
+      if (kind === 'policy') {
+        setQuyTvvNhomFilter([]); setQuyTvvNameFilter('');
+        setTvvmNhomFilter([]); setTvvmNameFilter('');
+        setNsTvvNhomFilter([]); setNsTvvNameFilter('');
+        setTuyenLuyenNhomFilter([]); setTuyenLuyenNameFilter('');
+        setDongHanhNhomFilter([]); setDongHanhNameFilter('');
+        setQuyTnNhomFilter([]); setQuyTnNameFilter('');
+        setPtkdNhomFilter([]); setPtkdNameFilter('');
+      }
+
+      let contestPrograms: any[] = [];
+      if (kind === 'contest') {
+        const response = await fetch(`/api/contests?summary=1&view=saoviet&_t=${Date.now()}`, { cache: 'no-store' });
+        if (!response.ok) throw new Error('Không thể lấy danh sách Thi đua từ máy chủ.');
+        const items = await response.json();
+        if (!Array.isArray(items)) throw new Error('Danh sách Thi đua không hợp lệ.');
+        // Đúng với các card đang hiển thị trong mục Thi đua; không đưa chương trình "Chốt" đã tách riêng vào.
+        contestPrograms = items.filter(isSaoVietTrackingContest);
+        if (!contestPrograms.length) throw new Error('Chưa có chương trình nào trong mục Thi đua để tải ảnh.');
+        setSavedContestsList(contestPrograms);
+        setSaovietOpen(null);
+        setActiveSheet('saoviet');
+      } else {
+        setPolicyOpen(null);
+        setActiveSheet('report');
+      }
+      await paint();
+
+      const tnPolicyKeys = new Set(['tuyen-luyen', 'ptkd-tn', 'quy-tn']);
+      const policyPrograms = kind === 'policy'
+        ? POLICY_ITEMS.map(item => ({
+            ...item,
+            category: tnPolicyKeys.has(item.key) ? '01_TB-TN' : '02_TVV-TTN',
+          })).sort((a,b) => a.category.localeCompare(b.category))
+        : [];
+      const total = kind === 'policy' ? policyPrograms.length : contestPrograms.length;
+      setBulkImageExportProgress({ completed: 0, total, label: `Đã tìm thấy ${total} chương trình` });
+      const entries: Array<{ name: string; blob: Blob }> = [];
+
+      for (let index = 0; index < total; index++) {
+        // Phải unmount bảng trước để React không diff hai bảng có DOM đã được browser normalize.
+        if (kind === 'policy') setPolicyOpen(null);
+        else setSaovietOpen(null);
+        await paint();
+
+        let label: string, posterUrl: string, accentColor: string, selector: string, subtitle: string, category = '';
+        if (kind === 'policy') {
+          const item = policyPrograms[index];
+          label = item.label;
+          category = item.category;
+          posterUrl = policyImageLinks[item.key] || '';
+          accentColor = category === '01_TB-TN' ? '#0F766E' : '#166534';
+          subtitle = category === '01_TB-TN' ? 'Khoản thưởng dành cho TB/TN' : 'Khoản thưởng dành cho TVV / TTN';
+          setPolicyOpen(item.key);
+          selector = `[data-policy-table="${item.key}"] table`;
+        } else {
+          const item = contestPrograms[index];
+          label = String(item.title || 'Chương trình thi đua');
+          posterUrl = item.posterUrl || '';
+          if (!posterUrl) {
+            const { createDefaultContestPoster } = await import('@/lib/contest-poster');
+            posterUrl = createDefaultContestPoster(item);
+          }
+          accentColor = '#6D28D9';
+          subtitle = ['Chương trình thi đua',
+            item.startDate ? new Date(item.startDate).toLocaleDateString('vi-VN') : '',
+            item.endDate ? new Date(item.endDate).toLocaleDateString('vi-VN') : ''].filter(Boolean).join(' • ');
+          setSaovietOpen(`saved-${item.id}`);
+          selector = `[data-saoviet-table="saved-${item.id}"] table`;
+        }
+        setBulkImageExportProgress({ completed: index, total, label: `Đang xuất ${index + 1}/${total}: ${label}` });
+        const table = await findTable(selector, label);
+        await paint();
+        // CLB xuất 20 dòng/ảnh; áp dụng cùng chuẩn trình bày cho bộ ảnh này.
+        const blob = await createClbCommunicationImage({
+          table, title: label, subtitle, posterUrl,
+          startRow: 0, endRow: 20, accentColor,
+          brand: kind === 'policy' ? 'CHÍNH SÁCH ĐẠI LÝ' : 'THI ĐUA',
+        });
+        const suffix = `${String(index + 1).padStart(2, '0')}_${fileSafe(label)}.png`;
+        entries.push({ name: category ? `${category}/${suffix}` : suffix, blob });
+        setBulkImageExportProgress({ completed: index + 1, total, label: `Đã tạo ${index + 1}/${total} ảnh` });
+        await new Promise<void>(resolve => window.setTimeout(resolve, 80));
+      }
+      setBulkImageExportProgress({ completed: total, total, label: 'Đang đóng gói bộ ảnh ZIP...' });
+      const archive = await createStoredZip(entries);
+      downloadBlob(archive, `anh-truyen-thong-${kind === 'policy' ? 'chinh-sach' : 'thi-dua'}_${new Date().toISOString().slice(0,10)}.zip`);
+      toast({ title: 'Đã tạo xong bộ ảnh', description: `Tải thành công ${entries.length} ảnh PNG 1920×1080 trong file ZIP.` });
+    } catch (error) {
+      console.error('[Bulk communication image export]', error);
+      toast({ title: 'Không thể tải bộ ảnh', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
+    } finally {
+      if (kind === 'policy') setPolicyOpen(null);
+      else setSaovietOpen(null);
+      await paint();
+      setQuyTvvNhomFilter(original.quyTvvNhomFilter); setQuyTvvNameFilter(original.quyTvvNameFilter);
+      setTvvmNhomFilter(original.tvvmNhomFilter); setTvvmNameFilter(original.tvvmNameFilter);
+      setNsTvvNhomFilter(original.nsTvvNhomFilter); setNsTvvNameFilter(original.nsTvvNameFilter);
+      setTuyenLuyenNhomFilter(original.tuyenLuyenNhomFilter); setTuyenLuyenNameFilter(original.tuyenLuyenNameFilter);
+      setDongHanhNhomFilter(original.dongHanhNhomFilter); setDongHanhNameFilter(original.dongHanhNameFilter);
+      setQuyTnNhomFilter(original.quyTnNhomFilter); setQuyTnNameFilter(original.quyTnNameFilter);
+      setPtkdNhomFilter(original.ptkdNhomFilter); setPtkdNameFilter(original.ptkdNameFilter);
+      setSavedContestsList(original.savedContestsList);
+      setPolicyOpen(original.policyOpen);
+      setSaovietOpen(original.saovietOpen);
+      setActiveSheet(original.activeSheet);
+      setBulkImageExporting(null);
+      setBulkImageExportProgress({ completed: 0, total: 0, label: '' });
     }
   };
 
@@ -12089,19 +12260,6 @@ export default function QuanLyPage() {
           </span>
           {isAdmin && !isEmbedded && (
             <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={handleDownloadClbCommunicationImages}
-                disabled={clbsvImageExporting}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold rounded-md text-slate-950 transition-all hover:brightness-105 active:scale-95 disabled:cursor-wait disabled:opacity-70"
-                style={{ backgroundColor: '#FDE68A', border: '1px solid #F59E0B', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
-                title="Tải 7 ảnh truyền thông 16:9 của 6 chương trình"
-              >
-                {clbsvImageExporting
-                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  : <ImageIcon className="w-3.5 h-3.5" />}
-                {clbsvImageExporting ? 'Đang tạo ảnh...' : 'Tải 7 ảnh'}
-              </button>
               <button
                 onClick={() => setSaovietSettingsOpen(true)}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold rounded-md text-white transition-all hover:brightness-110 active:scale-95"
@@ -12557,12 +12715,12 @@ export default function QuanLyPage() {
 
   return (
     <div className="nmc-management-skin h-screen flex flex-col fixed inset-0 z-50" style={{ backgroundColor: 'transparent' }}>
-      {clbsvImageExporting && (
+      {(clbsvImageExporting || bulkImageExporting !== null) && (
         <div
           className="fixed inset-0 z-[2000] grid place-items-center bg-slate-950/92 px-5 backdrop-blur-sm"
           role="status"
           aria-live="polite"
-          aria-label="Đang tạo bộ ảnh CLB Sao Việt"
+          aria-label="Đang tạo bộ ảnh truyền thông"
         >
           <div className="w-full max-w-sm rounded-2xl border border-amber-300/40 bg-slate-900 p-6 text-center shadow-2xl">
             <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-amber-300/10 text-amber-300">
@@ -12570,13 +12728,13 @@ export default function QuanLyPage() {
             </div>
             <div className="text-lg font-black text-white">ĐANG TẠO BỘ ẢNH</div>
             <div className="mt-2 min-h-10 text-sm font-semibold leading-5 text-slate-300">
-              {clbsvImageExportProgress.label}
+              {(bulkImageExporting ? bulkImageExportProgress : clbsvImageExportProgress).label}
             </div>
             <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-700">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-amber-400 to-emerald-400 transition-[width] duration-300"
                 style={{
-                  width: `${Math.round((clbsvImageExportProgress.completed / Math.max(1, clbsvImageExportProgress.total)) * 100)}%`,
+                  width: `${Math.round(((bulkImageExporting ? bulkImageExportProgress : clbsvImageExportProgress).completed / Math.max(1, (bulkImageExporting ? bulkImageExportProgress : clbsvImageExportProgress).total)) * 100)}%`,
                 }}
               />
             </div>
