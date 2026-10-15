@@ -7,6 +7,7 @@ import {
   BarChart3,
   Bell,
   Database,
+  Image as ImageIcon,
   Link2,
   Lock,
   RefreshCw,
@@ -373,6 +374,28 @@ export default function HomeCommandCenter() {
               </div>
               <div className="rounded-full border border-[#3f6275] bg-[#1d3c4d] px-2.5 py-1 text-[10px] font-black text-[#bcd2dd]">{links.length} ô</div>
             </div>
+
+            {adminAuthed && (
+              <div className="mb-3 rounded-xl border border-[#426a7a] bg-[#153544] p-2.5" aria-label="Tải bộ ảnh truyền thông">
+                <div className="mb-2 text-[10px] font-black uppercase tracking-[.12em] text-[#a7c7d8]">Tải ảnh truyền thông</div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  {([
+                    { key: 'clb', label: 'CLB Sao Việt', color: 'border-amber-400/60 bg-[#765922] hover:bg-[#917032]' },
+                    { key: 'policy', label: 'Chính sách', color: 'border-emerald-400/60 bg-[#185d49] hover:bg-[#217b5d]' },
+                    { key: 'contest', label: 'Thi đua', color: 'border-violet-400/60 bg-[#4d367d] hover:bg-[#6445a3]' },
+                  ] as const).map(item => (
+                    <button key={item.key} type="button"
+                      onClick={() => router.push(`/quan-ly?sheet=overview&downloadImages=${item.key}`)}
+                      className={`flex min-w-0 items-center justify-center gap-1.5 rounded-lg border px-2.5 py-2.5 text-[11px] font-extrabold text-white transition-colors ${item.color}`}
+                      title={`Tải bộ ảnh ${item.label} theo mẫu 1920×1080`}
+                    >
+                      <ImageIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {linksError && links.length === 0 ? (
               <div className="rounded-2xl border border-[#704e50] bg-[#3d292f] px-4 py-8 text-center text-sm text-[#f0b5b5]">Không thể tải danh sách liên kết.</div>
