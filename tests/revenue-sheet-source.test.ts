@@ -17,7 +17,7 @@ function getFunction(source: string, name: string, endMarker: string) {
 }
 
 test('Sheet 4 giữ mọi dòng không trống, không yêu cầu Mã ĐL hoặc ngày hợp đồng', () => {
-  const functionSource = getFunction(hub, 'revenueWorksheetValues', '\\nfunction csvFromWorkbook');
+  const functionSource = getFunction(hub, 'revenueWorksheetValues', '\nfunction csvFromWorkbook');
   const fn = new Function('compactWorksheetValues', 'findHeaderIndex', `${functionSource}\nreturn revenueWorksheetValues;`)(
     (sheet: any) => sheet.rows,
     (headers: string[], names: string[]) => headers.findIndex(value => names.includes(value)),
@@ -37,7 +37,7 @@ test('Sheet 4 giữ mọi dòng không trống, không yêu cầu Mã ĐL hoặc
 });
 
 test('Doanhso Sheet 1/9/11 lấy đúng tháng theo số Sheet, bỏ Sheet 10 hiện tại do Tamthu sở hữu', () => {
-  const functionSource = getFunction(hub, 'historicalRevenueFromWorkbook', '\\nfunction rowsFromWorkbook');
+  const functionSource = getFunction(hub, 'historicalRevenueFromWorkbook', '\nfunction rowsFromWorkbook');
   const sheet = (contract: string, issueDate: string) => ({
     rows: [['Số hợp đồng', 'Ngày phát hành', 'AFYP'], [contract, issueDate, 10_000_000]],
   });
