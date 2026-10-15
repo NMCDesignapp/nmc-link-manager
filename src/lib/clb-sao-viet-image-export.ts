@@ -10,6 +10,7 @@ type CommunicationImageOptions = {
   pageNumber?: number;
   pageCount?: number;
   accentColor: string;
+  brand?: string;
 };
 
 type ZipEntry = {
@@ -195,6 +196,7 @@ export async function createClbCommunicationImage({
   pageNumber = 1,
   pageCount = 1,
   accentColor,
+  brand = 'CLB SAO VIỆT',
 }: CommunicationImageOptions) {
   const { getFontEmbedCSS, toBlob } = await import('html-to-image');
   const root = document.createElement('section');
@@ -231,8 +233,9 @@ export async function createClbCommunicationImage({
     'border-right:6px solid rgba(255,215,0,.8)',
   ].join(';');
 
+  const brandLabel = brand;
   const brand = document.createElement('div');
-  brand.textContent = 'CLB SAO VIỆT';
+  brand.textContent = brandLabel;
   brand.style.cssText = 'font-size:20px;font-weight:900;letter-spacing:7px;color:#fde68a;margin-bottom:24px';
 
   const heading = document.createElement('h1');
