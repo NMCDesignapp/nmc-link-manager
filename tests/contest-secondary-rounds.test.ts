@@ -18,6 +18,9 @@ import {
   parseContestConfig,
   evaluateSecondaryConditions,
   filterByEffectiveDateRule,
+  formatContestConditionProgress,
+  formatContestConditionValue,
+  formatSecondaryConditionDeficit,
   getGroupTVVPassCountForReference,
   usesPerContractIPPercentReward,
   type BonusTier,
@@ -46,8 +49,32 @@ test('thưởng % IP và % Tổng IP độc lập với chỉ tiêu xét AFYP', 
   assert.equal(computeBonusFromTier(percentTotalIP, 30_000_000, undefined, 70_000_000), 7_000_000);
   assert.equal(computeBonusFromTier(percentFYC, 30_000_000, undefined, 70_000_000), 750_000);
   assert.equal(usesPerContractIPPercentReward('per_contract_afyp', [percentIP]), true);
+  assert.equal(usesPerContractIPPercentReward('per_contract_afyp', [percentTotalIP]), true);
+  assert.equal(usesPerContractIPPercentReward('per_contract_afyp', [percentFYC]), true);
   assert.equal(usesPerContractIPPercentReward('per_contract_afyp', [tier]), false);
   assert.equal(usesPerContractIPPercentReward('per_contract_ip', [percentIP]), false);
+});
+
+test('cột điều kiện hiển thị ngưỡng rõ và số âm còn thiếu ngắn gọn', () => {
+  assert.equal(formatContestConditionValue(45_000_000), '45 triệu');
+  assert.equal(formatContestConditionProgress(30_000_000, 45_000_000), '- 15 triệu');
+  assert.equal(formatContestConditionProgress(1, 2, 'contract'), '- 01 HĐ');
+  assert.equal(formatContestConditionProgress(3, 2, 'round'), '3 lượt');
+  assert.equal(formatSecondaryConditionDeficit({
+    passed: false,
+    totalAFYP: 30_000_000,
+    totalIP: 40_000_000,
+    luotHD: 1,
+    luotHDC: 2,
+    qualifyingContractCount: 1,
+  }, {
+    useSecondaryCondition: true,
+    secondaryTotalAFYPMin: 45_000_000,
+    secondaryTotalIPMin: 40_000_000,
+    secondaryContractCountMin: 2,
+    secondaryLuotHDMin: 2,
+    secondaryLuotHDCMin: 2,
+  }), '- 15 triệu AFYP · - 01 HĐ · - 01 lượt HĐ');
 });
 
 test('mọi loại thưởng phần trăm luôn lấy đúng cột IP của hợp đồng', () => {

@@ -74,6 +74,9 @@ import {
   isTopNMode,
   hasPercentBonus,
   usesPerContractIPPercentReward,
+  formatContestConditionValue,
+  formatContestConditionProgress,
+  formatSecondaryConditionDeficit,
   formatCurrency,
   formatNumber,
   formatDate,
@@ -433,35 +436,41 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     config.bonusTiers,
     config.usePhase2 ? config.bonusTiers2 : [],
   );
-  const showSecondaryTotalColumn =
-    (config.useSecondaryCondition ?? false) &&
-    ((config.secondaryTotalAFYPMin ?? 0) > 0 || (config.secondaryTotalIPMin ?? 0) > 0);
   const showSecondaryContractCountColumn = (config.useSecondaryCondition ?? false) && (config.secondaryContractCountMin ?? 0) > 0;
   const showSecondaryRoundColumn =
     (config.useSecondaryCondition ?? false) &&
     ((config.secondaryLuotHDMin ?? 0) > 0 || (config.secondaryLuotHDCMin ?? 0) > 0);
-  // Chỉ hiển thị cột riêng khi chỉ tiêu bổ sung khác loại với chỉ tiêu chính.
-  const showSecondaryAFYPColumn = Boolean(config.useSecondaryCondition) && (config.secondaryTotalAFYPMin ?? 0) > 0 && config.conditionType !== 'total_afyp';
-  const showSecondaryIPColumn = Boolean(config.useSecondaryCondition) && (config.secondaryTotalIPMin ?? 0) > 0 && config.conditionType !== 'total_ip';
+  // Mỗi điều kiện bổ sung có một cột riêng, kể cả trùng loại với chỉ tiêu chính,
+  // để người xem luôn biết rõ từng ngưỡng đang được xét.
+  const showSecondaryAFYPColumn = Boolean(config.useSecondaryCondition) && (config.secondaryTotalAFYPMin ?? 0) > 0;
+  const showSecondaryIPColumn = Boolean(config.useSecondaryCondition) && (config.secondaryTotalIPMin ?? 0) > 0;
+  const showSecondaryPerContractAFYPColumn = Boolean(config.useSecondaryCondition)
+    && (config.secondaryAFYPMin ?? 0) > 0
+    && config.conditionType !== 'per_contract_afyp';
+  const showSecondaryPerContractIPColumn = Boolean(config.useSecondaryCondition)
+    && (config.secondaryIPMin ?? 0) > 0
+    && config.conditionType !== 'per_contract_ip'
+    && !showPerContractIPRewardBase;
   const supplementaryColumnCount = [
     showSecondaryAFYPColumn, showSecondaryIPColumn, showSecondaryContractCountColumn,
     Boolean(config.useSecondaryCondition) && (config.secondaryLuotHDMin ?? 0) > 0,
     Boolean(config.useSecondaryCondition) && (config.secondaryLuotHDCMin ?? 0) > 0,
   ].filter(Boolean).length;
   const renderSupplementaryHeadings = () => (<>
-    {showSecondaryAFYPColumn && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ backgroundColor: '#92400E', color: '#FEF3C7' }}>Tổng AFYP</TableHead>}
-    {showSecondaryIPColumn && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ backgroundColor: '#92400E', color: '#FEF3C7' }}>Tổng IP</TableHead>}
-    {showSecondaryContractCountColumn && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ backgroundColor: '#9A3412', color: '#FEF3C7' }}><div>SL HĐ</div><div className="text-[9px] font-normal">IP ≥ {formatNumber(config.secondaryContractIPMin ?? 0)}</div></TableHead>}
-    {showSecondaryRoundColumn && (config.secondaryLuotHDMin ?? 0) > 0 && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ backgroundColor: '#9A3412', color: '#FEF3C7' }}>Lượt HĐ</TableHead>}
-    {showSecondaryRoundColumn && (config.secondaryLuotHDCMin ?? 0) > 0 && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ backgroundColor: '#9A3412', color: '#FEF3C7' }}>Lượt HĐC</TableHead>}
+    {showSecondaryAFYPColumn && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ backgroundColor: '#92400E', color: '#FEF3C7' }}><div>Tổng AFYP</div><div className="text-[9px] italic font-normal normal-case text-amber-200">(≥ {formatContestConditionValue(config.secondaryTotalAFYPMin ?? 0)})</div></TableHead>}
+    {showSecondaryIPColumn && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ backgroundColor: '#92400E', color: '#FEF3C7' }}><div>Tổng IP</div><div className="text-[9px] italic font-normal normal-case text-amber-200">(≥ {formatContestConditionValue(config.secondaryTotalIPMin ?? 0)})</div></TableHead>}
+    {showSecondaryContractCountColumn && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ backgroundColor: '#9A3412', color: '#FEF3C7' }}><div>SL HĐ</div><div className="text-[9px] italic font-normal normal-case text-amber-200">(≥ {config.secondaryContractCountMin ?? 0} HĐ · IP/HĐ ≥ {formatContestConditionValue(config.secondaryContractIPMin ?? 0)})</div></TableHead>}
+    {showSecondaryRoundColumn && (config.secondaryLuotHDMin ?? 0) > 0 && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ backgroundColor: '#9A3412', color: '#FEF3C7' }}><div>Lượt HĐ</div><div className="text-[9px] italic font-normal normal-case text-amber-200">(≥ {config.secondaryLuotHDMin} lượt)</div></TableHead>}
+    {showSecondaryRoundColumn && (config.secondaryLuotHDCMin ?? 0) > 0 && <TableHead className="text-[10px] font-bold uppercase text-center whitespace-nowrap" style={{ backgroundColor: '#9A3412', color: '#FEF3C7' }}><div>Lượt HĐC</div><div className="text-[9px] italic font-normal normal-case text-amber-200">(≥ {config.secondaryLuotHDCMin} lượt)</div></TableHead>}
   </>);
   const renderSupplementaryValues = (sc: ReturnType<typeof evaluateSecondaryConditions>) => (<>
-    {showSecondaryAFYPColumn && <TableCell className="text-right text-xs whitespace-nowrap">{formatNumber(sc.totalAFYP)}</TableCell>}
-    {showSecondaryIPColumn && <TableCell className="text-right text-xs whitespace-nowrap">{formatNumber(sc.totalIP)}</TableCell>}
-    {showSecondaryContractCountColumn && <TableCell className={`text-center text-xs font-semibold whitespace-nowrap ${sc.qualifyingContractCount >= (config.secondaryContractCountMin ?? 0) ? 'text-emerald-600' : 'text-red-500'}`}>{sc.qualifyingContractCount}{sc.qualifyingContractCount < (config.secondaryContractCountMin ?? 0) ? ' ✗' : ''}</TableCell>}
-    {showSecondaryRoundColumn && (config.secondaryLuotHDMin ?? 0) > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{sc.luotHD}</TableCell>}
-    {showSecondaryRoundColumn && (config.secondaryLuotHDCMin ?? 0) > 0 && <TableCell className="text-center text-xs whitespace-nowrap">{sc.luotHDC}</TableCell>}
+    {showSecondaryAFYPColumn && <TableCell className={`text-right text-xs whitespace-nowrap ${sc.totalAFYP >= (config.secondaryTotalAFYPMin ?? 0) ? 'text-emerald-600' : 'text-red-500'}`}>{formatContestConditionProgress(sc.totalAFYP, config.secondaryTotalAFYPMin ?? 0)}</TableCell>}
+    {showSecondaryIPColumn && <TableCell className={`text-right text-xs whitespace-nowrap ${sc.totalIP >= (config.secondaryTotalIPMin ?? 0) ? 'text-emerald-600' : 'text-red-500'}`}>{formatContestConditionProgress(sc.totalIP, config.secondaryTotalIPMin ?? 0)}</TableCell>}
+    {showSecondaryContractCountColumn && <TableCell className={`text-center text-xs font-semibold whitespace-nowrap ${sc.qualifyingContractCount >= (config.secondaryContractCountMin ?? 0) ? 'text-emerald-600' : 'text-red-500'}`}>{formatContestConditionProgress(sc.qualifyingContractCount, config.secondaryContractCountMin ?? 0, 'contract')}</TableCell>}
+    {showSecondaryRoundColumn && (config.secondaryLuotHDMin ?? 0) > 0 && <TableCell className={`text-center text-xs whitespace-nowrap ${sc.luotHD >= (config.secondaryLuotHDMin ?? 0) ? 'text-emerald-600' : 'text-red-500'}`}>{formatContestConditionProgress(sc.luotHD, config.secondaryLuotHDMin ?? 0, 'round')}</TableCell>}
+    {showSecondaryRoundColumn && (config.secondaryLuotHDCMin ?? 0) > 0 && <TableCell className={`text-center text-xs whitespace-nowrap ${sc.luotHDC >= (config.secondaryLuotHDCMin ?? 0) ? 'text-emerald-600' : 'text-red-500'}`}>{formatContestConditionProgress(sc.luotHDC, config.secondaryLuotHDCMin ?? 0, 'round')}</TableCell>}
   </>);
+  const secondaryDeficitNote = (sc: ReturnType<typeof evaluateSecondaryConditions>) => formatSecondaryConditionDeficit(sc, config);
   const usePhase2 = config.usePhase2 ?? false;
   const nydPhaseBonusByCode = useMemo(() => {
     const result = new Map<string, { phase1Bonus: number; phase2Bonus: number }>();
@@ -516,7 +525,6 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     return (
       <div className="relative flex-shrink-0 w-full overflow-hidden" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
         {currentPosterUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={currentPosterUrl} alt={config.title} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 text-[10px] text-center p-3 gap-1">
@@ -613,9 +621,18 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>MÃ SỐ ĐẠI LÝ</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>HỌ TÊN TVV</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>NGÀY HL</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>{isAFYP ? 'AFYP/HĐ' : 'IP/HĐ'}</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>
+              <div>{isAFYP ? 'AFYP/HĐ' : 'IP/HĐ'}</div>
+              {(sortedTiers[0]?.minFYP ?? 0) > 0 && <div className="text-[9px] italic font-normal normal-case" style={{ color: '#FCD34D' }}>(≥ {formatContestConditionValue(sortedTiers[0].minFYP)})</div>}
+            </TableHead>
+            {showSecondaryPerContractAFYPColumn && (
+              <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#92400E' }}><div>AFYP/HĐ</div><div className="text-[9px] italic font-normal normal-case text-amber-200">(≥ {formatContestConditionValue(config.secondaryAFYPMin ?? 0)})</div></TableHead>
+            )}
             {showPerContractIPRewardBase && (
-              <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#047857' }}>IP/HĐ</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#047857' }}><div>IP/HĐ</div><div className="text-[9px] italic font-normal normal-case" style={{ color: '#FCD34D' }}>{(config.secondaryIPMin ?? 0) > 0 ? `(≥ ${formatContestConditionValue(config.secondaryIPMin ?? 0)})` : '(căn cứ thưởng)'}</div></TableHead>
+            )}
+            {showSecondaryPerContractIPColumn && (
+              <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#92400E' }}><div>IP/HĐ</div><div className="text-[9px] italic font-normal normal-case text-amber-200">(≥ {formatContestConditionValue(config.secondaryIPMin ?? 0)})</div></TableHead>
             )}
             {renderSupplementaryHeadings()}
             {showRateColumn && (
@@ -634,9 +651,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {isContestDataLoading ? renderLoadingTableRow((usePhase2 ? 11 : 9) + (showPerContractIPRewardBase ? 1 : 0) + supplementaryColumnCount) : filteredRows.length === 0 ? (
+          {isContestDataLoading ? renderLoadingTableRow((usePhase2 ? 11 : 9) + (showPerContractIPRewardBase ? 1 : 0) + (showSecondaryPerContractAFYPColumn ? 1 : 0) + (showSecondaryPerContractIPColumn ? 1 : 0) + supplementaryColumnCount) : filteredRows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={(usePhase2 ? 11 : 9) + (showPerContractIPRewardBase ? 1 : 0) + supplementaryColumnCount} className="text-center text-gray-400 py-10 italic text-xs bg-white">
+              <TableCell colSpan={(usePhase2 ? 11 : 9) + (showPerContractIPRewardBase ? 1 : 0) + (showSecondaryPerContractAFYPColumn ? 1 : 0) + (showSecondaryPerContractIPColumn ? 1 : 0) + supplementaryColumnCount} className="text-center text-gray-400 py-10 italic text-xs bg-white">
                 Không có dữ liệu phù hợp.
               </TableCell>
             </TableRow>
@@ -648,8 +665,14 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               <TableCell className="text-xs text-gray-800 whitespace-nowrap">{row.contract.agentName}</TableCell>
               <TableCell className="text-center text-xs text-gray-600 whitespace-nowrap">{formatDate(row.contract.effectiveDate)}</TableCell>
               <TableCell className="text-center text-xs text-gray-900 whitespace-nowrap">{formatNumber(row.cValue)}</TableCell>
+              {showSecondaryPerContractAFYPColumn && (
+                <TableCell className={`text-center text-xs whitespace-nowrap ${row.contract.afyp >= (config.secondaryAFYPMin ?? 0) ? 'text-emerald-600' : 'text-red-500'}`}>{formatContestConditionProgress(row.contract.afyp, config.secondaryAFYPMin ?? 0)}</TableCell>
+              )}
               {showPerContractIPRewardBase && (
-                <TableCell className="text-center text-xs text-gray-900 whitespace-nowrap">{formatNumber(row.contract.pdt10DT)}</TableCell>
+                <TableCell className={`text-center text-xs whitespace-nowrap ${row.contract.pdt10DT >= (config.secondaryIPMin ?? 0) ? 'text-emerald-600' : 'text-gray-900'}`}>{formatNumber(row.contract.pdt10DT)}</TableCell>
+              )}
+              {showSecondaryPerContractIPColumn && (
+                <TableCell className={`text-center text-xs whitespace-nowrap ${row.contract.pdt10DT >= (config.secondaryIPMin ?? 0) ? 'text-emerald-600' : 'text-red-500'}`}>{formatContestConditionProgress(row.contract.pdt10DT, config.secondaryIPMin ?? 0)}</TableCell>
               )}
               {renderSupplementaryValues(row.secondaryCheck)}
               {showRateColumn && (
@@ -683,9 +706,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                 {getCombinedTopNote(`contract:${row.contract.id}`) ? (
                   <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Crown className="w-4 h-4" />{getCombinedTopNote(`contract:${row.contract.id}`)}</span>
                 ) : !row.effectiveTier && row.remaining !== null ? (
-                  <span className="text-[10px] italic text-gray-400">{!row.secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : `- ${formatNumber(row.remaining)}`}</span>
+                  <span className="text-[10px] italic text-gray-400">{!row.secondaryPassed && row.tier ? secondaryDeficitNote(row.secondaryCheck) : `- ${formatNumber(row.remaining)}`}</span>
                 ) : !row.effectiveTier ? (
-                  <span className="text-[10px] italic text-gray-400">{!row.secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span>
+                  <span className="text-[10px] italic text-gray-400">{!row.secondaryPassed && row.tier ? secondaryDeficitNote(row.secondaryCheck) : 'Chưa đạt'}</span>
                 ) : null}
               </TableCell>
             </TableRow>
@@ -765,16 +788,16 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                   noteLabel = <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Trophy className="w-4 h-4" />Hạng {qualifierRank + 1}</span>;
                 }
               } else if (row.remaining !== null) {
-                noteLabel = <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : `- ${formatNumber(row.remaining)}`}</span>;
+                noteLabel = <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? secondaryDeficitNote(secondaryCheck) : `- ${formatNumber(row.remaining)}`}</span>;
               } else {
-                noteLabel = <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span>;
+                noteLabel = <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? secondaryDeficitNote(secondaryCheck) : 'Chưa đạt'}</span>;
               }
             } else {
               // Non-Top N: giữ nguyên logic cột Ghi chú
               noteLabel = !effectiveTier && row.remaining !== null
-                ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : `- ${formatNumber(row.remaining)}`}</span>
+                ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? secondaryDeficitNote(secondaryCheck) : `- ${formatNumber(row.remaining)}`}</span>
                 : !effectiveTier
-                  ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span>
+                  ? <span className="text-[10px] italic text-gray-400">{!secondaryPassed && row.tier ? secondaryDeficitNote(secondaryCheck) : 'Chưa đạt'}</span>
                   : null;
             }
             const combinedTopNote = getCombinedTopNote(`tvv:${row.agent.agentCode}`);
@@ -964,7 +987,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                 {getCombinedTopNote(`nhom:${row.g.maNhom}`) ? (
                   <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Crown className="w-4 h-4" />{getCombinedTopNote(`nhom:${row.g.maNhom}`)}</span>
                 ) : !row.effectiveTier ? (
-                  <span className="text-[10px] italic text-gray-400">{!row.secondaryPassed && row.tier ? 'Chưa đạt ĐKB' : 'Chưa đạt'}</span>
+                  <span className="text-[10px] italic text-gray-400">{!row.secondaryPassed && row.tier ? secondaryDeficitNote(row.secondaryCheck) : 'Chưa đạt'}</span>
                 ) : null}
               </TableCell>
             </TableRow>
@@ -983,22 +1006,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   const renderNYDTable = () => {
     const isActivity = isActivityRoundMode(config.conditionType);
     const includeIndividualNTD = config.includeIndividualNTD ?? false;
-    const getSecondaryDeficitNote = (row: (typeof nydResultRows)[number]): string => {
-      const roundDeficit = Math.max(
-        0,
-        (config.secondaryLuotHDCMin ?? 0) - row.secondaryCheck.luotHDC,
-        (config.secondaryLuotHDMin ?? 0) - row.secondaryCheck.luotHD,
-      );
-      const contractCountDeficit = Math.max(0, (config.secondaryContractCountMin ?? 0) - row.secondaryCheck.qualifyingContractCount);
-      if (contractCountDeficit > 0) return `- ${contractCountDeficit} HĐ (IP đạt ngưỡng)`;
-      if (roundDeficit > 0) return `- ${String(Math.ceil(roundDeficit)).padStart(2, '0')} lượt`;
-      const valueDeficit = Math.max(
-        0,
-        (config.secondaryTotalAFYPMin ?? 0) - row.secondaryCheck.totalAFYP,
-        (config.secondaryTotalIPMin ?? 0) - row.secondaryCheck.totalIP,
-      );
-      return valueDeficit > 0 ? `- ${formatNumber(valueDeficit)}` : 'Chưa đạt ĐKB';
-    };
+    const getSecondaryDeficitNote = (row: (typeof nydResultRows)[number]): string => secondaryDeficitNote(row.secondaryCheck);
     const filteredRows = nydResultRows.filter((row) => {
       if (hideNotAchieved && !row.effectiveTier) return false;
       if (!row.nyd.nhom) return false;
@@ -1227,7 +1235,6 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             {/* Left: poster */}
             <div className="relative w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
               {(posterUrl || config.posterUrl) ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img src={posterUrl || config.posterUrl} alt={config.title} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 text-[10px] text-center p-3 gap-1">

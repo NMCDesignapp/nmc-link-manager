@@ -566,6 +566,69 @@ export function evaluateSecondaryConditions(
   return { passed, totalAFYP, totalIP, luotHD, luotHDC, qualifyingContractCount };
 }
 
+export type ContestConditionUnit = 'money' | 'contract' | 'round';
+
+const contestConditionDecimalFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 });
+const contestConditionIntegerFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
+
+/** Build stable day boundaries for date inputs, independent of the device timezone. */
+export function getContestDateBoundary(value: string, endOfDay = false): Date {
+  const trimmed = String(value || '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return new Date(`${trimmed}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}Z`);
+  }
+  const parsed = new Date(trimmed);
+  if (endOfDay && !Number.isNaN(parsed.getTime())) parsed.setUTCHours(23, 59, 59, 999);
+  return parsed;
+}
+
+/**
+ * Compact, Vietnamese-friendly values used by contest result condition columns.
+ * Headers stay explicit (triệu/tỷ), while row values remain short enough for
+ * image export and small result popups.
+ */
+export function formatContestConditionValue(value: number, unit: ContestConditionUnit = 'money'): string {
+  const safeValue = Math.max(0, Number(value) || 0);
+  if (unit === 'contract') return `${Math.ceil(safeValue)} HĐ`;
+  if (unit === 'round') return `${Math.ceil(safeValue)} lượt`;
+  if (safeValue >= 1_000_000_000) return `${contestConditionDecimalFormatter.format(safeValue / 1_000_000_000)} tỷ`;
+  if (safeValue >= 1_000_000) return `${contestConditionDecimalFormatter.format(safeValue / 1_000_000)} triệu`;
+  if (safeValue >= 1_000) return `${contestConditionIntegerFormatter.format(safeValue / 1_000)} nghìn`;
+  return `${contestConditionIntegerFormatter.format(safeValue)} đ`;
+}
+
+export function formatContestConditionProgress(
+  actual: number,
+  target: number,
+  unit: ContestConditionUnit = 'money',
+): string {
+  const safeActual = Math.max(0, Number(actual) || 0);
+  const safeTarget = Math.max(0, Number(target) || 0);
+  const deficit = Math.max(0, safeTarget - safeActual);
+  if (deficit <= 0) return formatContestConditionValue(safeActual, unit);
+  if (unit === 'money') return `- ${formatContestConditionValue(deficit, unit)}`;
+  const label = unit === 'contract' ? 'HĐ' : 'lượt';
+  return `- ${String(Math.ceil(deficit)).padStart(2, '0')} ${label}`;
+}
+
+export function formatSecondaryConditionDeficit(
+  result: SecondaryConditionResult,
+  options: SecondaryConditionOptions,
+): string {
+  const deficits: string[] = [];
+  const afypDeficit = Math.max(0, (options.secondaryTotalAFYPMin ?? 0) - result.totalAFYP);
+  const ipDeficit = Math.max(0, (options.secondaryTotalIPMin ?? 0) - result.totalIP);
+  const contractDeficit = Math.max(0, (options.secondaryContractCountMin ?? 0) - result.qualifyingContractCount);
+  const luotHDDeficit = Math.max(0, (options.secondaryLuotHDMin ?? 0) - result.luotHD);
+  const luotHDCDeficit = Math.max(0, (options.secondaryLuotHDCMin ?? 0) - result.luotHDC);
+  if (afypDeficit > 0) deficits.push(`- ${formatContestConditionValue(afypDeficit)} AFYP`);
+  if (ipDeficit > 0) deficits.push(`- ${formatContestConditionValue(ipDeficit)} IP`);
+  if (contractDeficit > 0) deficits.push(`- ${String(Math.ceil(contractDeficit)).padStart(2, '0')} HĐ`);
+  if (luotHDDeficit > 0) deficits.push(`- ${String(Math.ceil(luotHDDeficit)).padStart(2, '0')} lượt HĐ`);
+  if (luotHDCDeficit > 0) deficits.push(`- ${String(Math.ceil(luotHDCDeficit)).padStart(2, '0')} lượt HĐC`);
+  return deficits.join(' · ');
+}
+
 // ===== Unicode normalize (NFC vs NFD Vietnamese) =====
 export function norm(s: string): string {
   return s.normalize('NFC');
@@ -754,9 +817,9 @@ export function hasPercentBonus(tiers: BonusTier[]): boolean {
 }
 
 /**
- * AFYP/HĐ is the qualification metric, while `percent` is calculated from
- * the IP of that same contract. Result and export surfaces use this helper to
- * show both values and avoid treating AFYP as the reward base.
+ * AFYP/HĐ is the qualification metric, while all percentage reward variants
+ * use IP (directly, as total IP, or through FYC). Result and export surfaces
+ * use this helper to show both AFYP and IP and avoid hiding the reward base.
  */
 export function usesPerContractIPPercentReward(
   conditionType: ConditionType,
@@ -764,7 +827,11 @@ export function usesPerContractIPPercentReward(
   phase2Tiers: BonusTier[] = [],
 ): boolean {
   return conditionType === 'per_contract_afyp'
-    && [...tiers, ...phase2Tiers].some((tier) => tier.bonusType === 'percent');
+    && [...tiers, ...phase2Tiers].some((tier) => (
+      tier.bonusType === 'percent'
+      || tier.bonusType === 'percent_total_ip'
+      || tier.bonusType === 'percent_fyc'
+    ));
 }
 
 // ===== Formatters =====
@@ -946,22 +1013,20 @@ export function filterContractsByContest(
 ): Contract[] {
   let results = [...contracts];
   if (config.startDate) {
-    const start = new Date(config.startDate);
+    const start = getContestDateBoundary(config.startDate);
     results = results.filter((c) => new Date(c.effectiveDate) >= start);
   }
   if (config.endDate) {
-    const end = new Date(config.endDate);
-    end.setHours(23, 59, 59, 999);
+    const end = getContestDateBoundary(config.endDate, true);
     results = results.filter((c) => new Date(c.effectiveDate) <= end);
   }
   if (config.issueDate) {
-    const issueStart = new Date(config.issueDate);
+    const issueStart = getContestDateBoundary(config.issueDate);
     results = results.filter((c) => new Date(c.issueDate) >= issueStart);
   }
   if (config.issueEndDate) {
     // Giữ đúng phép lọc Ngày phát hành đến trên trang Thi đua khi mở lại.
-    const issueEnd = new Date(config.issueEndDate);
-    issueEnd.setHours(23, 59, 59, 999);
+    const issueEnd = getContestDateBoundary(config.issueEndDate, true);
     results = results.filter((c) => new Date(c.issueDate) <= issueEnd);
   }
   if (config.useSecondaryCondition) {

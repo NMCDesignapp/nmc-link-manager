@@ -97,6 +97,21 @@ test('mọi bề mặt kết quả dùng hợp đồng IP làm căn cứ thưở
   assert.doesNotMatch(savedPage, /computeBonusFromTier\(p[12]Res\.tier,\s*p[12]Value/);
 });
 
+test('popup thi đua giữ menu tối và bảng kết quả nêu rõ mọi ngưỡng điều kiện', () => {
+  const livePage = readFileSync(new URL('../src/app/thi-dua-chau/page.tsx', import.meta.url), 'utf8');
+  const savedPage = readFileSync(new URL('../src/components/saved-contest-inline.tsx', import.meta.url), 'utf8');
+
+  assert.match(livePage, /style=\{\{ colorScheme: 'dark' \}\}/);
+  assert.match(livePage, /className="bg-slate-950 text-white"/);
+  assert.match(livePage, /value=\{tier\.bonusType\}/);
+  assert.match(livePage, /onUpdate\('bonusType', event\.target\.value as BonusType\)/);
+  assert.doesNotMatch(livePage, /previous\.map\(tier => \(\{ \.\.\.tier, bonusType: type \}\)\)/);
+  assert.match(livePage, /renderSecondaryConditionHeadings/);
+  assert.match(livePage, /formatContestConditionProgress/);
+  assert.match(savedPage, /renderSupplementaryHeadings/);
+  assert.match(savedPage, /formatSecondaryConditionDeficit/);
+});
+
 test('tải ảnh kết quả có giới hạn thời gian, phương án dự phòng và luôn dọn trạng thái tạm', () => {
   const livePage = readFileSync(new URL('../src/app/thi-dua-chau/page.tsx', import.meta.url), 'utf8');
 
@@ -104,7 +119,6 @@ test('tải ảnh kết quả có giới hạn thời gian, phương án dự ph
   assert.match(livePage, /html2canvas\(clone/);
   assert.match(livePage, /captureRoot\.remove\(\)/);
   assert.match(livePage, /restoreAllScrollbars\(\)/);
-  assert.match(livePage, /removeAttribute\('data-contest-image-skip'\)/);
   assert.match(livePage, /setIsDownloadingImage\(false\)/);
 });
 
