@@ -5,7 +5,7 @@ import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import XLSX from 'xlsx';
 
-const AGENT_VERSION = '2.1.2-20261007';
+const AGENT_VERSION = '2.2.0-20261015';
 const root = path.dirname(fileURLToPath(import.meta.url));
 const configPath = process.env.NMC_DATA_HUB_CONFIG || path.join(root, 'data-hub.config.json');
 const statePath = path.join(root, '.nmc-data-hub-state.json');
@@ -287,7 +287,12 @@ async function importOne(config, rawSource, state, forceImport) {
   }
 
   const checksumPayload = historyInput ? JSON.stringify(historyInput) : (typeof input === 'string' ? input : JSON.stringify(input));
-  const checksum = sha256(checksumPayload);
+  // Quy tắc nguồn doanh số thay đổi: force lại 1 vòng đồng bộ khi cập nhật Data Hub,
+  // ngay cả khi Tamthu.xlsx và Doanhso.xlsx chưa được sửa từ lần nhập cũ.
+  const sourceSchemaVersion = ['revenue', 'revenue-history'].includes(source.kind)
+    ? 'authoritative-sheet-month-v2'
+    : 'unchanged';
+  const checksum = sha256(`${sourceSchemaVersion}|${checksumPayload}`);
   if (!forceImport && state.sources?.[source.id]?.checksum === checksum) {
     return { id: source.id, changed: false, ok: true, count: state.sources[source.id].count ?? null };
   }
