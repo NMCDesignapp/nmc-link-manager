@@ -3570,6 +3570,10 @@ function ThiDuaPageInner() {
         clone.style.setProperty('max-width', 'none', 'important');
         clone.style.setProperty('overflow', 'visible', 'important');
         clone.style.setProperty('box-sizing', 'border-box', 'important');
+        // The capture must end at the last table border, without the
+        // popup's px-3 padding appearing after the Ghi chú column.
+        clone.style.setProperty('padding-left', '0', 'important');
+        clone.style.setProperty('padding-right', '0', 'important');
         const endRow = startRow + MAX_ROWS_PER_IMAGE;
 
         // Results have CSS classes scoped to the popup. A detached capture root
@@ -3673,22 +3677,53 @@ function ThiDuaPageInner() {
             col.style.setProperty('min-width', '0', 'important');
           });
           tableClone.querySelectorAll<HTMLTableCellElement>('th, td').forEach(cell => {
+            const isHeader = cell.tagName === 'TH';
+            const isNote = !isHeader && cell === cell.parentElement?.lastElementChild;
             cell.style.setProperty('width', 'auto', 'important');
             cell.style.setProperty('min-width', '0', 'important');
             cell.style.setProperty('max-width', 'none', 'important');
-            cell.style.setProperty('white-space', 'nowrap', 'important');
-            cell.style.setProperty('overflow-wrap', 'normal', 'important');
+            // Header titles can wrap; the actual result values must not.
+            cell.style.setProperty('white-space', isHeader ? 'normal' : 'nowrap', 'important');
+            cell.style.setProperty('overflow-wrap', isHeader ? 'break-word' : 'normal', 'important');
             cell.style.setProperty('word-break', 'normal', 'important');
             cell.style.setProperty('overflow', 'visible', 'important');
             cell.style.setProperty('text-overflow', 'clip', 'important');
-            cell.style.setProperty('font-size', '15px', 'important');
+            cell.style.setProperty('font-size', isHeader ? '16px' : '15px', 'important');
             cell.style.setProperty('line-height', '1.25', 'important');
             cell.style.setProperty('padding', '6px 8px', 'important');
+
             cell.querySelectorAll<HTMLElement>('*').forEach(content => {
-              content.style.setProperty('white-space', 'nowrap', 'important');
-              content.style.setProperty('overflow-wrap', 'normal', 'important');
+              content.style.setProperty('white-space', isHeader ? 'normal' : 'nowrap', 'important');
+              content.style.setProperty('overflow-wrap', isHeader ? 'break-word' : 'normal', 'important');
               content.style.setProperty('text-overflow', 'clip', 'important');
+              // Popup's text-[10px] makes the Ghi chú entries microscopic
+              // in the exported image. Match the other data cells only here.
+              if (isNote) {
+                content.style.setProperty('font-size', '15px', 'important');
+                content.style.setProperty('line-height', '1.25', 'important');
+              }
             });
+
+            if (isHeader) {
+              // The popup's mobile stylesheet shrinks nested header elements
+              // to 8/9 px. Bring back only the principal heading; retain the
+              // small italic condition/date legend on the second line.
+              const heading = cell.firstElementChild;
+              if (heading instanceof HTMLElement && !heading.classList.contains('italic')) {
+                [heading, ...Array.from(heading.querySelectorAll<HTMLElement>('*'))].forEach(node => {
+                  node.style.setProperty('font-size', '16px', 'important');
+                  node.style.setProperty('font-weight', '700', 'important');
+                  node.style.setProperty('line-height', '1.25', 'important');
+                });
+              }
+              Array.from(cell.children).slice(1).forEach(node => {
+                if (node instanceof HTMLElement && node.classList.contains('italic')) {
+                  node.style.setProperty('font-size', '10px', 'important');
+                  node.style.setProperty('font-style', 'italic', 'important');
+                  node.style.setProperty('line-height', '1.2', 'important');
+                }
+              });
+            }
           });
           tableContainerClone.style.setProperty('width', 'max-content', 'important');
           tableContainerClone.style.setProperty('max-width', 'none', 'important');
@@ -3701,9 +3736,12 @@ function ThiDuaPageInner() {
         captureRoot.appendChild(clone);
         document.body.appendChild(captureRoot);
         try {
-          // After DOM layout, expand the entire image to the widest content.
-          // The poster occupies 100% of this width at 16:5; it never dictates
-          // table width or forces table text to wrap.
+          // Measure after font loading: widths can grow once Vietnamese glyphs
+          // resolve. The right edge must coincide with the table border.
+          await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+          if (document.fonts) {
+            await withContestImageTimeout(document.fonts.ready, 3_000, 'Font chưa sẵn sàng').catch(() => undefined);
+          }
           const exportTable = clone.querySelector<HTMLTableElement>('#result-table-container table');
           if (exportTable) {
             const intrinsicWidth = Math.ceil(Math.max(
@@ -3711,19 +3749,18 @@ function ThiDuaPageInner() {
               exportTable.getBoundingClientRect().width,
               ...Array.from(exportTable.rows).map(row => row.scrollWidth),
             ));
-            const fullImageWidth = Math.max(640, intrinsicWidth + 26);
+            const tableBorderWidth = 2; // 1px on each side of result-table-container
+            const fullImageWidth = Math.max(640, intrinsicWidth + tableBorderWidth);
             clone.style.setProperty('width', `${fullImageWidth}px`, 'important');
             printClone.style.setProperty('width', '100%', 'important');
             const exportTableContainer = clone.querySelector<HTMLElement>('#result-table-container');
             exportTableContainer?.style.setProperty('width', '100%', 'important');
-            exportTable.style.setProperty('width', `${intrinsicWidth}px`, 'important');
+            // A narrow result table expands to the image edge; wide tables
+            // keep their natural size. Never leave an extra 26px at the end.
+            exportTable.style.setProperty('width', `${fullImageWidth - tableBorderWidth}px`, 'important');
             exportTable.style.setProperty('min-width', `${intrinsicWidth}px`, 'important');
           }
-          // Give the clone one paint frame so fonts, images and table width settle.
           await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-          if (document.fonts) {
-            await withContestImageTimeout(document.fonts.ready, 3_000, 'Font chưa sẵn sàng').catch(() => undefined);
-          }
           if (!contestImageFontEmbedCSS) {
             contestImageFontEmbedCSS = await withContestImageTimeout(
               getFontEmbedCSS(clone, { preferredFontFormat: 'woff2' }),
