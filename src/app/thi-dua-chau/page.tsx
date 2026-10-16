@@ -3562,11 +3562,11 @@ function ThiDuaPageInner() {
         const sourcePrintContent = el.firstElementChild;
         if (!sourcePrintContent) throw new Error('Không tìm thấy nội dung kết quả');
 
-        // Export the actual result popup theme, not a re-styled substitute.
-        // Give wide tables enough horizontal pixels before capturing the whole table.
-        const captureWidth = 1600;
+        // The table defines the export width. Never shrink the table to fit
+        // the banner: the banner must instead follow the full table width.
+        const initialCaptureWidth = 1600;
         const clone = el.cloneNode(false) as HTMLDivElement;
-        clone.style.setProperty('width', `${captureWidth}px`, 'important');
+        clone.style.setProperty('width', `${initialCaptureWidth}px`, 'important');
         clone.style.setProperty('max-width', 'none', 'important');
         clone.style.setProperty('overflow', 'visible', 'important');
         clone.style.setProperty('box-sizing', 'border-box', 'important');
@@ -3613,7 +3613,7 @@ function ThiDuaPageInner() {
               if (posterFrame) {
                 posterFrame.style.setProperty('aspect-ratio', '16 / 5', 'important');
                 posterFrame.style.setProperty('width', '100%', 'important');
-                posterFrame.style.setProperty('max-height', '500px', 'important');
+                posterFrame.style.setProperty('max-height', 'none', 'important');
                 posterFrame.style.setProperty('overflow', 'hidden', 'important');
               }
               poster.style.setProperty('width', '100%', 'important');
@@ -3660,29 +3660,37 @@ function ThiDuaPageInner() {
             tableClone.appendChild(sectionClone);
           });
           preservePopupAppearance(sourceTable, tableClone, false);
-          // Do not apply CSS zoom or transform: the old scale shrank the
-          // result table to a small block at the bottom-left of a wide image.
-          // Fit all columns in the export width with wrapping when necessary.
-          tableClone.style.setProperty('width', '100%', 'important');
-          tableClone.style.setProperty('min-width', '0', 'important');
-          tableClone.style.setProperty('max-width', '100%', 'important');
-          tableClone.style.setProperty('table-layout', 'fixed', 'important');
-          tableClone.style.removeProperty('zoom');
-          tableClone.querySelectorAll<HTMLTableCellElement>('th, td').forEach(cell => {
-            cell.style.setProperty('min-width', '0', 'important');
-            cell.style.setProperty('max-width', 'none', 'important');
-            cell.style.setProperty('white-space', 'normal', 'important');
-            cell.style.setProperty('overflow-wrap', 'anywhere', 'important');
-            cell.style.setProperty('word-break', 'normal', 'important');
-            cell.style.setProperty('font-size', '15px', 'important');
-            cell.style.setProperty('line-height', '1.25', 'important');
-            cell.style.setProperty('padding', '6px 5px', 'important');
-          });
+          // Export-specific layout: natural-width table, one line per cell.
+          // The popup's column-count CSS zoom is deliberately disabled here.
+          tableClone.style.setProperty('zoom', '1', 'important');
+          tableClone.style.setProperty('transform', 'none', 'important');
+          tableClone.style.setProperty('table-layout', 'auto', 'important');
+          tableClone.style.setProperty('width', 'max-content', 'important');
+          tableClone.style.setProperty('min-width', 'max-content', 'important');
+          tableClone.style.setProperty('max-width', 'none', 'important');
           tableClone.querySelectorAll<HTMLElement>('col').forEach(col => {
             col.style.setProperty('width', 'auto', 'important');
             col.style.setProperty('min-width', '0', 'important');
           });
-          tableContainerClone.style.setProperty('width', '100%', 'important');
+          tableClone.querySelectorAll<HTMLTableCellElement>('th, td').forEach(cell => {
+            cell.style.setProperty('width', 'auto', 'important');
+            cell.style.setProperty('min-width', '0', 'important');
+            cell.style.setProperty('max-width', 'none', 'important');
+            cell.style.setProperty('white-space', 'nowrap', 'important');
+            cell.style.setProperty('overflow-wrap', 'normal', 'important');
+            cell.style.setProperty('word-break', 'normal', 'important');
+            cell.style.setProperty('overflow', 'visible', 'important');
+            cell.style.setProperty('text-overflow', 'clip', 'important');
+            cell.style.setProperty('font-size', '15px', 'important');
+            cell.style.setProperty('line-height', '1.25', 'important');
+            cell.style.setProperty('padding', '6px 8px', 'important');
+            cell.querySelectorAll<HTMLElement>('*').forEach(content => {
+              content.style.setProperty('white-space', 'nowrap', 'important');
+              content.style.setProperty('overflow-wrap', 'normal', 'important');
+              content.style.setProperty('text-overflow', 'clip', 'important');
+            });
+          });
+          tableContainerClone.style.setProperty('width', 'max-content', 'important');
           tableContainerClone.style.setProperty('max-width', 'none', 'important');
           tableContainerClone.style.setProperty('overflow', 'visible', 'important');
           tableContainerClone.appendChild(tableClone);
@@ -3693,6 +3701,24 @@ function ThiDuaPageInner() {
         captureRoot.appendChild(clone);
         document.body.appendChild(captureRoot);
         try {
+          // After DOM layout, expand the entire image to the widest content.
+          // The poster occupies 100% of this width at 16:5; it never dictates
+          // table width or forces table text to wrap.
+          const exportTable = clone.querySelector<HTMLTableElement>('#result-table-container table');
+          if (exportTable) {
+            const intrinsicWidth = Math.ceil(Math.max(
+              exportTable.scrollWidth,
+              exportTable.getBoundingClientRect().width,
+              ...Array.from(exportTable.rows).map(row => row.scrollWidth),
+            ));
+            const fullImageWidth = Math.max(640, intrinsicWidth + 26);
+            clone.style.setProperty('width', `${fullImageWidth}px`, 'important');
+            printClone.style.setProperty('width', '100%', 'important');
+            const exportTableContainer = clone.querySelector<HTMLElement>('#result-table-container');
+            exportTableContainer?.style.setProperty('width', '100%', 'important');
+            exportTable.style.setProperty('width', `${intrinsicWidth}px`, 'important');
+            exportTable.style.setProperty('min-width', `${intrinsicWidth}px`, 'important');
+          }
           // Give the clone one paint frame so fonts, images and table width settle.
           await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
           if (document.fonts) {
@@ -3709,9 +3735,10 @@ function ThiDuaPageInner() {
             });
           }
 
+          const exportPixelRatio = Math.min(2, Math.max(1, 8000 / clone.getBoundingClientRect().width));
           const htmlToImageOptions = {
             quality: 1,
-            pixelRatio: 2,
+            pixelRatio: exportPixelRatio,
             backgroundColor: '#ffffff',
             cacheBust: false,
             skipAutoScale: false,
@@ -3731,7 +3758,7 @@ function ThiDuaPageInner() {
             const { default: html2canvas } = await import('html2canvas');
             const canvas = await withContestImageTimeout(
               html2canvas(clone, {
-                scale: 2,
+                scale: exportPixelRatio,
                 backgroundColor: '#ffffff',
                 useCORS: true,
                 allowTaint: false,
