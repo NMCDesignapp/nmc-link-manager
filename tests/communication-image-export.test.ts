@@ -5,6 +5,7 @@ import { resolveCommunicationExportProfile } from '../src/lib/clb-sao-viet-image
 
 const exporter = readFileSync(new URL('../src/lib/clb-sao-viet-image-export.ts', import.meta.url), 'utf8');
 const caller = readFileSync(new URL('../src/app/quan-ly/page.tsx', import.meta.url), 'utf8');
+const contestResult = readFileSync(new URL('../src/app/thi-dua-chau/page.tsx', import.meta.url), 'utf8');
 
 test('policy programs use individual density profiles', () => {
   const keys = ['tvvm', 'ns-tvv', 'quy-tvv', 'tuyen-luyen',
@@ -81,4 +82,32 @@ test('all three communication categories use edge-to-edge posters without distor
   assert.match(exporter, /object-fit:contain;object-position:center/);
   assert.doesNotMatch(exporter, /posterImage\.style\.cssText = '[^']*height:100%/);
   assert.match(caller, /createClbCommunicationImage\(/);
+});
+
+test('contest-result PNG removes white gutter above the poster but keeps the saved poster', () => {
+  const start = contestResult.indexOf('const handleDownloadImage = async () => {');
+  const end = contestResult.indexOf('hideAllScrollbars();', start);
+  assert.ok(start > 0 && end > start);
+  const exportCode = contestResult.slice(start, end);
+  assert.match(exportCode, /clone\.style\.setProperty\('padding-top', '0', 'important'\)/);
+  assert.match(exportCode, /copied\.style\.setProperty\('margin-top', '0', 'important'\)/);
+  assert.match(exportCode, /poster\.style\.setProperty\('display', 'block', 'important'\)/);
+  assert.match(exportCode, /const MAX_ROWS_PER_IMAGE = 20;/);
+  assert.match(exportCode, /const MAX_IMAGES_PER_DOWNLOAD = 2;/);
+});
+
+test('contest-result PNG has uniformly readable reward/body data and complete headers', () => {
+  const start = contestResult.indexOf('const handleDownloadImage = async () => {');
+  const end = contestResult.indexOf('hideAllScrollbars();', start);
+  const exportCode = contestResult.slice(start, end);
+  assert.match(exportCode, /const exportBodyFont = '15px'/);
+  assert.match(exportCode, /const exportHeaderFont = '17px'/);
+  assert.match(exportCode, /const exportCaptionFont = '12px'/);
+  assert.match(exportCode, /cell\.querySelectorAll<HTMLElement>\('\*'\)\.forEach\(content =>/);
+  assert.match(exportCode, /content\.style\.setProperty\('font-size', caption \? exportCaptionFont/);
+  assert.match(exportCode, /const isRewardHeading = \/thưởng\|thuong\/i\.test\(title\)/);
+  assert.match(exportCode, /isRewardHeading \? 185 : 132/);
+  assert.match(exportCode, /cell\.style\.setProperty\('height', '82px', 'important'\)/);
+  assert.match(exportCode, /cell\.style\.setProperty\('word-break', 'keep-all', 'important'\)/);
+  assert.match(exportCode, /const intrinsicWidth = Math\.ceil\(Math\.max/);
 });
