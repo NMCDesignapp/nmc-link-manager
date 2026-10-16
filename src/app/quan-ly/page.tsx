@@ -11871,9 +11871,16 @@ export default function QuanLyPage() {
 
     // A home shortcut can start before the async AppData settings hydrate.
     // Always resolve poster links directly from the persisted settings first.
-    const posterSettingsResponse = await fetch('/api/settings', { cache: 'no-store' });
-    if (!posterSettingsResponse.ok) throw new Error('Không tải được cấu hình poster CLB Sao Việt.');
-    const posterSettings = await posterSettingsResponse.json() as Record<string, string>;
+    let posterSettings: Record<string, string> = {};
+    try {
+      const posterSettingsResponse = await fetch('/api/settings', { cache: 'no-store' });
+      if (!posterSettingsResponse.ok) throw new Error('Không tải được cấu hình poster CLB Sao Việt.');
+      posterSettings = await posterSettingsResponse.json() as Record<string, string>;
+    } catch (error) {
+      console.error('[CLB image export] Unable to load saved posters:', error);
+      toast({ title: 'Chưa thể tải bộ ảnh', description: 'Không lấy được poster đã lưu. Vui lòng thử lại.', variant: 'destructive' });
+      return;
+    }
     const savedPoster = (prefix: 'saoviet' | 'clbsv', key: string) =>
       String(posterSettings[`${prefix}-poster-${key}`] || '').trim();
 
