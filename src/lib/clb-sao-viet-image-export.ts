@@ -311,6 +311,41 @@ export async function createClbCommunicationImage({
     }
     tableClone.appendChild(bodyClone);
   });
+  // Keep the on-screen table's resolved theme colors in the detached export DOM.
+  // CSS scoped to the app (including row striping and nested header levels) may
+  // not match the standalone image root, so copying classes alone is insufficient.
+  const preserveColors = (source: Element, target: Element) => {
+    const computed = window.getComputedStyle(source);
+    if (target instanceof HTMLElement || target instanceof SVGElement) {
+      const style = (target as HTMLElement | SVGElement).style;
+      for (const property of [
+        'background-color', 'background-image', 'color',
+        'border-top-color', 'border-right-color',
+        'border-bottom-color', 'border-left-color',
+        'font-weight', 'text-align',
+      ]) {
+        style.setProperty(property, computed.getPropertyValue(property), 'important');
+      }
+    }
+    const from = Array.from(source.children);
+    const to = Array.from(target.children);
+    for (let index = 0; index < Math.min(from.length, to.length); index += 1) {
+      preserveColors(from[index], to[index]);
+    }
+  };
+  Array.from(table.children).forEach((sourceSection, index) => {
+    const cloneSection = tableClone.children[index];
+    if (!cloneSection) return;
+    if (sourceSection.tagName !== 'TBODY') {
+      preserveColors(sourceSection, cloneSection);
+    } else {
+      const originalRows = Array.from(sourceSection.children).slice(startRow, endRow);
+      const clonedRows = Array.from(cloneSection.children);
+      originalRows.forEach((row, rowIndex) => {
+        if (clonedRows[rowIndex]) preserveColors(row, clonedRows[rowIndex]);
+      });
+    }
+  });
   tableClone.style.cssText = `width:100%;height:auto;border-collapse:collapse;table-layout:auto;font-family:${CONDENSED_FONT};font-stretch:condensed;font-size:18px;background:#fff`;
   tableClone.querySelectorAll<HTMLElement>('col').forEach((column) => {
     column.style.setProperty('width', 'auto', 'important');
@@ -355,6 +390,18 @@ export async function createClbCommunicationImage({
     (svg as SVGElement).style.height = '17px';
   });
   tableFrame.appendChild(tableClone);
+  // Fit every source column into the fixed 1920×1080 image without dropping
+  // columns. Preserve the existing maximum 20-row pagination.
+  const fitWidth = tableFrame.clientWidth || 1350;
+  const actualWidth = Math.max(tableClone.scrollWidth, tableClone.getBoundingClientRect().width);
+  if (actualWidth > fitWidth) {
+    const scale = Math.max(0.35, Math.min(1, fitWidth / actualWidth));
+    tableClone.style.setProperty('transform', `scale(${scale})`, 'important');
+    tableClone.style.setProperty('transform-origin', 'top left', 'important');
+    // Reserve correct visual height so the footer does not overlap the table.
+    tableClone.style.setProperty('margin-bottom', `-${Math.round(tableClone.getBoundingClientRect().height * (1 - scale))}px`);
+  }
+
 
   const footer = document.createElement('div');
   const shownStart = Math.min(startRow + 1, sourceRows.length);
