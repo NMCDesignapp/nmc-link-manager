@@ -376,9 +376,9 @@ export default function HomeCommandCenter() {
             </div>
 
 
-            {linksError && links.length === 0 ? (
+            {linksError && links.length === 0 && !adminAuthed ? (
               <div className="rounded-2xl border border-[#704e50] bg-[#3d292f] px-4 py-8 text-center text-sm text-[#f0b5b5]">Không thể tải danh sách liên kết.</div>
-            ) : links.length === 0 && !linksLoading ? (
+            ) : links.length === 0 && !linksLoading && !adminAuthed ? (
               <div className="rounded-2xl border border-[#3d5b6d] bg-[#183342] px-4 py-8 text-center text-sm text-[#9cb8c6]">Chưa có liên kết nào.</div>
             ) : (
               <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
