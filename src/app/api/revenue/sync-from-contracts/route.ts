@@ -3,9 +3,8 @@ import { db } from '@/lib/db';
 
 // POST /api/revenue/sync-from-contracts
 // Tự động tính doanh thu từ bảng Contract và lưu vào MonthlyRevenue
-// DOANH SỐ HÀNG THÁNG: căn cứ vào NGÀY PHÁT HÀNH (issueDate)
-//   - HĐ hiệu lực tháng 3 nhưng phát hành tháng 4 → tính doanh số tháng 4
-//   - Nếu không có issueDate → dùng effectiveDate làm fallback
+// Data Hub đã gắn tháng theo Sheet Doanhso hoặc Sheet 4 Tạm thu.
+// Chỉ nguồn cũ không có marker mới fallback Ngày PH rồi Ngày HL.
 // Group by: month + maNhom + agentCode → tổng IP, AFYP, SL HĐ, lượt HĐ
 export async function POST() {
   try {
@@ -23,9 +22,9 @@ export async function POST() {
         tinhLuot3tr: true,
       },
     });
-    // Tạm thu có thể không có ngày; marker tháng nguồn vẫn đủ để tính doanh số.
+    // Dòng Data Hub có thể không có ngày; marker tháng nguồn vẫn đủ để tính doanh số.
     const contracts = allContracts.filter(c =>
-      /^NMC_TAMTHU:\d{4}-\d{2}(?:\||$)/.test(c.nguonDuLieu || '')
+      /^NMC_(?:TAMTHU|DOANHSO):\d{4}-\d{2}(?:\||$)/.test(c.nguonDuLieu || '')
       || c.issueDate !== null
       || c.effectiveDate !== null
     );
@@ -49,8 +48,8 @@ export async function POST() {
     }>();
 
     for (const c of contracts) {
-      const sourceMonth = String(c.nguonDuLieu || '').match(/^NMC_TAMTHU:(\d{4})-(\d{2})(?:\||$)/);
-      // Tạm thu thuộc tháng đồng bộ; nguồn khác dùng issueDate, fallback effectiveDate.
+      const sourceMonth = String(c.nguonDuLieu || '').match(/^NMC_(?:TAMTHU|DOANHSO):(\d{4})-(\d{2})(?:\||$)/);
+      // Data Hub thuộc tháng nguồn; nguồn cũ dùng issueDate, fallback effectiveDate.
       const dateForRevenue = sourceMonth
         ? new Date(Date.UTC(Number(sourceMonth[1]), Number(sourceMonth[2]) - 1, 1))
         : (c.issueDate || c.effectiveDate);
