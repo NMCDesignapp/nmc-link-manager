@@ -3557,127 +3557,99 @@ function ThiDuaPageInner() {
       const captureRows = async (startRow: number) => {
         const captureRoot = document.createElement('div');
         captureRoot.setAttribute('aria-hidden', 'true');
-        captureRoot.style.cssText = 'position:fixed;left:-100000px;top:0;pointer-events:none;background:#fff;';
+        captureRoot.style.cssText = 'position:fixed;left:0;top:0;z-index:-2147483647;pointer-events:none;background:#fff;';
 
         const sourcePrintContent = el.firstElementChild;
         if (!sourcePrintContent) throw new Error('Không tìm thấy nội dung kết quả');
 
-        // Build the table clone from its shell instead of cloneNode(true) on
-        // the whole result. This keeps even the cloning step bounded to 20 rows.
+        // Export the actual result popup theme, not a re-styled substitute.
+        // Give wide tables enough horizontal pixels before capturing the whole table.
+        const captureWidth = 1600;
         const clone = el.cloneNode(false) as HTMLDivElement;
-        // Keep exported images compact and predictable even when the live
-        // popup is opened on a narrow phone or in expanded desktop mode.
-        const captureWidth = Math.min(640, Math.max(560, el.clientWidth));
-        clone.style.width = `${captureWidth}px`;
-        clone.style.overflow = 'hidden';
-        clone.style.boxSizing = 'border-box';
-        clone.style.padding = '2px';
+        clone.style.setProperty('width', `${captureWidth}px`, 'important');
+        clone.style.setProperty('max-width', 'none', 'important');
+        clone.style.setProperty('overflow', 'visible', 'important');
+        clone.style.setProperty('box-sizing', 'border-box', 'important');
         const endRow = startRow + MAX_ROWS_PER_IMAGE;
 
-        const printClone = sourcePrintContent.cloneNode(false) as HTMLElement;
-        Array.from(sourcePrintContent.children).forEach((child) => {
-          if (child.id !== 'result-table-container') {
-            const contentClone = child.cloneNode(true) as HTMLElement;
-            if (contentClone.querySelector('img[alt="Poster"]')) {
-              contentClone.style.width = '100%';
-              contentClone.style.marginLeft = '0';
-              contentClone.style.marginRight = '0';
-              contentClone.style.marginBottom = '8px';
+        // Results have CSS classes scoped to the popup. A detached capture root
+        // doesn't necessarily satisfy these selectors, so preserve computed colors.
+        // Do not add artificial overlay/tint layers.
+        const preservePopupAppearance = (source: Element, target: Element): void => {
+          const computed = window.getComputedStyle(source);
+          if (target instanceof HTMLElement) {
+            for (const property of [
+              'background-color', 'background-image', 'color',
+              'border-top-color', 'border-right-color',
+              'border-bottom-color', 'border-left-color',
+              'font-family', 'font-size', 'font-weight', 'font-style',
+              'text-align', 'vertical-align', 'white-space',
+            ]) {
+              target.style.setProperty(property, computed.getPropertyValue(property), 'important');
             }
-            printClone.appendChild(contentClone);
+          }
+          const originalChildren = Array.from(source.children);
+          const clonedChildren = Array.from(target.children);
+          originalChildren.forEach((child, index) => {
+            if (clonedChildren[index]) preservePopupAppearance(child, clonedChildren[index]);
+          });
+        };
+
+        const printClone = sourcePrintContent.cloneNode(false) as HTMLElement;
+        Array.from(sourcePrintContent.children).forEach(child => {
+          if (child.id !== 'result-table-container') {
+            const copied = child.cloneNode(true) as HTMLElement;
+            preservePopupAppearance(child, copied);
+            printClone.appendChild(copied);
             return;
           }
 
           const tableContainerClone = child.cloneNode(false) as HTMLElement;
           const sourceTable = child.querySelector('table');
           if (!sourceTable) {
-            printClone.appendChild(child.cloneNode(true));
+            const copied = child.cloneNode(true) as HTMLElement;
+            preservePopupAppearance(child, copied);
+            printClone.appendChild(copied);
             return;
           }
 
-          const tableClone = sourceTable.cloneNode(false) as HTMLTableElement;
-          const liveScale = Number.parseFloat(window.getComputedStyle(sourceTable).zoom || '1') || 1;
-          // Measure the table itself instead of the popup. The table can be wider
-          // than the visible popup, so scaling from el.clientWidth clipped the
-          // rightmost columns when the capture root used overflow: hidden.
+          // Restore all columns even when the popup itself scrolls horizontally.
           const sourceTableWidth = Math.max(
-            1,
             sourceTable.scrollWidth,
             sourceTable.offsetWidth,
-            sourceTable.getBoundingClientRect().width / liveScale,
+            sourceTable.getBoundingClientRect().width,
+            ...Array.from(sourceTable.rows).map(row => row.scrollWidth),
           );
-          const availableTableWidth = Math.max(1, captureWidth - 4);
-          const exportScale = Math.min(1, availableTableWidth / sourceTableWidth);
-          tableClone.style.width = `${sourceTableWidth}px`;
-          tableClone.style.maxWidth = 'none';
-          tableClone.style.zoom = String(exportScale);
-          Array.from(sourceTable.children).forEach((section) => {
-            if (section.tagName !== 'TBODY') {
-              tableClone.appendChild(section.cloneNode(true));
-              return;
-            }
-
-            const bodyClone = section.cloneNode(false) as HTMLTableSectionElement;
-            Array.from(section.children)
-              .slice(startRow, endRow)
-              .forEach(row => bodyClone.appendChild(row.cloneNode(true)));
-            tableClone.appendChild(bodyClone);
-          });
-
-          // Normalize the exported type against the table zoom so downloads from
-          // the compact and expanded popup stay equally readable. These values
-          // resolve to about 18 px body text and 17 px headers in the 2x PNG.
-          const exportBodyFontSize = Math.min(24, Math.max(12.5, 9 / exportScale));
-          const exportHeaderFontSize = Math.min(22, Math.max(12, 8.5 / exportScale));
-          // Use the natural two-line heading as the fixed row-height standard.
-          // Single-line headings grow to this height; two-line headings do not
-          // receive extra padding and therefore keep their established size.
-          const exportHeaderHeight = Math.min(44, Math.max(24, 17 / exportScale));
-          const exportVerticalPadding = Math.min(4, Math.max(2, 1.5 / exportScale));
-          tableClone.querySelectorAll<HTMLTableRowElement>('thead tr').forEach((row) => {
-            row.style.setProperty('height', `${exportHeaderHeight}px`, 'important');
-          });
-          tableClone.querySelectorAll<HTMLTableCellElement>('thead th').forEach((cell) => {
-            cell.style.setProperty('font-size', `${exportHeaderFontSize}px`, 'important');
-            cell.style.setProperty('line-height', '1.05', 'important');
-            cell.style.setProperty('height', `${exportHeaderHeight}px`, 'important');
-            cell.style.setProperty('padding-top', '0', 'important');
-            cell.style.setProperty('padding-bottom', '0', 'important');
-            cell.style.setProperty('vertical-align', 'middle', 'important');
-          });
-          tableClone.querySelectorAll<HTMLTableCellElement>('tbody td').forEach((cell) => {
-            cell.style.setProperty('font-size', `${exportBodyFontSize}px`, 'important');
-            cell.style.setProperty('line-height', '1.1', 'important');
-            cell.style.setProperty('padding-top', `${exportVerticalPadding}px`, 'important');
-            cell.style.setProperty('padding-bottom', `${exportVerticalPadding}px`, 'important');
-          });
-          const headerCells = Array.from(tableClone.querySelectorAll<HTMLTableCellElement>('thead th'));
-          const normalizedHeaders = headerCells.map(cell => cell.textContent?.trim().toLocaleUpperCase('vi-VN') || '');
-          const noteColumnIndex = normalizedHeaders.findIndex(label => label.includes('GHI CHÚ'));
-          const emphasisColumns = new Set(
-            normalizedHeaders.flatMap((label, index) =>
-              /CHỈ TIÊU|TỶ LỆ|THƯỞNG/u.test(label) ? [index] : [],
-            ),
-          );
-          tableClone.querySelectorAll<HTMLTableRowElement>('tbody tr').forEach((row) => {
-            Array.from(row.cells).forEach((cell, index) => {
-              if (index === noteColumnIndex) {
-                const textNodes = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
-                while (textNodes.nextNode()) {
-                  const node = textNodes.currentNode;
-                  node.textContent = node.textContent?.replace(/(?:Cần thêm|Còn thiếu)\s+(?=[\d.,])/giu, '- ') || '';
-                }
-              }
-              if (emphasisColumns.has(index)) return;
-              [cell, ...Array.from(cell.querySelectorAll<HTMLElement>('*'))].forEach((element) => {
-                element.style.setProperty('font-family', 'Outfit, Arial, sans-serif', 'important');
-                element.style.setProperty('font-size', `${exportBodyFontSize}px`, 'important');
-                element.style.setProperty('font-weight', '400', 'important');
-                element.style.setProperty('font-style', 'normal', 'important');
-                element.style.setProperty('color', '#1f2937', 'important');
+          const tableClone = sourceTable.cloneNode(false) as HTMLTableElement;
+          Array.from(sourceTable.children).forEach(section => {
+            const sectionClone = section.cloneNode(false) as HTMLElement;
+            if (section.tagName === 'TBODY') {
+              Array.from(section.children).slice(startRow, endRow).forEach(row => {
+                const rowClone = row.cloneNode(true) as HTMLElement;
+                preservePopupAppearance(row, rowClone);
+                sectionClone.appendChild(rowClone);
               });
-            });
+            } else {
+              Array.from(section.children).forEach(row => {
+                const rowClone = row.cloneNode(true) as HTMLElement;
+                preservePopupAppearance(row, rowClone);
+                sectionClone.appendChild(rowClone);
+              });
+            }
+            preservePopupAppearance(section, sectionClone);
+            tableClone.appendChild(sectionClone);
           });
+          preservePopupAppearance(sourceTable, tableClone);
+          const tableWidth = Math.max(1, sourceTableWidth);
+          const availableWidth = captureWidth - 16;
+          const scale = Math.min(1, availableWidth / tableWidth);
+          tableClone.style.setProperty('width', `${tableWidth}px`, 'important');
+          tableClone.style.setProperty('min-width', `${tableWidth}px`, 'important');
+          tableClone.style.setProperty('max-width', 'none', 'important');
+          tableClone.style.setProperty('zoom', String(scale), 'important');
+          tableContainerClone.style.setProperty('width', '100%', 'important');
+          tableContainerClone.style.setProperty('max-width', 'none', 'important');
+          tableContainerClone.style.setProperty('overflow', 'visible', 'important');
           tableContainerClone.appendChild(tableClone);
           printClone.appendChild(tableContainerClone);
         });
