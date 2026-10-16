@@ -5,7 +5,7 @@ import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import XLSX from 'xlsx';
 
-const AGENT_VERSION = '2.1.2-20261007';
+const AGENT_VERSION = '2.2.0-20261016';
 const root = path.dirname(fileURLToPath(import.meta.url));
 const configPath = process.env.NMC_DATA_HUB_CONFIG || path.join(root, 'data-hub.config.json');
 const statePath = path.join(root, '.nmc-data-hub-state.json');
@@ -21,6 +21,7 @@ const REVENUE_HISTORY_HEADERS = [
   'Ngày bắt đầu làm việc', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành',
   'PĐT + 10% ĐT', 'AFYP', 'AD', 'TÍNH LƯỢT 3 tr', 'MÃ ĐL TD',
 ];
+const REVENUE_SOURCE_MONTH_HEADER = '__NMC_SOURCE_MONTH';
 
 async function readJson(file, fallback) {
   try { return JSON.parse(await fs.readFile(file, 'utf8')); }
@@ -60,24 +61,13 @@ function findHeaderIndex(headers, candidates) {
   return headers.findIndex(value => accepted.has(normalizedHeader(value)));
 }
 
-function revenueWorksheetValues(sheet, options = {}) {
+function revenueWorksheetValues(sheet) {
   const values = compactWorksheetValues(sheet);
   if (values.length === 0) return values;
 
   const headers = values[0];
   const contractNumberIndex = findHeaderIndex(headers, ['Số hợp đồng', 'Số HĐ', 'contractNumber']);
-  const effectiveDateIndex = findHeaderIndex(headers, ['Ngày hiệu lực', 'Ngày HL', 'effectiveDate']);
-  const agentCodeIndex = findHeaderIndex(headers, ['Mã ĐL', 'Mã đại lý', 'Mã số', 'agentCode']);
-  const requiredIndex = options.requireAgentCode ? agentCodeIndex : effectiveDateIndex;
-
-  if (options.requireAgentCode && agentCodeIndex < 0) {
-    throw new Error('Không tìm thấy cột "Mã ĐL" trong sheet doanh số tháng hiện tại.');
-  }
-
   const rows = values.slice(1)
-    // Tạm thu tháng hiện tại lấy toàn bộ dòng có Mã ĐL, không phụ thuộc ngày.
-    // Doanh số lịch sử vẫn giữ điều kiện ngày hiệu lực như trước.
-    .filter(row => requiredIndex < 0 || String(row[requiredIndex] ?? '').trim() !== '')
     .map(row => {
       const next = [...row];
       // Số hợp đồng là mã định danh. Khi Excel lưu mã 14 chữ số dưới dạng số,
@@ -102,7 +92,7 @@ function csvFromWorkbook(file, sheetName, options = {}) {
   // Nếu sheet_to_csv trực tiếp, các hàng trống vẫn thành CSV có dấu phẩy và
   // bị bộ đếm hiểu nhầm là dữ liệu. Chỉ xuất các hàng thực sự có giá trị.
   const values = options.revenueRowsOnly
-    ? revenueWorksheetValues(sheet, { requireAgentCode: options.requireAgentCode === true })
+    ? revenueWorksheetValues(sheet)
     : compactWorksheetValues(sheet);
   if (values.length === 0) return '';
   return XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet(values), { FS: ',', RS: '\n', forceQuotes: true });
@@ -115,11 +105,10 @@ function bangkokYearMonth() {
   return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}`;
 }
 
-function historicalRevenueFromWorkbook(file) {
+function historicalRevenueFromWorkbook(file, currentMonth = bangkokYearMonth()) {
   const workbook = readWorkbook(file);
-  const currentMonth = bangkokYearMonth();
   const year = currentMonth.slice(0, 4);
-  let header = '';
+  let header = null;
   const rows = [];
   const months = [];
 
@@ -133,18 +122,17 @@ function historicalRevenueFromWorkbook(file) {
     months.push(month);
     const values = revenueWorksheetValues(workbook.Sheets[name]);
     if (values.length === 0) continue;
-    const csv = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet(values), { FS: ',', RS: '\n', forceQuotes: true });
-    const lines = csv.split(/\r?\n/).filter(line => line.trim() !== '');
-    if (!header) header = lines[0];
-    rows.push(...lines.slice(1));
+    if (!header) header = [...values[0], REVENUE_SOURCE_MONTH_HEADER];
+    rows.push(...values.slice(1).map(row => [...row, month]));
   }
 
   if (!header) {
-    header = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet([REVENUE_HISTORY_HEADERS]), {
-      FS: ',', RS: '\n', forceQuotes: true,
-    }).trimEnd();
+    header = [...REVENUE_HISTORY_HEADERS, REVENUE_SOURCE_MONTH_HEADER];
   }
-  return { csv: [header, ...rows].join('\n'), months };
+  const csv = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet([header, ...rows]), {
+    FS: ',', RS: '\n', forceQuotes: true,
+  });
+  return { csv, months };
 }
 
 function rowsFromWorkbook(file, sheetName) {
@@ -171,7 +159,6 @@ async function inputFromSource(source) {
   if (extension === '.xlsx' || extension === '.xls' || extension === '.xlsm') {
     return csvFromWorkbook(source.file, source.sheet, {
       revenueRowsOnly: source.kind === 'revenue',
-      requireAgentCode: source.kind === 'revenue' && source.replaceCurrentMonth === true,
     });
   }
   throw new Error(`Định dạng chưa hỗ trợ: ${extension}. Hãy dùng CSV hoặc Excel.`);
@@ -439,4 +426,4 @@ if (isMainModule) {
   });
 }
 
-export { csvDataRowCount, revenueWorksheetValues };
+export { csvDataRowCount, historicalRevenueFromWorkbook, revenueWorksheetValues };

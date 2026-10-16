@@ -288,14 +288,14 @@ Data Hub gửi:
 ```
 
 Route `/api/sync` xác định tháng hiện tại theo timezone nghiệp vụ. Với `Tamthu.xlsx`
-sheet `4`, mọi dòng có `Mã ĐL` đều thuộc snapshot doanh số tháng hiện tại,
-không phân loại lại theo Ngày phát hành hoặc Ngày hiệu lực. Dữ liệu ngày gốc vẫn
+sheet `4`, mọi dòng không hoàn toàn trống đều thuộc snapshot doanh số tháng hiện tại,
+không lọc theo Mã ĐL, Ngày phát hành hoặc Ngày hiệu lực. Dữ liệu ngày gốc vẫn
 được lưu; marker nguồn `NMC_TAMTHU:YYYY-MM` dùng để gom đúng tháng và thay toàn
 bộ snapshot Tạm thu cũ mà không cộng dồn.
 
 ### Doanh số lịch sử
 
-Data Hub đọc các sheet tên số tháng từ 1 đến 12, bỏ sheet tháng hiện tại vì tháng hiện tại thuộc Tamthu. Nó gửi danh sách tháng cần thay bằng `replaceHistoricalRevenueMonths`.
+Data Hub đọc các sheet tên số tháng từ 1 đến 12, bỏ sheet tháng hiện tại vì tháng hiện tại thuộc Tamthu. Số sheet là tháng nguồn tuyệt đối: Sheet 1 là tháng 1, Sheet 2 là tháng 2, ... Sheet 12 là tháng 12; không phân loại lại theo ngày trong từng dòng. Chỉ hàng Excel hoàn toàn trống bị bỏ. Nó gửi danh sách tháng cần thay bằng `replaceHistoricalRevenueMonths`.
 
 ### Cấu trúc
 

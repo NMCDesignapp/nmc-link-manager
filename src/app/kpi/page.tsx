@@ -3928,9 +3928,9 @@ function getMonthNum(d: string | null | undefined): number {
   if (!d) return 0;
   try { const dt = new Date(d); return isNaN(dt.getTime()) ? 0 : dt.getMonth() + 1; } catch { return 0; }
 }
-// Tạm thu Sheet 4 thuộc tháng đồng bộ; nguồn khác dùng Ngày PH, fallback Ngày HL.
+// Doanhso dùng số Sheet làm tháng; Tạm thu Sheet 4 thuộc tháng hiện tại.
 function getDoanhSoMonth(c: { issueDate: string | null; effectiveDate: string | null; nguonDuLieu?: string | null }): Date {
-  const sourceMonth = String(c.nguonDuLieu || '').match(/^NMC_TAMTHU:(\d{4})-(\d{2})(?:\||$)/);
+  const sourceMonth = String(c.nguonDuLieu || '').match(/^NMC_(?:TAMTHU|DOANHSO):(\d{4})-(\d{2})(?:\||$)/);
   if (sourceMonth) return new Date(Number(sourceMonth[1]), Number(sourceMonth[2]) - 1, 1);
   const issueD = c.issueDate ? new Date(c.issueDate) : null;
   if (issueD && !isNaN(issueD.getTime())) return issueD;

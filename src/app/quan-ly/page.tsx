@@ -456,12 +456,11 @@ const CONTRACT_COLUMNS = [
 ];
 
 // ==================== HELPERS ====================
-// Tạm thu Sheet 4 là snapshot của tháng đang chạy: mọi dòng có Mã ĐL thuộc
-// tháng đồng bộ, bất kể Ngày PH/Ngày HL trong file. Các nguồn khác vẫn dùng
-// issueDate (Ngày PH), fallback effectiveDate (Ngày HL).
+// Doanhso dùng số Sheet làm tháng; Tạm thu Sheet 4 thuộc tháng hiện tại.
+// Chỉ nguồn cũ không có marker mới fallback Ngày PH rồi Ngày HL.
 // Trả về Invalid Date nếu cả 2 đều trống (các nơi gọi dùng !isNaN(d.getTime()) để filter)
 function getDoanhSoMonth(c: { issueDate: string | null; effectiveDate: string | null; nguonDuLieu?: string | null }): Date {
-  const sourceMonth = String(c.nguonDuLieu || '').match(/^NMC_TAMTHU:(\d{4})-(\d{2})(?:\||$)/);
+  const sourceMonth = String(c.nguonDuLieu || '').match(/^NMC_(?:TAMTHU|DOANHSO):(\d{4})-(\d{2})(?:\||$)/);
   if (sourceMonth) return new Date(Number(sourceMonth[1]), Number(sourceMonth[2]) - 1, 1);
   const issueD = c.issueDate ? new Date(c.issueDate) : null;
   if (issueD && !isNaN(issueD.getTime())) return issueD;

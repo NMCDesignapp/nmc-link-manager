@@ -3,9 +3,10 @@
 Data Hub chạy trên máy quản trị và là nguồn ưu tiên cho toàn bộ dữ liệu Main App:
 
 - Sao Việt cá nhân, TN KTM, TN tuyển dụng
-- Doanh số lịch sử từ Doanhso.xlsx
-- Doanh số tháng hiện tại từ `Tamthu.xlsx`, sheet `4`: lấy toàn bộ dòng có
-  `Mã ĐL`, không lọc theo Ngày phát hành/Ngày hiệu lực
+- Doanh số lịch sử từ `Doanhso.xlsx`: Sheet 1 = tháng 1, Sheet 2 = tháng 2, ...;
+  không phân loại lại theo ngày trong dòng
+- Doanh số tháng hiện tại từ `Tamthu.xlsx`, sheet `4`: lấy toàn bộ dòng không
+  hoàn toàn trống, không lọc theo Mã ĐL/Ngày phát hành/Ngày hiệu lực
 - Cấu trúc TVV, DS TN, DS TTN, thành viên CLB và TTN tuyển ngang
 
 ## Work log / tài liệu phục hồi

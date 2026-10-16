@@ -109,10 +109,12 @@ function getCurrentBangkokMonth() {
 }
 
 const TAMTHU_SOURCE_PREFIX = 'NMC_TAMTHU:';
+const DOANHSO_SOURCE_PREFIX = 'NMC_DOANHSO:';
+const REVENUE_SOURCE_MONTH_HEADER = '__NMC_SOURCE_MONTH';
 
-function tagTamthuSourceMonth(rawSource: string, month: string): string {
-  const original = rawSource.replace(/^NMC_TAMTHU:\d{4}-\d{2}\|?/, '').trim();
-  return `${TAMTHU_SOURCE_PREFIX}${month}${original ? `|${original}` : ''}`;
+function tagRevenueSourceMonth(prefix: string, rawSource: string, month: string): string {
+  const original = rawSource.replace(/^NMC_(?:TAMTHU|DOANHSO):\d{4}-\d{2}\|?/, '').trim();
+  return `${prefix}${month}${original ? `|${original}` : ''}`;
 }
 
 // POST /api/sync - Sync all 3 CSVs simultaneously
@@ -174,14 +176,9 @@ export async function POST(request: NextRequest) {
           const window = getCurrentBangkokMonth();
           currentMonth = window.label;
           currentMonthWindow = window;
-          importRows = importRows.filter(({ row }) => {
-            // Sheet 4 của Tạm thu là toàn bộ doanh số tháng hiện tại. Không
-            // phân loại lại theo ngày; chỉ bỏ dòng không có Mã đại lý.
-            return !!getVal(row, 'Mã ĐL', 'Mã đại lý', 'Mã số', 'agentCode').trim();
-          });
 
           if (importRows.length === 0) {
-            throw new Error(`Không có dòng nào có Mã đại lý trong Tạm thu tháng ${currentMonth}; dữ liệu trên app không bị xóa.`);
+            throw new Error(`Sheet 4 của Tạm thu tháng ${currentMonth} không có dòng dữ liệu; dữ liệu trên app không bị xóa.`);
           }
 
           const realNumbers = new Set<string>();
@@ -206,14 +203,21 @@ export async function POST(request: NextRequest) {
           const requestedSet = new Set(requestedMonths);
           const activeMonth = getCurrentBangkokMonth().label;
           if (fromDataHub && requestedSet.has(activeMonth)) throw new Error(`Không được thay thế tháng hiện tại ${activeMonth} từ Doanhso.`);
-          importRows = importRows.filter(({ row }) => {
-            const issueDate = parseDate(getVal(row, 'Ngày phát hành', 'Ngày PH', 'Ngày cấp', 'issueDate'));
-            const effectiveDate = parseDate(getVal(row, 'Ngày hiệu lực', 'Ngày HL', 'effectiveDate'));
-            const date = issueDate || effectiveDate;
-            if (!date || !effectiveDate) return false;
-            const month = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
-            return requestedSet.has(month);
-          });
+          if (fromDataHub) {
+            const invalidRows = importRows.filter(({ row }) => !requestedSet.has(getVal(row, REVENUE_SOURCE_MONTH_HEADER)));
+            if (invalidRows.length > 0) {
+              throw new Error(`Có ${invalidRows.length} dòng Doanhso không có tháng Sheet hợp lệ; dữ liệu trên app không bị xóa.`);
+            }
+          } else {
+            importRows = importRows.filter(({ row }) => {
+              const issueDate = parseDate(getVal(row, 'Ngày phát hành', 'Ngày PH', 'Ngày cấp', 'issueDate'));
+              const effectiveDate = parseDate(getVal(row, 'Ngày hiệu lực', 'Ngày HL', 'effectiveDate'));
+              const date = issueDate || effectiveDate;
+              if (!date || !effectiveDate) return false;
+              const month = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+              return requestedSet.has(month);
+            });
+          }
           // An empty completed-month sheet from the authenticated Data Hub is
           // still authoritative: delete stale rows for that month and import
           // nothing. Other import channels keep the existing non-empty guard.
@@ -232,9 +236,16 @@ export async function POST(request: NextRequest) {
           for (const month of requestedMonths) {
             const from = new Date(`${month}-01T00:00:00.000Z`);
             const until = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth() + 1, 1));
+            const legacyUntagged = {
+              NOT: [
+                { nguonDuLieu: { startsWith: TAMTHU_SOURCE_PREFIX } },
+                { nguonDuLieu: { startsWith: DOANHSO_SOURCE_PREFIX } },
+              ],
+            };
             const deleted = await db.contract.deleteMany({ where: { OR: [
-              { issueDate: { gte: from, lt: until } },
-              { issueDate: null, effectiveDate: { gte: from, lt: until } },
+              { nguonDuLieu: { startsWith: `${DOANHSO_SOURCE_PREFIX}${month}` } },
+              { AND: [legacyUntagged, { issueDate: { gte: from, lt: until } }] },
+              { AND: [legacyUntagged, { issueDate: null, effectiveDate: { gte: from, lt: until } }] },
             ] } });
             results.deletedContracts += deleted.count;
           }
@@ -283,13 +294,14 @@ export async function POST(request: NextRequest) {
           const chucVu2 = getVal(row, 'Chức vụ', 'Chức vụ 2', 'chucVu2');
           const recruiterCode = getVal(row, 'Mã tuyển dụng', 'MÃ TUYỂN DỤNG', 'recruiterCode');
           const sttStr = getVal(row, 'STT', 'stt');
+          const sourceMonth = getVal(row, REVENUE_SOURCE_MONTH_HEADER);
 
-          if (!agentCode) return;
-          if (!replaceDataHubCurrentRevenueMonth && !effectiveDateStr) return;
+          if (!authoritativeReplacement && !agentCode) return;
+          if (!authoritativeReplacement && !effectiveDateStr) return;
           // Blank contract numbers are normalised to a unique import key. They
           // are removed at the next authoritative current-month replacement.
           const finalContractNumber = contractNumber || (() => {
-            return `AUTO_${currentMonth.replace('-', '') || 'IMPORT'}_${String(index + 1).padStart(6, '0')}`;
+            return `AUTO_${(currentMonth || sourceMonth).replace('-', '') || 'IMPORT'}_${String(index + 1).padStart(6, '0')}`;
           })();
           if (seenContractNumbers.has(finalContractNumber)) {
             throw new Error(`Số HĐ trùng sau khi chuẩn hóa: ${finalContractNumber}`);
@@ -300,7 +312,7 @@ export async function POST(request: NextRequest) {
           const issueDate = parseDate(issueDateStr);
           const startDate = parseDate(startDateStr);
           const ngayBatDauLamViec2 = parseDate(ngayBatDauLamViec2Str);
-          if (!replaceDataHubCurrentRevenueMonth && !effectiveDate) return;
+          if (!authoritativeReplacement && !effectiveDate) return;
 
           const fyp = parseNumber(fypStr) || parseNumber(pdt10DTStr); // FYP fallback to PĐT+10%
           const afyp = parseNumber(afypStr);
@@ -315,8 +327,10 @@ export async function POST(request: NextRequest) {
               ngayBatDauLamViec: startDate, recruiterCode: recruiterCode || '', startDate,
               effectiveDate, issueDate, contractStatus, pdt10DT: parseNumber(pdt10DTStr), fyp,
               nguonDuLieu: replaceDataHubCurrentRevenueMonth
-                ? tagTamthuSourceMonth(nguonDuLieu, currentMonth)
-                : nguonDuLieu,
+                ? tagRevenueSourceMonth(TAMTHU_SOURCE_PREFIX, nguonDuLieu, currentMonth)
+                : replacementRevenueMonths.length > 0 && sourceMonth
+                  ? tagRevenueSourceMonth(DOANHSO_SOURCE_PREFIX, nguonDuLieu, sourceMonth)
+                  : nguonDuLieu,
               hopDongToChuc, dkDongPhi,
               phiDongThem: parseNumber(phiDongThemStr),
               afypChuaTru10DT: parseNumber(afypChuaTru10DTStr), afyp, ad, nhom2,
@@ -398,14 +412,19 @@ export async function POST(request: NextRequest) {
           if (replaceDataHubCurrentRevenueMonth && currentMonthWindow) {
             // Xóa snapshot Tạm thu cũ (kể cả snapshot của tháng trước) và dữ
             // liệu tháng hiện tại theo cơ chế cũ trước khi tạo snapshot mới.
-            const deletedCurrentMonth = await db.contract.deleteMany({
-              where: {
-                OR: [
+            const deletedCurrentMonth = await db.contract.deleteMany({ where: { OR: [
+              { nguonDuLieu: { startsWith: TAMTHU_SOURCE_PREFIX } },
+              { AND: [
+                { NOT: [
                   { nguonDuLieu: { startsWith: TAMTHU_SOURCE_PREFIX } },
-                  { effectiveDate: { gte: currentMonthWindow.from, lt: currentMonthWindow.until } },
-                ],
-              },
-            });
+                  { nguonDuLieu: { startsWith: DOANHSO_SOURCE_PREFIX } },
+                ] },
+                { OR: [
+                  { issueDate: { gte: currentMonthWindow.from, lt: currentMonthWindow.until } },
+                  { issueDate: null, effectiveDate: { gte: currentMonthWindow.from, lt: currentMonthWindow.until } },
+                ] },
+              ] },
+            ] } });
             results.deletedContracts += deletedCurrentMonth.count;
           }
           // Số HĐ là khóa nghiệp vụ duy nhất. Một HĐ đang nằm ở tháng cũ do
