@@ -375,27 +375,6 @@ export default function HomeCommandCenter() {
               <div className="rounded-full border border-[#3f6275] bg-[#1d3c4d] px-2.5 py-1 text-[10px] font-black text-[#bcd2dd]">{links.length} ô</div>
             </div>
 
-            {adminAuthed && (
-              <div className="mb-3 rounded-xl border border-[#426a7a] bg-[#153544] p-2.5" aria-label="Tải bộ ảnh truyền thông">
-                <div className="mb-2 text-[10px] font-black uppercase tracking-[.12em] text-[#a7c7d8]">Tải ảnh truyền thông</div>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  {([
-                    { key: 'clb', label: 'CLB Sao Việt', color: 'border-amber-400/60 bg-[#765922] hover:bg-[#917032]' },
-                    { key: 'policy', label: 'Chính sách', color: 'border-emerald-400/60 bg-[#185d49] hover:bg-[#217b5d]' },
-                    { key: 'contest', label: 'Thi đua', color: 'border-violet-400/60 bg-[#4d367d] hover:bg-[#6445a3]' },
-                  ] as const).map(item => (
-                    <button key={item.key} type="button"
-                      onClick={() => router.push(`/quan-ly?sheet=overview&downloadImages=${item.key}`)}
-                      className={`flex min-w-0 items-center justify-center gap-1.5 rounded-lg border px-2.5 py-2.5 text-[11px] font-extrabold text-white transition-colors ${item.color}`}
-                      title={`Tải bộ ảnh ${item.label} theo mẫu 1920×1080`}
-                    >
-                      <ImageIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      <span className="truncate">{item.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {linksError && links.length === 0 ? (
               <div className="rounded-2xl border border-[#704e50] bg-[#3d292f] px-4 py-8 text-center text-sm text-[#f0b5b5]">Không thể tải danh sách liên kết.</div>
@@ -403,6 +382,30 @@ export default function HomeCommandCenter() {
               <div className="rounded-2xl border border-[#3d5b6d] bg-[#183342] px-4 py-8 text-center text-sm text-[#9cb8c6]">Chưa có liên kết nào.</div>
             ) : (
               <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                {adminAuthed && ([
+                  { key: 'clb', label: 'CLB Sao Việt', color: '#c7a94d' },
+                  { key: 'policy', label: 'Chính sách', color: '#43a77f' },
+                  { key: 'contest', label: 'Thi đua', color: '#a78bfa' },
+                ] as const).map(item => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => router.push(`/quan-ly?sheet=overview&downloadImages=${item.key}`)}
+                    className="relative min-h-[84px] rounded-xl border border-[#3d5b6d] bg-[#183342] p-3 text-left text-white transition-colors hover:bg-[#23475b]"
+                    title={`Tải bộ ảnh ${item.label} theo mẫu 1920×1080`}
+                  >
+                    <div className="absolute inset-x-0 top-0 h-1 rounded-t-xl" style={{ background: item.color }} />
+                    <div className="flex items-center gap-2.5">
+                      <div className="grid h-9 w-9 flex-none place-items-center rounded-xl border border-[#507184] bg-[#274b5e]">
+                        <ImageIcon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[13px] font-black">{item.label}</div>
+                        <div className="mt-1 text-[9px] font-bold uppercase tracking-wider text-[#86a9bb]">Tải ảnh truyền thông</div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
                 {links.map((link) => <LinkTile key={link.id} link={link} onOpen={setSelectedLink} />)}
               </div>
             )}
