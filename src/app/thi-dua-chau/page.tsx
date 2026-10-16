@@ -3575,7 +3575,7 @@ function ThiDuaPageInner() {
         // Results have CSS classes scoped to the popup. A detached capture root
         // doesn't necessarily satisfy these selectors, so preserve computed colors.
         // Do not add artificial overlay/tint layers.
-        const preservePopupAppearance = (source: Element, target: Element): void => {
+        const preservePopupAppearance = (source: Element, target: Element, deep = true): void => {
           const computed = window.getComputedStyle(source);
           if (target instanceof HTMLElement) {
             for (const property of [
@@ -3588,11 +3588,13 @@ function ThiDuaPageInner() {
               target.style.setProperty(property, computed.getPropertyValue(property), 'important');
             }
           }
-          const originalChildren = Array.from(source.children);
-          const clonedChildren = Array.from(target.children);
-          originalChildren.forEach((child, index) => {
-            if (clonedChildren[index]) preservePopupAppearance(child, clonedChildren[index]);
-          });
+          if (deep) {
+            const originalChildren = Array.from(source.children);
+            const clonedChildren = Array.from(target.children);
+            originalChildren.forEach((child, index) => {
+              if (clonedChildren[index]) preservePopupAppearance(child, clonedChildren[index]);
+            });
+          }
         };
 
         const printClone = sourcePrintContent.cloneNode(false) as HTMLElement;
@@ -3636,10 +3638,10 @@ function ThiDuaPageInner() {
                 sectionClone.appendChild(rowClone);
               });
             }
-            preservePopupAppearance(section, sectionClone);
+            preservePopupAppearance(section, sectionClone, false);
             tableClone.appendChild(sectionClone);
           });
-          preservePopupAppearance(sourceTable, tableClone);
+          preservePopupAppearance(sourceTable, tableClone, false);
           const tableWidth = Math.max(1, sourceTableWidth);
           const availableWidth = captureWidth - 16;
           const scale = Math.min(1, availableWidth / tableWidth);
