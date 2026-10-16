@@ -3574,6 +3574,8 @@ function ThiDuaPageInner() {
         // popup's px-3 padding appearing after the Ghi chú column.
         clone.style.setProperty('padding-left', '0', 'important');
         clone.style.setProperty('padding-right', '0', 'important');
+        // The popup's py-2 creates the white strip above the saved poster.
+        clone.style.setProperty('padding-top', '0', 'important');
         const endRow = startRow + MAX_ROWS_PER_IMAGE;
 
         // Results have CSS classes scoped to the popup. A detached capture root
@@ -3605,10 +3607,16 @@ function ThiDuaPageInner() {
         printClone.style.setProperty('width', '100%', 'important');
         printClone.style.setProperty('max-width', 'none', 'important');
         printClone.style.setProperty('overflow', 'visible', 'important');
+        printClone.style.setProperty('padding-top', '0', 'important');
+        printClone.style.setProperty('margin-top', '0', 'important');
         Array.from(sourcePrintContent.children).forEach(child => {
           if (child.id !== 'result-table-container') {
             const copied = child.cloneNode(true) as HTMLElement;
             preservePopupAppearance(child, copied);
+            if (child === sourcePrintContent.firstElementChild) {
+              copied.style.setProperty('margin-top', '0', 'important');
+              copied.style.setProperty('padding-top', '0', 'important');
+            }
             // The banner is secondary; preserve its 16:5 ratio but make the table
             // the full-width primary content of the exported image.
             const poster = copied.querySelector<HTMLImageElement>('img[alt="Poster"]');
@@ -3623,6 +3631,8 @@ function ThiDuaPageInner() {
               poster.style.setProperty('width', '100%', 'important');
               poster.style.setProperty('height', '100%', 'important');
               poster.style.setProperty('object-fit', 'fill', 'important');
+              poster.style.setProperty('display', 'block', 'important');
+              poster.style.setProperty('margin', '0', 'important');
             }
             printClone.appendChild(copied);
             return;
@@ -3676,53 +3686,76 @@ function ThiDuaPageInner() {
             col.style.setProperty('width', 'auto', 'important');
             col.style.setProperty('min-width', '0', 'important');
           });
+          // Export-only type scale. The interactive popup contains tiny
+          // 8px/9px badge text; all DATA in the PNG must be equally readable.
+          const exportBodyFont = '15px';
+          const exportHeaderFont = '17px';
+          const exportCaptionFont = '12px';
+          const measureText = document.createElement('canvas').getContext('2d');
+          const isCaptionNode = (node: HTMLElement): boolean =>
+            node.matches('small, em, i, .italic, [data-export-caption]') ||
+            node.classList.contains('text-[8px]') ||
+            node.classList.contains('text-[9px]') ||
+            (node.classList.contains('text-[10px]') && node.classList.contains('italic'));
           tableClone.querySelectorAll<HTMLTableCellElement>('th, td').forEach(cell => {
             const isHeader = cell.tagName === 'TH';
-            const isNote = !isHeader && cell === cell.parentElement?.lastElementChild;
+            cell.style.setProperty('box-sizing', 'border-box', 'important');
             cell.style.setProperty('width', 'auto', 'important');
-            cell.style.setProperty('min-width', '0', 'important');
             cell.style.setProperty('max-width', 'none', 'important');
-            // Header titles can wrap; the actual result values must not.
+            cell.style.setProperty('font-family', 'Arial,Helvetica,sans-serif', 'important');
+            cell.style.setProperty('font-size', isHeader ? exportHeaderFont : exportBodyFont, 'important');
+            cell.style.setProperty('line-height', '1.3', 'important');
+            cell.style.setProperty('padding', isHeader ? '12px 10px' : '7px 9px', 'important');
+            cell.style.setProperty('vertical-align', 'middle', 'important');
             cell.style.setProperty('white-space', isHeader ? 'normal' : 'nowrap', 'important');
-            cell.style.setProperty('overflow-wrap', isHeader ? 'break-word' : 'normal', 'important');
-            cell.style.setProperty('word-break', 'normal', 'important');
+            cell.style.setProperty('overflow-wrap', 'normal', 'important');
+            cell.style.setProperty('word-break', 'keep-all', 'important');
+            cell.style.setProperty('hyphens', 'none', 'important');
             cell.style.setProperty('overflow', 'visible', 'important');
             cell.style.setProperty('text-overflow', 'clip', 'important');
-            cell.style.setProperty('font-size', isHeader ? '16px' : '15px', 'important');
-            cell.style.setProperty('line-height', '1.25', 'important');
-            cell.style.setProperty('padding', '6px 8px', 'important');
 
             cell.querySelectorAll<HTMLElement>('*').forEach(content => {
+              const caption = isHeader && (isCaptionNode(content) ||
+                Boolean(content.closest('small, em, i, .italic, [data-export-caption]')));
+              content.style.setProperty('font-family', 'Arial,Helvetica,sans-serif', 'important');
+              content.style.setProperty('font-size', caption ? exportCaptionFont
+                : isHeader ? exportHeaderFont : exportBodyFont, 'important');
+              content.style.setProperty('line-height', caption ? '1.35' : '1.3', 'important');
+              // Preserve original cell colors and badges, never tiny text.
               content.style.setProperty('white-space', isHeader ? 'normal' : 'nowrap', 'important');
-              content.style.setProperty('overflow-wrap', isHeader ? 'break-word' : 'normal', 'important');
+              content.style.setProperty('overflow-wrap', 'normal', 'important');
+              content.style.setProperty('word-break', 'keep-all', 'important');
+              content.style.setProperty('hyphens', 'none', 'important');
               content.style.setProperty('text-overflow', 'clip', 'important');
-              // Popup's text-[10px] makes the Ghi chú entries microscopic
-              // in the exported image. Match the other data cells only here.
-              if (isNote) {
-                content.style.setProperty('font-size', '15px', 'important');
-                content.style.setProperty('line-height', '1.25', 'important');
+              content.style.setProperty('max-width', 'none', 'important');
+              if (caption) {
+                content.style.setProperty('font-style', 'italic', 'important');
+                content.style.setProperty('font-weight', '400', 'important');
               }
             });
 
             if (isHeader) {
-              // The popup's mobile stylesheet shrinks nested header elements
-              // to 8/9 px. Bring back only the principal heading; retain the
-              // small italic condition/date legend on the second line.
-              const heading = cell.firstElementChild;
-              if (heading instanceof HTMLElement && !heading.classList.contains('italic')) {
-                [heading, ...Array.from(heading.querySelectorAll<HTMLElement>('*'))].forEach(node => {
-                  node.style.setProperty('font-size', '16px', 'important');
-                  node.style.setProperty('font-weight', '700', 'important');
-                  node.style.setProperty('line-height', '1.25', 'important');
-                });
-              }
-              Array.from(cell.children).slice(1).forEach(node => {
-                if (node instanceof HTMLElement && node.classList.contains('italic')) {
-                  node.style.setProperty('font-size', '10px', 'important');
-                  node.style.setProperty('font-style', 'italic', 'important');
-                  node.style.setProperty('line-height', '1.2', 'important');
+              // Keep complete title/caption words and enough vertical space.
+              const title = cell.firstElementChild?.textContent?.trim() || cell.textContent?.trim() || '';
+              const caption = Array.from(cell.children).slice(1).map(n => n.textContent || '').join(' ');
+              const tokens = (title + ' ' + caption).trim().split(/\s+/).filter(Boolean);
+              let longestWordWidth = 0;
+              if (measureText) {
+                measureText.font = '700 17px Arial';
+                for (const token of tokens) {
+                  longestWordWidth = Math.max(longestWordWidth, measureText.measureText(token).width);
                 }
-              });
+              }
+              const isRewardHeading = /thưởng|thuong/i.test(title);
+              const minimum = Math.ceil(Math.max(
+                isRewardHeading ? 185 : 132,
+                longestWordWidth + 30,
+              ));
+              cell.style.setProperty('min-width', minimum + 'px', 'important');
+              cell.style.setProperty('height', '82px', 'important');
+              cell.style.setProperty('font-weight', '700', 'important');
+            } else {
+              cell.style.setProperty('min-width', '0', 'important');
             }
           });
           tableContainerClone.style.setProperty('width', 'max-content', 'important');
