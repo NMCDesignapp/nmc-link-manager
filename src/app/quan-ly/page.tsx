@@ -12027,6 +12027,7 @@ export default function QuanLyPage() {
             pageCount: ranges.length,
             accentColor: spec.accentColor,
             category: spec.tableType === 'contest' ? 'contest' : 'club',
+            visualCategory: 'club', // Both Sao Viet and CLB cards belong to the CLB section.
             programKey: spec.program,
           });
           images.push({
