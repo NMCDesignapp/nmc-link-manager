@@ -409,7 +409,6 @@ export default function HomeCommandCenter() {
                 )}
                 {links.map((link) => <LinkTile key={link.id} link={link} onOpen={setSelectedLink} />)}
               </div>
-            )}
           </section>
 
           <div className="h-[50vh] min-h-[390px] lg:h-[calc(100vh-250px)] lg:min-h-[520px]">
