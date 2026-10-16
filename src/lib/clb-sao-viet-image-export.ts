@@ -341,10 +341,10 @@ export async function createClbCommunicationImage({
     Array.from(row.cells).forEach(cell => {
       while ((occupiedThrough[column] ?? 0) > rowIndex) column += 1;
       const span = cell.colSpan || 1;
-      const label = (cell.textContent || '').replace(/\\s+/g, ' ').trim();
+      const label = (cell.textContent || '').replace(/\s+/g, ' ').trim();
       if (context && label) {
         context.font = '800 ' + profile.headerFont + 'px Arial';
-        const longestWord = Math.max(...label.split(/\\s+/).map(word => context.measureText(word).width));
+        const longestWord = Math.max(...label.split(/\s+/).map(word => context.measureText(word).width));
         const minimumForWholeWord = Math.ceil(longestWord) + 24;
         const preferred = Math.max(profile.minColumnWidth,
           Math.min(profile.headerWidth, Math.ceil(context.measureText(label).width) + 20),
