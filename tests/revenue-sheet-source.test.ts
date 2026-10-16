@@ -7,6 +7,7 @@ const kpi = readFileSync('src/app/kpi/page.tsx', 'utf8');
 const standalone = readFileSync('kpi-app/src/app/page.tsx', 'utf8');
 const management = readFileSync('src/app/quan-ly/page.tsx', 'utf8');
 const sync = readFileSync('src/app/api/sync/route.ts', 'utf8');
+const monthlyRevenueSync = readFileSync('src/app/api/revenue/sync-from-contracts/route.ts', 'utf8');
 
 function getFunction(source: string, name: string, endMarker: string) {
   const from = source.indexOf(`function ${name}(`);
@@ -68,12 +69,13 @@ test('Doanhso Sheet 1/9/11 lấy đúng tháng theo số Sheet, bỏ Sheet 10 hi
 
 for (const [label, source] of [['KPI Main App', kpi], ['KPI tách', standalone], ['Quản lý', management]] as const) {
   test(`${label}: nhãn nguồn Sheet quyết định tháng thay vì ngày PH/HL`, () => {
-    const from = source.indexOf('function getDoanhSoMonth(');
+    const normalizedSource = source.replace(/\r\n/g, '\n');
+    const from = normalizedSource.indexOf('function getDoanhSoMonth(');
     assert.ok(from >= 0);
-    const bodyFrom = source.indexOf(' {\n', from) + 3;
-    const bodyTo = source.indexOf('\n}\n', bodyFrom);
+    const bodyFrom = normalizedSource.indexOf(' {\n', from) + 3;
+    const bodyTo = normalizedSource.indexOf('\n}\n', bodyFrom);
     assert.ok(bodyTo > bodyFrom);
-    const fn = new Function('c', source.slice(bodyFrom, bodyTo)) as (row: any) => Date;
+    const fn = new Function('c', normalizedSource.slice(bodyFrom, bodyTo)) as (row: any) => Date;
     const current = fn({ nguonDuLieu: 'NMC_TAMTHU:2026-10', issueDate: '2026-09-20', effectiveDate: '2026-01-01' });
     assert.equal(current.getFullYear(), 2026);
     assert.equal(current.getMonth() + 1, 10);
@@ -90,4 +92,9 @@ test('Tổng Công ty cộng AFYP mỗi hàng một lần và import tháng bằ
   assert.match(sync, /await db\.\$transaction\(async tx =>/);
   assert.match(sync, /if \(!authoritativeReplacement && !agentCode\) return;/);
   assert.match(sync, /revenueSourceMonth\(getVal\(row, 'Nguồn dữ liệu'/);
+});
+
+test('bảng doanh số tháng ưu tiên tháng nguồn của cả Doanhso và Tạm thu', () => {
+  assert.match(monthlyRevenueSync, /NMC_\(\?:TAMTHU\|DOANHSO\)/);
+  assert.match(monthlyRevenueSync, /sourceMonth[\s\S]*new Date\(Date\.UTC/);
 });
