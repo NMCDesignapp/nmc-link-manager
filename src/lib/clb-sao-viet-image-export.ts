@@ -13,6 +13,7 @@ type CommunicationImageOptions = {
   brand?: string;
   category?: 'policy' | 'contest' | 'club';
   programKey?: string;
+  visualCategory?: 'policy' | 'contest' | 'club';
 };
 
 type ZipEntry = {
@@ -252,7 +253,7 @@ const createProgramCover = (title: string, subtitle: string, brand: string, acce
     'display:flex', 'flex-direction:column', 'justify-content:center',
     'width:100%', 'height:100%', 'padding:30px 24px',
     'box-sizing:border-box', 'text-align:center',
-    'background:linear-gradient(155deg,' + accent + ' 0%,#082f32 100%)',
+    'background:linear-gradient(155deg,' + accent + ' 0%,#16263b 100%)',
     'border:2px solid rgba(255,255,255,.18)', 'color:#fff',
   ].join(';');
   const eyebrow = document.createElement('div');
@@ -272,6 +273,7 @@ export async function createClbCommunicationImage({
   table, title, subtitle, posterUrl = '', startRow, endRow,
   pageNumber = 1, pageCount = 1, accentColor,
   brand: brandLabel = 'CLB SAO VIỆT', category = 'club', programKey = '',
+  visualCategory = category,
 }: CommunicationImageOptions) {
   const { toBlob } = await import('html-to-image');
   const sourceRows = Array.from(table.querySelectorAll<HTMLTableRowElement>('tbody > tr'));
@@ -285,6 +287,9 @@ export async function createClbCommunicationImage({
     ...selectedRows.map(countColumns),
   );
   const profile = resolveCommunicationExportProfile(category, programKey, columnCount);
+  // Use distinct group palettes without changing the popup/table source colors.
+  const sideAccent = visualCategory === 'policy' ? '#142F51'
+    : visualCategory === 'contest' ? '#0B665F' : '#91620F';
 
   // Clone only the requested rows. A full clone can exceed mobile memory limits.
   const tableCopy = table.cloneNode(false) as HTMLTableElement;
@@ -328,19 +333,32 @@ export async function createClbCommunicationImage({
       column += cell.colSpan || 1;
     });
   });
-  // Headers may wrap; cap their preferred width to avoid widening a column
-  // merely because its label has several words.
-  tableCopy.querySelectorAll<HTMLTableRowElement>('thead tr').forEach(row => {
+  // Headers may wrap at WORD BOUNDARIES, never inside a Vietnamese word.
+  // Track row spans so a second-tier heading is measured in its real column.
+  const occupiedThrough: number[] = [];
+  tableCopy.querySelectorAll<HTMLTableRowElement>('thead tr').forEach((row, rowIndex) => {
     let column = 0;
     Array.from(row.cells).forEach(cell => {
-      if (cell.colSpan === 1 && context) {
+      while ((occupiedThrough[column] ?? 0) > rowIndex) column += 1;
+      const span = cell.colSpan || 1;
+      const label = (cell.textContent || '').replace(/\\s+/g, ' ').trim();
+      if (context && label) {
         context.font = '800 ' + profile.headerFont + 'px Arial';
-        const label = (cell.textContent || '').replace(/\s+/g, ' ').trim();
+        const longestWord = Math.max(...label.split(/\\s+/).map(word => context.measureText(word).width));
+        const minimumForWholeWord = Math.ceil(longestWord) + 24;
         const preferred = Math.max(profile.minColumnWidth,
-          Math.min(profile.headerWidth, Math.ceil(context.measureText(label).width) + 20));
-        widths[column] = Math.max(widths[column], preferred);
+          Math.min(profile.headerWidth, Math.ceil(context.measureText(label).width) + 20),
+          Math.ceil(minimumForWholeWord / span));
+        for (let offset = 0; offset < span; offset += 1) {
+          const index = column + offset;
+          widths[index] = Math.max(widths[index], preferred);
+        }
       }
-      column += cell.colSpan || 1;
+      for (let offset = 0; offset < span; offset += 1) {
+        occupiedThrough[column + offset] = Math.max(
+          occupiedThrough[column + offset] ?? 0, rowIndex + (cell.rowSpan || 1));
+      }
+      column += span;
     });
   });
 
@@ -360,11 +378,13 @@ export async function createClbCommunicationImage({
   tableCopy.style.setProperty('zoom', '1', 'important');
   tableCopy.style.setProperty('transform', 'none', 'important');
   tableCopy.querySelectorAll<HTMLElement>('th,td').forEach(cell => {
+    const isHeader = Boolean(cell.closest('thead'));
     cell.style.setProperty('box-sizing', 'border-box', 'important');
     cell.style.setProperty('font-family', 'Arial,Helvetica,sans-serif', 'important');
-    cell.style.setProperty('white-space', cell.closest('thead') ? 'normal' : 'nowrap', 'important');
-    cell.style.setProperty('overflow-wrap', cell.closest('thead') ? 'break-word' : 'normal', 'important');
-    cell.style.setProperty('word-break', 'normal', 'important');
+    cell.style.setProperty('white-space', isHeader ? 'normal' : 'nowrap', 'important');
+    cell.style.setProperty('overflow-wrap', 'normal', 'important');
+    cell.style.setProperty('word-break', 'keep-all', 'important');
+    cell.style.setProperty('hyphens', 'none', 'important');
     cell.style.setProperty('overflow', 'visible', 'important');
     cell.style.setProperty('text-overflow', 'clip', 'important');
     cell.style.setProperty('padding', '5px 7px', 'important');
@@ -374,9 +394,24 @@ export async function createClbCommunicationImage({
     if (!cell.closest('thead')) cell.style.setProperty('height', profile.rowHeight + 'px', 'important');
     cell.querySelectorAll<HTMLElement>('*').forEach(content => {
       content.style.setProperty('font-family', 'Arial,Helvetica,sans-serif', 'important');
-      content.style.setProperty('white-space', cell.closest('thead') ? 'normal' : 'nowrap', 'important');
+      content.style.setProperty('font-stretch', 'normal', 'important');
+      content.style.setProperty('white-space', isHeader ? 'normal' : 'nowrap', 'important');
+      content.style.setProperty('overflow-wrap', 'normal', 'important');
+      content.style.setProperty('word-break', 'keep-all', 'important');
+      content.style.setProperty('hyphens', 'none', 'important');
       content.style.setProperty('overflow', 'visible', 'important');
       content.style.setProperty('text-overflow', 'clip', 'important');
+      // The app's tiny nested text-[8px]/text-[9px] utility classes make
+      // result values unreadable in PNG. Normalize the nested font just for
+      // the export clone, keeping legitimate small italic header captions.
+      const isCaption = isHeader && (
+        content.matches('small, sup, sub, em, i, .italic, [data-export-caption]') ||
+        content.classList.contains('text-[8px]') ||
+        content.classList.contains('text-[9px]'));
+      const size = content.matches('sup, sub') ? 10
+        : isCaption ? 11 : isHeader ? profile.headerFont : profile.bodyFont;
+      content.style.setProperty('font-size', size + 'px', 'important');
+      content.style.setProperty('line-height', '1.25', 'important');
     });
   });
 
@@ -399,8 +434,8 @@ export async function createClbCommunicationImage({
   left.style.cssText = [
     'box-sizing:border-box','display:flex','flex-direction:column',
     'width:' + leftWidth + 'px','min-width:0','padding:30px 18px',
-    'background:' + accentColor,'color:white',
-    'border-right:4px solid #eab308',
+    'background:' + sideAccent,'color:white',
+    'border-right:4px solid ' + (visualCategory === 'club' ? '#F5D97E' : '#C6B56C'),
   ].join(';');
   const eyebrow = document.createElement('div');
   eyebrow.textContent = brandLabel;
@@ -413,7 +448,7 @@ export async function createClbCommunicationImage({
   subheading.style.cssText = 'font:600 18px/1.35 Arial,sans-serif;color:#e2f8ee;margin-top:12px';
   const posterFrame = document.createElement('div');
   posterFrame.style.cssText = 'display:flex;align-items:center;justify-content:center;min-height:160px;flex:1;overflow:hidden;margin-top:25px';
-  const cover = createProgramCover(title, subtitle, brandLabel, accentColor);
+  const cover = createProgramCover(title, subtitle, brandLabel, sideAccent);
   posterFrame.appendChild(cover);
   let posterImage: HTMLImageElement | null = null;
   if (posterUrl.trim()) {
@@ -462,17 +497,23 @@ export async function createClbCommunicationImage({
     if (posterImage) {
       await waitForImage(posterImage);
       if (posterImage.naturalWidth > 0) {
-        // Embed loaded poster bytes where CORS permits, so the SVG screenshot
-        // doesn't have to fetch the same remote URL again while rasterizing.
-        if (posterUrl.startsWith('http://') || posterUrl.startsWith('https://')) {
+        // Export needs a data: image. Internal /api/poster-image/ URLs are
+        // precisely the posters displayed on Main App cards, but the former
+        // code only inlined http URLs and lost these images in foreignObject.
+        if (!posterUrl.startsWith('data:')) {
           try {
             const canvas = document.createElement('canvas');
             canvas.width = posterImage.naturalWidth;
             canvas.height = posterImage.naturalHeight;
-            canvas.getContext('2d')?.drawImage(posterImage, 0, 0);
+            const context = canvas.getContext('2d');
+            if (!context) throw new Error('Không thể tạo canvas poster');
+            context.drawImage(posterImage, 0, 0);
             posterImage.src = canvas.toDataURL('image/png');
+            await waitForImage(posterImage);
           } catch (error) {
-            console.warn('[Communication export] Could not inline poster:', error);
+            // Some external image servers do not grant CORS. Keep the original
+            // image URL as a best effort rather than erasing the saved poster.
+            console.warn('[Communication export] Poster cannot be inlined:', posterUrl, error);
           }
         }
         cover.replaceWith(posterImage);
