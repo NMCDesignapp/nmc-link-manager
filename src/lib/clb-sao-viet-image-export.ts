@@ -11,6 +11,8 @@ type CommunicationImageOptions = {
   pageCount?: number;
   accentColor: string;
   brand?: string;
+  category?: 'policy' | 'contest' | 'club';
+  programKey?: string;
 };
 
 type ZipEntry = {
@@ -18,12 +20,7 @@ type ZipEntry = {
   blob: Blob;
 };
 
-const IMAGE_WIDTH = 1920;
-const IMAGE_HEIGHT = 1080;
 const EXPORT_ROW_COUNT = 20;
-const EXPORT_ROW_HEIGHT = 38;
-const CONDENSED_FONT = "Arial,Helvetica,sans-serif";
-const VIETNAMESE_FONT_SAMPLE = 'Nguyễn Thị Nguyệt Phượng - Đối tượng thi đua';
 const POSTER_LOAD_TIMEOUT_MS = 8_000;
 const IMAGE_RENDER_TIMEOUT_MS = 45_000;
 
@@ -185,258 +182,307 @@ const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: 
   }
 };
 
+
+type CommunicationExportProfile = {
+  posterFraction: number;
+  bodyFont: number;
+  rowHeight: number;
+  headerFont: number;
+  headerWidth: number;
+  minColumnWidth: number;
+};
+
+// Different programs have different column counts and content density.
+// A program may override its category defaults without changing other tables.
+const exportProfiles: Record<string, Partial<CommunicationExportProfile>> = {
+  'policy:tvvm': { posterFraction: 0.16, bodyFont: 17, headerWidth: 150 },
+  'policy:ns-tvv': { posterFraction: 0.20, bodyFont: 17, headerWidth: 155 },
+  'policy:quy-tvv': { posterFraction: 0.20, bodyFont: 17 },
+  'policy:tuyen-luyen': { posterFraction: 0.19, bodyFont: 16 },
+  'policy:dong-hanh': { posterFraction: 0.19, bodyFont: 16 },
+  'policy:ptkd-tn': { posterFraction: 0.18, bodyFont: 16 },
+  'policy:quy-tn': { posterFraction: 0.20, bodyFont: 17 },
+  'policy:tuyen-ngang': { posterFraction: 0.19, bodyFont: 16 },
+  'club:ca-nhan': { posterFraction: 0.17, bodyFont: 16, headerWidth: 145 },
+  'club:tn-td': { posterFraction: 0.20, bodyFont: 17 },
+  'club:tn-ktm': { posterFraction: 0.20, bodyFont: 17 },
+  'contest:ca-nhan': { posterFraction: 0.18, bodyFont: 16 },
+  'contest:tn-td': { posterFraction: 0.19, bodyFont: 16 },
+  'contest:tn-ktm': { posterFraction: 0.19, bodyFont: 16 },
+};
+
+export const resolveCommunicationExportProfile = (
+  category: 'policy' | 'contest' | 'club',
+  programKey: string,
+  columnCount: number,
+): CommunicationExportProfile => ({
+  posterFraction: columnCount > 13 ? 0.16 : columnCount > 10 ? 0.19 : 0.23,
+  bodyFont: columnCount > 13 ? 15 : 17,
+  rowHeight: columnCount > 13 ? 35 : 39,
+  headerFont: columnCount > 13 ? 15 : 16,
+  headerWidth: 155,
+  minColumnWidth: 85,
+  ...exportProfiles[category + ':' + programKey],
+});
+
+const preserveAppearance = (source: Element, target: Element): void => {
+  if (target instanceof HTMLElement || target instanceof SVGElement) {
+    const computed = window.getComputedStyle(source);
+    const style = target.style;
+    // Preserve exact popup colors including nested badges, row striping, and
+    // all header tiers. Do not add tint / highlight overlays in the export.
+    for (const property of [
+      'background-color', 'background-image', 'color',
+      'border-top-color', 'border-right-color', 'border-bottom-color',
+      'border-left-color', 'border-top-style', 'border-bottom-style',
+      'border-left-style', 'border-right-style', 'font-weight', 'font-style',
+      'text-align', 'vertical-align',
+    ]) style.setProperty(property, computed.getPropertyValue(property), 'important');
+  }
+  const originals = Array.from(source.children);
+  const copies = Array.from(target.children);
+  originals.forEach((child, index) => {
+    if (copies[index]) preserveAppearance(child, copies[index]);
+  });
+};
+
+const createProgramCover = (title: string, subtitle: string, brand: string, accent: string): HTMLElement => {
+  const cover = document.createElement('div');
+  cover.style.cssText = [
+    'display:flex', 'flex-direction:column', 'justify-content:center',
+    'width:100%', 'height:100%', 'padding:30px 24px',
+    'box-sizing:border-box', 'text-align:center',
+    'background:linear-gradient(155deg,' + accent + ' 0%,#082f32 100%)',
+    'border:2px solid rgba(255,255,255,.18)', 'color:#fff',
+  ].join(';');
+  const eyebrow = document.createElement('div');
+  eyebrow.textContent = brand;
+  eyebrow.style.cssText = 'font:800 16px Arial,sans-serif;letter-spacing:3px;color:#fef08a;margin-bottom:22px';
+  const name = document.createElement('div');
+  name.textContent = title;
+  name.style.cssText = 'font:900 32px/1.2 Arial,sans-serif;color:#fff;overflow-wrap:break-word';
+  const description = document.createElement('div');
+  description.textContent = subtitle;
+  description.style.cssText = 'font:600 17px/1.35 Arial,sans-serif;color:#d1fae5;margin-top:24px';
+  cover.append(eyebrow, name, description);
+  return cover;
+};
+
 export async function createClbCommunicationImage({
-  table,
-  title,
-  subtitle,
-  posterUrl = '',
-  startRow,
-  endRow,
-  pageNumber = 1,
-  pageCount = 1,
-  accentColor,
-  brand: brandLabel = 'CLB SAO VIỆT',
+  table, title, subtitle, posterUrl = '', startRow, endRow,
+  pageNumber = 1, pageCount = 1, accentColor,
+  brand: brandLabel = 'CLB SAO VIỆT', category = 'club', programKey = '',
 }: CommunicationImageOptions) {
   const { toBlob } = await import('html-to-image');
-  const root = document.createElement('section');
-  root.setAttribute('aria-hidden', 'true');
-  root.className = 'nmc-clb-communication-export';
-  root.style.cssText = [
-    'position:fixed',
-    // html-to-image preserves positional styles in its SVG clone. Moving the
-    // source far off-screen therefore also moves all content outside the
-    // exported 1920x1080 viewport and produces a solid background image. Keep
-    // it at the capture origin but behind the app so it never flashes on-screen.
-    'left:0',
-    'top:0',
-    'z-index:-2147483648',
-    'pointer-events:none',
-    `width:${IMAGE_WIDTH}px`,
-    `height:${IMAGE_HEIGHT}px`,
-    'display:grid',
-    'grid-template-columns:1fr 3fr',
-    'overflow:hidden',
-    `font-family:${CONDENSED_FONT}`,
-    'background:#07140f',
-    'color:#fff',
-  ].join(';');
-
-  const left = document.createElement('div');
-  left.style.cssText = [
-    'position:relative',
-    'display:flex',
-    'flex-direction:column',
-    'padding:54px 36px 0',
-    'overflow:hidden',
-    `background:${accentColor}`,
-    'border-right:6px solid rgba(255,215,0,.8)',
-  ].join(';');
-
-  const brand = document.createElement('div');
-  brand.textContent = brandLabel;
-  brand.style.cssText = 'font-size:20px;font-weight:900;letter-spacing:7px;color:#fde68a;margin-bottom:24px';
-
-  const heading = document.createElement('h1');
-  heading.textContent = title;
-  heading.style.cssText = 'margin:0;font-size:48px;line-height:1.08;font-weight:1000;letter-spacing:.5px;text-transform:uppercase;text-shadow:0 4px 14px rgba(0,0,0,.4)';
-
-  const subheading = document.createElement('div');
-  subheading.textContent = subtitle;
-  subheading.style.cssText = 'margin-top:18px;font-size:22px;line-height:1.35;font-weight:700;color:#d1fae5';
-
-  const posterFrame = document.createElement('div');
-  posterFrame.style.cssText = 'position:relative;flex:1;min-height:0;margin:26px -36px 0;display:flex;align-items:center;justify-content:center;padding:0;background:rgba(2,18,13,.35);overflow:hidden';
-  let posterImage: HTMLImageElement | null = null;
-  if (posterUrl) {
-    posterImage = document.createElement('img');
-    posterImage.crossOrigin = 'anonymous';
-    posterImage.src = posterUrl;
-    posterImage.alt = title;
-    posterImage.style.cssText = 'display:block;width:100%;height:auto;max-height:100%;object-fit:contain;object-position:center';
-    posterFrame.appendChild(posterImage);
-  } else {
-    const placeholder = document.createElement('div');
-    placeholder.textContent = 'CHƯA CÓ POSTER';
-    placeholder.style.cssText = 'font-size:24px;font-weight:900;letter-spacing:3px;color:rgba(255,255,255,.5)';
-    posterFrame.appendChild(placeholder);
-  }
-  left.append(brand, heading, subheading, posterFrame);
-
-  const right = document.createElement('div');
-  right.style.cssText = 'display:flex;flex-direction:column;min-width:0;padding:34px 32px 30px;background:#f8fafc;color:#0f172a';
-
-  const tableTitle = document.createElement('div');
-  tableTitle.style.cssText = `display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding:0 4px 20px;border-bottom:5px solid ${accentColor}`;
-  const tableTitleText = document.createElement('div');
-  tableTitleText.innerHTML = '<div style="font-size:20px;font-weight:900;letter-spacing:3px;color:#64748b">BẢNG CHI TIẾT</div><div style="margin-top:6px;font-size:30px;line-height:1.12;font-weight:1000;color:#0f172a">KẾT QUẢ CHƯƠNG TRÌNH</div>';
-  const page = document.createElement('div');
-  page.textContent = pageCount > 1 ? `PHẦN ${pageNumber}/${pageCount}` : `TOP ${Math.max(0, endRow - startRow)} DÒNG`;
-  page.style.cssText = `flex:none;padding:10px 16px;font-size:18px;font-weight:900;color:#fff;background:${accentColor}`;
-  tableTitle.append(tableTitleText, page);
-
-  const tableFrame = document.createElement('div');
-  tableFrame.style.cssText = 'flex:1;min-height:0;margin-top:20px;overflow:visible;border:2px solid #94a3b8;background:#fff;box-shadow:0 12px 30px rgba(15,23,42,.15)';
-  // Some CLB tables contain hundreds of rows. Deep-cloning the complete table
-  // before deleting all but 20 rows briefly duplicates the full DOM twice
-  // (once here and once inside html-to-image), which can terminate a mobile
-  // browser tab. Build a small export-only table from the requested rows.
   const sourceRows = Array.from(table.querySelectorAll<HTMLTableRowElement>('tbody > tr'));
-  const tableClone = table.cloneNode(false) as HTMLTableElement;
-  Array.from(table.children).forEach((section) => {
-    if (section.tagName !== 'TBODY') {
-      tableClone.appendChild(section.cloneNode(true));
-      return;
-    }
+  const safeEnd = Math.min(endRow, startRow + EXPORT_ROW_COUNT);
+  const selectedRows = sourceRows.slice(startRow, safeEnd);
+  const countColumns = (row: HTMLTableRowElement) =>
+    Array.from(row.cells).reduce((sum, cell) => sum + (cell.colSpan || 1), 0);
+  const columnCount = Math.max(
+    1,
+    ...Array.from(table.querySelectorAll<HTMLTableRowElement>('thead tr')).map(countColumns),
+    ...selectedRows.map(countColumns),
+  );
+  const profile = resolveCommunicationExportProfile(category, programKey, columnCount);
 
-    const bodyClone = section.cloneNode(false) as HTMLTableSectionElement;
-    Array.from(section.children)
-      .slice(startRow, endRow)
-      .forEach((row) => bodyClone.appendChild(row.cloneNode(true)));
-
-    const firstSourceRow = sourceRows[0];
-    const sourceColumnCount = firstSourceRow
-      ? Array.from(firstSourceRow.cells).reduce((total, cell) => total + cell.colSpan, 0)
-      : Array.from(table.querySelectorAll<HTMLTableRowElement>('thead tr'))
-        .at(-1)?.cells.length ?? 1;
-    while (bodyClone.rows.length < EXPORT_ROW_COUNT) {
-      const placeholderRow = document.createElement('tr');
-      placeholderRow.setAttribute('data-export-placeholder', 'true');
-      for (let columnIndex = 0; columnIndex < sourceColumnCount; columnIndex += 1) {
-        const placeholderCell = document.createElement('td');
-        placeholderCell.innerHTML = '&nbsp;';
-        placeholderRow.appendChild(placeholderCell);
-      }
-      bodyClone.appendChild(placeholderRow);
-    }
-    tableClone.appendChild(bodyClone);
-  });
-  // Keep the on-screen table's resolved theme colors in the detached export DOM.
-  // CSS scoped to the app (including row striping and nested header levels) may
-  // not match the standalone image root, so copying classes alone is insufficient.
-  const preserveColors = (source: Element, target: Element) => {
-    const computed = window.getComputedStyle(source);
-    if (target instanceof HTMLElement || target instanceof SVGElement) {
-      const style = (target as HTMLElement | SVGElement).style;
-      for (const property of [
-        'background-color', 'background-image', 'color',
-        'border-top-color', 'border-right-color',
-        'border-bottom-color', 'border-left-color',
-        'font-weight', 'text-align',
-      ]) {
-        style.setProperty(property, computed.getPropertyValue(property), 'important');
-      }
-    }
-    const from = Array.from(source.children);
-    const to = Array.from(target.children);
-    for (let index = 0; index < Math.min(from.length, to.length); index += 1) {
-      preserveColors(from[index], to[index]);
-    }
-  };
-  Array.from(table.children).forEach((sourceSection, index) => {
-    const cloneSection = tableClone.children[index];
-    if (!cloneSection) return;
-    if (sourceSection.tagName !== 'TBODY') {
-      preserveColors(sourceSection, cloneSection);
+  // Clone only the requested rows. A full clone can exceed mobile memory limits.
+  const tableCopy = table.cloneNode(false) as HTMLTableElement;
+  Array.from(table.children).forEach(section => {
+    const sectionCopy = section.cloneNode(false) as HTMLElement;
+    const originalRows = section.tagName === 'TBODY'
+      ? Array.from(section.children).slice(startRow, safeEnd)
+      : Array.from(section.children);
+    if (section.tagName === 'COLGROUP') {
+      sectionCopy.append(...Array.from(section.children).map(node => node.cloneNode(true)));
     } else {
-      const originalRows = Array.from(sourceSection.children).slice(startRow, endRow);
-      const clonedRows = Array.from(cloneSection.children);
-      originalRows.forEach((row, rowIndex) => {
-        if (clonedRows[rowIndex]) preserveColors(row, clonedRows[rowIndex]);
+      originalRows.forEach(row => {
+        const rowCopy = row.cloneNode(true) as HTMLElement;
+        preserveAppearance(row, rowCopy);
+        sectionCopy.appendChild(rowCopy);
       });
     }
+    tableCopy.appendChild(sectionCopy);
   });
-  tableClone.style.cssText = `width:100%;height:auto;border-collapse:collapse;table-layout:auto;font-family:${CONDENSED_FONT};font-stretch:condensed;font-size:18px;background:#fff`;
-  tableClone.querySelectorAll<HTMLElement>('col').forEach((column) => {
-    column.style.setProperty('width', 'auto', 'important');
-    column.style.setProperty('min-width', '0', 'important');
-    column.style.setProperty('max-width', 'none', 'important');
+  // Original <col> constraints and overflow rules came from the scrolling
+  // page, not from a print layout. Replace only column geometry, not colors.
+  tableCopy.querySelectorAll('colgroup').forEach(col => col.remove());
+  tableCopy.style.cssText = [
+    'border-collapse:collapse', 'border-spacing:0',
+    'table-layout:fixed', 'margin:0', 'max-width:none',
+    'font-family:Arial,Helvetica,sans-serif', 'background:#fff',
+  ].join(';');
+  const context = document.createElement('canvas').getContext('2d');
+  const widths = Array.from({ length: columnCount }, () => profile.minColumnWidth);
+  tableCopy.querySelectorAll<HTMLTableRowElement>('tbody tr').forEach(row => {
+    let column = 0;
+    Array.from(row.cells).forEach(cell => {
+      if (cell.colSpan === 1 && context) {
+        const computed = window.getComputedStyle(cell);
+        context.font = (computed.fontWeight === 'bold' ? '700 ' : '400 ')
+          + profile.bodyFont + 'px Arial';
+        const content = (cell.textContent || '').replace(/\s+/g, ' ').trim();
+        // Keep every data row on one line, with space for icons/badges.
+        widths[column] = Math.max(widths[column], Math.ceil(context.measureText(content).width) + 33);
+      }
+      column += cell.colSpan || 1;
+    });
   });
-  tableClone.querySelectorAll<HTMLElement>('tbody > tr').forEach((row) => {
-    row.style.setProperty('height', `${EXPORT_ROW_HEIGHT}px`, 'important');
-    row.style.setProperty('min-height', `${EXPORT_ROW_HEIGHT}px`, 'important');
-    row.style.setProperty('max-height', `${EXPORT_ROW_HEIGHT}px`, 'important');
+  // Headers may wrap; cap their preferred width to avoid widening a column
+  // merely because its label has several words.
+  tableCopy.querySelectorAll<HTMLTableRowElement>('thead tr').forEach(row => {
+    let column = 0;
+    Array.from(row.cells).forEach(cell => {
+      if (cell.colSpan === 1 && context) {
+        context.font = '800 ' + profile.headerFont + 'px Arial';
+        const label = (cell.textContent || '').replace(/\s+/g, ' ').trim();
+        const preferred = Math.max(profile.minColumnWidth,
+          Math.min(profile.headerWidth, Math.ceil(context.measureText(label).width) + 20));
+        widths[column] = Math.max(widths[column], preferred);
+      }
+      column += cell.colSpan || 1;
+    });
   });
-  tableClone.querySelectorAll<HTMLElement>('th,td').forEach((cell) => {
-    cell.style.setProperty('width', 'auto', 'important');
-    cell.style.setProperty('min-width', '0', 'important');
-    cell.style.setProperty('max-width', 'none', 'important');
-    cell.style.setProperty('height', `${EXPORT_ROW_HEIGHT}px`, 'important');
-    cell.style.setProperty('padding', '4px 5px', 'important');
-    cell.style.setProperty('font-family', CONDENSED_FONT, 'important');
-    cell.style.setProperty('font-size', '18px', 'important');
-    cell.style.setProperty('font-stretch', 'condensed', 'important');
-    cell.style.setProperty('line-height', '1', 'important');
-    cell.style.setProperty('white-space', 'nowrap', 'important');
-    cell.style.setProperty('overflow', 'visible', 'important');
-    cell.style.setProperty('overflow-wrap', 'normal', 'important');
-    cell.style.setProperty('text-overflow', 'clip', 'important');
-    cell.style.setProperty('border', '1px solid #cbd5e1', 'important');
+
+  // Multi-column grouped rows should not dictate a single column's width.
+  const tableWidth = widths.reduce((sum, width) => sum + width, 0);
+  const cols = document.createElement('colgroup');
+  widths.forEach(width => {
+    const col = document.createElement('col');
+    col.style.width = width + 'px';
+    cols.appendChild(col);
+  });
+  tableCopy.insertBefore(cols, tableCopy.firstChild);
+  tableCopy.style.width = tableWidth + 'px';
+  tableCopy.style.minWidth = tableWidth + 'px';
+  tableCopy.querySelectorAll<HTMLElement>('th,td').forEach(cell => {
     cell.style.setProperty('box-sizing', 'border-box', 'important');
+    cell.style.setProperty('font-family', 'Arial,Helvetica,sans-serif', 'important');
+    cell.style.setProperty('white-space', cell.closest('thead') ? 'normal' : 'nowrap', 'important');
+    cell.style.setProperty('overflow-wrap', cell.closest('thead') ? 'break-word' : 'normal', 'important');
+    cell.style.setProperty('word-break', 'normal', 'important');
+    cell.style.setProperty('overflow', 'visible', 'important');
+    cell.style.setProperty('text-overflow', 'clip', 'important');
+    cell.style.setProperty('padding', '5px 7px', 'important');
+    cell.style.setProperty('line-height', '1.2', 'important');
+    cell.style.setProperty('font-size',
+      (cell.closest('thead') ? profile.headerFont : profile.bodyFont) + 'px', 'important');
+    if (!cell.closest('thead')) cell.style.setProperty('height', profile.rowHeight + 'px', 'important');
+    cell.querySelectorAll<HTMLElement>('*').forEach(content => {
+      content.style.setProperty('font-family', 'Arial,Helvetica,sans-serif', 'important');
+      content.style.setProperty('white-space', cell.closest('thead') ? 'normal' : 'nowrap', 'important');
+      content.style.setProperty('overflow', 'visible', 'important');
+      content.style.setProperty('text-overflow', 'clip', 'important');
+    });
   });
-  tableClone.querySelectorAll<HTMLElement>('thead th').forEach((cell) => {
-    cell.style.setProperty('font-size', '16px', 'important');
-    cell.style.setProperty('font-weight', '900', 'important');
-  });
-  tableClone.querySelectorAll<HTMLElement>('th *,td *').forEach((content) => {
-    content.style.setProperty('font-family', CONDENSED_FONT, 'important');
-    content.style.setProperty('font-stretch', 'condensed', 'important');
-    content.style.setProperty('white-space', 'nowrap', 'important');
-    content.style.setProperty('overflow', 'visible', 'important');
-    content.style.setProperty('text-overflow', 'clip', 'important');
-  });
-  tableClone.querySelectorAll('svg').forEach((svg) => {
-    (svg as SVGElement).style.width = '17px';
-    (svg as SVGElement).style.height = '17px';
-  });
-  tableFrame.appendChild(tableClone);
-  // Fit every source column into the fixed 1920×1080 image without dropping
-  // columns. Preserve the existing maximum 20-row pagination.
-  const fitWidth = tableFrame.clientWidth || 1350;
-  const actualWidth = Math.max(tableClone.scrollWidth, tableClone.getBoundingClientRect().width);
-  if (actualWidth > fitWidth) {
-    const scale = Math.max(0.35, Math.min(1, fitWidth / actualWidth));
-    tableClone.style.setProperty('transform', `scale(${scale})`, 'important');
-    tableClone.style.setProperty('transform-origin', 'top left', 'important');
-    // Reserve correct visual height so the footer does not overlap the table.
-    tableClone.style.setProperty('margin-bottom', `-${Math.round(tableClone.getBoundingClientRect().height * (1 - scale))}px`);
+
+  const rightPadding = 32;
+  const rightWidth = tableWidth + rightPadding * 2;
+  const leftWidth = Math.max(280, Math.min(540,
+    Math.ceil((rightWidth * profile.posterFraction) / (1 - profile.posterFraction))));
+  const imageWidth = leftWidth + rightWidth;
+  const root = document.createElement('section');
+  root.className = 'nmc-clb-communication-export';
+  root.setAttribute('aria-hidden', 'true');
+  root.style.cssText = [
+    'position:fixed', 'left:0', 'top:0', 'z-index:-2147483647',
+    'pointer-events:none', 'display:grid',
+    'grid-template-columns:' + leftWidth + 'px ' + rightWidth + 'px',
+    'width:' + imageWidth + 'px', 'font-family:Arial,Helvetica,sans-serif',
+    'background:#f8fafc', 'overflow:hidden',
+  ].join(';');
+  const left = document.createElement('div');
+  left.style.cssText = [
+    'box-sizing:border-box','display:flex','flex-direction:column',
+    'width:' + leftWidth + 'px','min-width:0','padding:30px 18px',
+    'background:' + accentColor,'color:white',
+    'border-right:4px solid #eab308',
+  ].join(';');
+  const eyebrow = document.createElement('div');
+  eyebrow.textContent = brandLabel;
+  eyebrow.style.cssText = 'font:800 17px Arial,sans-serif;letter-spacing:3px;color:#fef08a;margin-bottom:16px';
+  const heading = document.createElement('div');
+  heading.textContent = title;
+  heading.style.cssText = 'font:900 34px/1.13 Arial,sans-serif;color:#fff;overflow-wrap:break-word';
+  const subheading = document.createElement('div');
+  subheading.textContent = subtitle;
+  subheading.style.cssText = 'font:600 18px/1.35 Arial,sans-serif;color:#e2f8ee;margin-top:12px';
+  const posterFrame = document.createElement('div');
+  posterFrame.style.cssText = 'display:flex;align-items:center;justify-content:center;min-height:160px;flex:1;overflow:hidden;margin-top:25px';
+  const cover = createProgramCover(title, subtitle, brandLabel, accentColor);
+  posterFrame.appendChild(cover);
+  let posterImage: HTMLImageElement | null = null;
+  if (posterUrl.trim()) {
+    posterImage = document.createElement('img');
+    if (/^https?:\/\//i.test(posterUrl)) posterImage.crossOrigin = 'anonymous';
+    posterImage.src = posterUrl;
+    posterImage.alt = title;
+    posterImage.style.cssText = 'display:block;width:100%;height:100%;object-fit:contain;object-position:center';
   }
+  left.append(eyebrow, heading, subheading, posterFrame);
 
-
+  const right = document.createElement('div');
+  right.style.cssText = [
+    'display:flex','flex-direction:column','box-sizing:border-box',
+    'width:' + rightWidth + 'px','min-width:0','padding:24px ' + rightPadding + 'px 18px',
+    'background:#f8fafc','color:#0f172a',
+  ].join(';');
+  const tableTitle = document.createElement('div');
+  tableTitle.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:14px;border-bottom:4px solid ' + accentColor;
+  const t = document.createElement('div');
+  const label = document.createElement('div');
+  label.textContent = 'BẢNG CHI TIẾT';
+  label.style.cssText = 'font:900 15px Arial,sans-serif;letter-spacing:3px;color:#64748b';
+  const headingLabel = document.createElement('div');
+  headingLabel.textContent = 'KẾT QUẢ CHƯƠNG TRÌNH';
+  headingLabel.style.cssText = 'font:900 27px Arial,sans-serif;color:#0f172a;margin-top:4px';
+  t.append(label, headingLabel);
+  const indicator = document.createElement('div');
+  indicator.textContent = pageCount > 1 ? 'PHẦN ' + pageNumber + '/' + pageCount : 'TOP ' + EXPORT_ROW_COUNT + ' DÒNG';
+  indicator.style.cssText = 'flex:none;padding:10px 14px;font:900 16px Arial,sans-serif;color:#fff;background:' + accentColor;
+  tableTitle.append(t, indicator);
+  const frame = document.createElement('div');
+  frame.style.cssText = 'margin-top:14px;width:' + tableWidth + 'px;flex:none;overflow:visible;border:1px solid #94a3b8;background:#fff';
+  frame.appendChild(tableCopy);
   const footer = document.createElement('div');
-  const shownStart = Math.min(startRow + 1, sourceRows.length);
-  const shownEnd = Math.min(endRow, sourceRows.length);
-  footer.textContent = sourceRows.length > 0
-    ? `Hiển thị dòng ${shownStart}–${shownEnd} / ${sourceRows.length} • Xuất ngày ${new Date().toLocaleDateString('vi-VN')}`
-    : `Chưa có dữ liệu • Xuất ngày ${new Date().toLocaleDateString('vi-VN')}`;
-  footer.style.cssText = 'padding:16px 4px 0;text-align:right;font-size:16px;font-weight:700;color:#64748b';
-  right.append(tableTitle, tableFrame, footer);
+  const shown = sourceRows.length ? 'Hiển thị dòng ' +
+    Math.min(startRow + 1, sourceRows.length) + '–' + Math.min(safeEnd, sourceRows.length) +
+    ' / ' + sourceRows.length : 'Chưa có dữ liệu';
+  footer.textContent = shown + ' • Xuất ngày ' + new Date().toLocaleDateString('vi-VN');
+  footer.style.cssText = 'font:700 14px Arial,sans-serif;color:#64748b;text-align:right;margin-top:14px';
+  right.append(tableTitle, frame, footer);
   root.append(left, right);
   document.body.appendChild(root);
 
   try {
-    if (posterImage) await waitForImage(posterImage);
-    if (document.fonts) {
-      await Promise.all([
-        document.fonts.load(`400 18px ${CONDENSED_FONT}`, VIETNAMESE_FONT_SAMPLE),
-        document.fonts.load(`700 18px ${CONDENSED_FONT}`, VIETNAMESE_FONT_SAMPLE),
-        document.fonts.load(`900 18px ${CONDENSED_FONT}`, VIETNAMESE_FONT_SAMPLE),
-      ]);
-      await document.fonts.ready;
+    if (posterImage) {
+      await waitForImage(posterImage);
+      if (posterImage.naturalWidth > 0) {
+        cover.replaceWith(posterImage);
+      } else {
+        console.warn('[Communication export] Poster URL did not load; used branded program cover:', title);
+      }
     }
-    const blob = await withTimeout(
-      toBlob(root, {
-        width: IMAGE_WIDTH,
-        height: IMAGE_HEIGHT,
-        pixelRatio: 1,
-        quality: 1,
-        backgroundColor: '#07140f',
-        cacheBust: false,
-        skipAutoScale: true,
-      }),
-      IMAGE_RENDER_TIMEOUT_MS,
-      'Tạo ảnh quá thời gian cho phép. Vui lòng thử lại sau khi tải lại trang.',
-    );
-    if (!blob) throw new Error('Không thể tạo ảnh truyền thông');
+    if (document.fonts) await withTimeout(document.fonts.ready, 3000, 'Font loading timed out').catch(() => undefined);
+    // Header labels can have two or three rows; compute the actual height
+    // AFTER adding the table, and never clip long multi-level headers.
+    const neededHeight = Math.ceil(frame.getBoundingClientRect().height + 220);
+    const imageHeight = Math.max(Math.ceil(imageWidth * 9 / 16), neededHeight);
+    if (imageWidth > 7600 || imageHeight > 7000) {
+      throw new Error('Bảng quá rộng để xuất ảnh an toàn: ' + title + '. Vui lòng kiểm tra dữ liệu.');
+    }
+    root.style.height = imageHeight + 'px';
+    const blob = await withTimeout(toBlob(root, {
+      width: imageWidth,
+      height: imageHeight,
+      pixelRatio: 1,
+      quality: 1,
+      backgroundColor: '#f8fafc',
+      cacheBust: false,
+      skipAutoScale: true,
+      skipFonts: true,
+    }), IMAGE_RENDER_TIMEOUT_MS, 'Tạo ảnh quá thời gian cho phép.');
+    if (!blob) throw new Error('Không thể kết xuất ảnh: ' + title);
     return blob;
   } finally {
     root.remove();
