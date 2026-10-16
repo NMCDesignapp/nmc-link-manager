@@ -454,7 +454,19 @@ export async function createClbCommunicationImage({
   if (posterUrl.trim()) {
     posterImage = document.createElement('img');
     if (posterUrl.startsWith('http://') || posterUrl.startsWith('https://')) posterImage.crossOrigin = 'anonymous';
-    posterImage.src = posterUrl;
+    // Policy cards use lh3.googleusercontent.com; its image response can
+    // omit CORS headers, preventing canvas extraction despite successful
+    // display in a normal <img>. The limited same-origin route safely reads
+    // that exact saved image for PNG rendering.
+    let capturePosterUrl = posterUrl;
+    try {
+      const src = new URL(posterUrl, window.location.href);
+      if (src.protocol === 'https:' && src.hostname === 'lh3.googleusercontent.com' &&
+          /^\/d\/[a-zA-Z0-9_-]{15,100}\/?$/.test(src.pathname)) {
+        capturePosterUrl = '/api/communication-poster?url=' + encodeURIComponent(src.toString());
+      }
+    } catch { /* Let the normal loader handle invalid or legacy links. */ }
+    posterImage.src = capturePosterUrl;
     posterImage.alt = title;
     posterImage.style.cssText = 'display:block;width:100%;height:100%;object-fit:contain;object-position:center';
   }
