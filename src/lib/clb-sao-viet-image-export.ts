@@ -418,7 +418,7 @@ export async function createClbCommunicationImage({
   let posterImage: HTMLImageElement | null = null;
   if (posterUrl.trim()) {
     posterImage = document.createElement('img');
-        if (posterUrl.startsWith('http://') || posterUrl.startsWith('https://')) {
+    if (posterUrl.startsWith('http://') || posterUrl.startsWith('https://')) posterImage.crossOrigin = 'anonymous';
     posterImage.src = posterUrl;
     posterImage.alt = title;
     posterImage.style.cssText = 'display:block;width:100%;height:100%;object-fit:contain;object-position:center';
@@ -464,7 +464,7 @@ export async function createClbCommunicationImage({
       if (posterImage.naturalWidth > 0) {
         // Embed loaded poster bytes where CORS permits, so the SVG screenshot
         // doesn't have to fetch the same remote URL again while rasterizing.
-        if (/^https?:\\/\\//i.test(posterUrl)) {
+        if (posterUrl.startsWith('http://') || posterUrl.startsWith('https://')) {
           try {
             const canvas = document.createElement('canvas');
             canvas.width = posterImage.naturalWidth;
