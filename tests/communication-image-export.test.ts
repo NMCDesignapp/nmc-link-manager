@@ -51,8 +51,8 @@ test('image exporter reuses saved app posters, even from internal poster-image p
   assert.match(exporter, /context\.drawImage\(posterImage, 0, 0\)/);
   assert.match(exporter, /posterImage\.src = canvas\.toDataURL\('image\/png'\)/);
   assert.match(exporter, /await waitForImage\(posterImage\)/);
-  assert.match(caller, /posterUrl: saovietPosters\['ca-nhan'\]/);
-  assert.match(caller, /posterUrl: clbsvPosters\['ca-nhan'\]/);
+  assert.match(caller, /posterUrl: savedPoster\('saoviet', 'ca-nhan'\)/);
+  assert.match(caller, /posterUrl: savedPoster\('clbsv', 'ca-nhan'\)/);
   assert.match(caller, /posterUrl = policyImageLinks\[item\.key\]/);
 });
 
