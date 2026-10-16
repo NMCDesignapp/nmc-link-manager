@@ -447,7 +447,9 @@ export async function createClbCommunicationImage({
   subheading.textContent = subtitle;
   subheading.style.cssText = 'font:600 18px/1.35 Arial,sans-serif;color:#e2f8ee;margin-top:12px';
   const posterFrame = document.createElement('div');
-  posterFrame.style.cssText = 'display:flex;align-items:center;justify-content:center;min-height:160px;flex:1;overflow:hidden;margin-top:25px';
+  // Bleed the poster across the full colored column, including the 18px side
+  // gutters reserved for text above it. Keep the image's original aspect ratio.
+  posterFrame.style.cssText = 'display:flex;align-items:center;justify-content:center;min-height:160px;flex:1;overflow:hidden;margin:25px -18px 0;width:calc(100% + 36px)';
   const cover = createProgramCover(title, subtitle, brandLabel, sideAccent);
   posterFrame.appendChild(cover);
   let posterImage: HTMLImageElement | null = null;
@@ -468,7 +470,7 @@ export async function createClbCommunicationImage({
     } catch { /* Let the normal loader handle invalid or legacy links. */ }
     posterImage.src = capturePosterUrl;
     posterImage.alt = title;
-    posterImage.style.cssText = 'display:block;width:100%;height:100%;object-fit:contain;object-position:center';
+    posterImage.style.cssText = 'display:block;width:100%;height:auto;max-width:none;max-height:none;flex-shrink:0;object-fit:contain;object-position:center';
   }
   left.append(eyebrow, heading, subheading, posterFrame);
 
