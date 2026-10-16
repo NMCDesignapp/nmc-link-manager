@@ -3598,10 +3598,28 @@ function ThiDuaPageInner() {
         };
 
         const printClone = sourcePrintContent.cloneNode(false) as HTMLElement;
+        printClone.style.setProperty('width', '100%', 'important');
+        printClone.style.setProperty('max-width', 'none', 'important');
+        printClone.style.setProperty('overflow', 'visible', 'important');
         Array.from(sourcePrintContent.children).forEach(child => {
           if (child.id !== 'result-table-container') {
             const copied = child.cloneNode(true) as HTMLElement;
             preservePopupAppearance(child, copied);
+            // The banner is secondary; preserve its 16:5 ratio but make the table
+            // the full-width primary content of the exported image.
+            const poster = copied.querySelector<HTMLImageElement>('img[alt="Poster"]');
+            if (poster) {
+              const posterFrame = poster.parentElement;
+              if (posterFrame) {
+                posterFrame.style.setProperty('aspect-ratio', '16 / 5', 'important');
+                posterFrame.style.setProperty('width', '100%', 'important');
+                posterFrame.style.setProperty('max-height', '500px', 'important');
+                posterFrame.style.setProperty('overflow', 'hidden', 'important');
+              }
+              poster.style.setProperty('width', '100%', 'important');
+              poster.style.setProperty('height', '100%', 'important');
+              poster.style.setProperty('object-fit', 'fill', 'important');
+            }
             printClone.appendChild(copied);
             return;
           }
@@ -3642,13 +3660,28 @@ function ThiDuaPageInner() {
             tableClone.appendChild(sectionClone);
           });
           preservePopupAppearance(sourceTable, tableClone, false);
-          const tableWidth = Math.max(1, sourceTableWidth);
-          const availableWidth = captureWidth - 16;
-          const scale = Math.min(1, availableWidth / tableWidth);
-          tableClone.style.setProperty('width', `${tableWidth}px`, 'important');
-          tableClone.style.setProperty('min-width', `${tableWidth}px`, 'important');
-          tableClone.style.setProperty('max-width', 'none', 'important');
-          tableClone.style.setProperty('zoom', String(scale), 'important');
+          // Do not apply CSS zoom or transform: the old scale shrank the
+          // result table to a small block at the bottom-left of a wide image.
+          // Fit all columns in the export width with wrapping when necessary.
+          tableClone.style.setProperty('width', '100%', 'important');
+          tableClone.style.setProperty('min-width', '0', 'important');
+          tableClone.style.setProperty('max-width', '100%', 'important');
+          tableClone.style.setProperty('table-layout', 'fixed', 'important');
+          tableClone.style.removeProperty('zoom');
+          tableClone.querySelectorAll<HTMLTableCellElement>('th, td').forEach(cell => {
+            cell.style.setProperty('min-width', '0', 'important');
+            cell.style.setProperty('max-width', 'none', 'important');
+            cell.style.setProperty('white-space', 'normal', 'important');
+            cell.style.setProperty('overflow-wrap', 'anywhere', 'important');
+            cell.style.setProperty('word-break', 'normal', 'important');
+            cell.style.setProperty('font-size', '15px', 'important');
+            cell.style.setProperty('line-height', '1.25', 'important');
+            cell.style.setProperty('padding', '6px 5px', 'important');
+          });
+          tableClone.querySelectorAll<HTMLElement>('col').forEach(col => {
+            col.style.setProperty('width', 'auto', 'important');
+            col.style.setProperty('min-width', '0', 'important');
+          });
           tableContainerClone.style.setProperty('width', '100%', 'important');
           tableContainerClone.style.setProperty('max-width', 'none', 'important');
           tableContainerClone.style.setProperty('overflow', 'visible', 'important');
