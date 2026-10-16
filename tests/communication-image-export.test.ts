@@ -34,7 +34,7 @@ test('export keeps body on one line, wraps only headers and preserves source col
   assert.match(exporter, /preserveAppearance\(row, rowCopy\)/);
   assert.match(exporter, /'background-color', 'background-image', 'color'/);
   assert.match(exporter, /const tableWidth = widths\.reduce/);
-  assert.match(exporter, /const imageWidth = leftWidth \+ rightWidth/);
+  assert.match(exporter, /let imageWidth = leftWidth \+ rightWidth/);
   assert.match(exporter, /const EXPORT_ROW_COUNT = 20/);
   assert.doesNotMatch(exporter, /scale\(\$\{scale\}\)/);
 });
