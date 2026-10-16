@@ -349,12 +349,16 @@ export async function createClbCommunicationImage({
   const cols = document.createElement('colgroup');
   widths.forEach(width => {
     const col = document.createElement('col');
-    col.style.width = width + 'px';
+    col.style.setProperty('width', width + 'px', 'important');
     cols.appendChild(col);
   });
   tableCopy.insertBefore(cols, tableCopy.firstChild);
-  tableCopy.style.width = tableWidth + 'px';
-  tableCopy.style.minWidth = tableWidth + 'px';
+  tableCopy.style.setProperty('width', tableWidth + 'px', 'important');
+  tableCopy.style.setProperty('min-width', tableWidth + 'px', 'important');
+  tableCopy.style.setProperty('max-width', 'none', 'important');
+  tableCopy.style.setProperty('table-layout', 'fixed', 'important');
+  tableCopy.style.setProperty('zoom', '1', 'important');
+  tableCopy.style.setProperty('transform', 'none', 'important');
   tableCopy.querySelectorAll<HTMLElement>('th,td').forEach(cell => {
     cell.style.setProperty('box-sizing', 'border-box', 'important');
     cell.style.setProperty('font-family', 'Arial,Helvetica,sans-serif', 'important');
@@ -377,10 +381,10 @@ export async function createClbCommunicationImage({
   });
 
   const rightPadding = 32;
-  const rightWidth = tableWidth + rightPadding * 2;
+  let rightWidth = tableWidth + rightPadding * 2;
   const leftWidth = Math.max(280, Math.min(540,
     Math.ceil((rightWidth * profile.posterFraction) / (1 - profile.posterFraction))));
-  const imageWidth = leftWidth + rightWidth;
+  let imageWidth = leftWidth + rightWidth;
   const root = document.createElement('section');
   root.className = 'nmc-clb-communication-export';
   root.setAttribute('aria-hidden', 'true');
@@ -458,10 +462,39 @@ export async function createClbCommunicationImage({
     if (posterImage) {
       await waitForImage(posterImage);
       if (posterImage.naturalWidth > 0) {
+        // Embed loaded poster bytes where CORS permits, so the SVG screenshot
+        // doesn't have to fetch the same remote URL again while rasterizing.
+        if (/^https?:\\/\\//i.test(posterUrl)) {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = posterImage.naturalWidth;
+            canvas.height = posterImage.naturalHeight;
+            canvas.getContext('2d')?.drawImage(posterImage, 0, 0);
+            posterImage.src = canvas.toDataURL('image/png');
+          } catch (error) {
+            console.warn('[Communication export] Could not inline poster:', error);
+          }
+        }
         cover.replaceWith(posterImage);
       } else {
         console.warn('[Communication export] Poster URL did not load; used branded program cover:', title);
       }
+    }
+    // Detect extra width from icons, span badges and multi-level headers:
+    // never rely solely on text metrics to decide the output crop.
+    const measuredWidth = Math.ceil(Math.max(
+      tableWidth, tableCopy.scrollWidth, tableCopy.getBoundingClientRect().width,
+      ...Array.from(tableCopy.rows).map(row => row.scrollWidth),
+    ));
+    if (measuredWidth > tableWidth) {
+      rightWidth = measuredWidth + rightPadding * 2;
+      imageWidth = leftWidth + rightWidth;
+      tableCopy.style.setProperty('width', measuredWidth + 'px', 'important');
+      tableCopy.style.setProperty('min-width', measuredWidth + 'px', 'important');
+      frame.style.width = measuredWidth + 'px';
+      right.style.width = rightWidth + 'px';
+      root.style.width = imageWidth + 'px';
+      root.style.gridTemplateColumns = leftWidth + 'px ' + rightWidth + 'px';
     }
     if (document.fonts) await withTimeout(document.fonts.ready, 3000, 'Font loading timed out').catch(() => undefined);
     // Header labels can have two or three rows; compute the actual height
