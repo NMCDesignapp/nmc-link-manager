@@ -11867,7 +11867,7 @@ export default function QuanLyPage() {
   };
 
   const handleDownloadClbCommunicationImages = async () => {
-    if (!isAdmin || isEmbedded || clbsvImageExporting || bulkImageExporting) return;
+    if (isEmbedded || clbsvImageExporting || bulkImageExporting) return;
 
     const waitForBrowserPaint = async () => {
       await new Promise<void>((resolve) => {
@@ -12026,6 +12026,8 @@ export default function QuanLyPage() {
             pageNumber: pageIndex + 1,
             pageCount: ranges.length,
             accentColor: spec.accentColor,
+            category: spec.tableType === 'contest' ? 'contest' : 'club',
+            programKey: spec.program,
           });
           images.push({
             name: ranges.length > 1
@@ -12055,7 +12057,7 @@ export default function QuanLyPage() {
       downloadBlob(archive, `anh-truyen-thong-clb-sao-viet_${new Date().toISOString().slice(0, 10)}.zip`);
       toast({
         title: 'Đã tạo xong bộ ảnh',
-        description: `Đã tải ${images.length} ảnh PNG 16:9 trong một file ZIP.`,
+        description: `Đã tải ${images.length} ảnh PNG đầy đủ cột trong một file ZIP.`,
       });
     } catch (error) {
       console.error('[CLB Sao Viet image export]', error);
@@ -12084,7 +12086,7 @@ export default function QuanLyPage() {
   // Xuất bộ ảnh Chính sách/Thi đua bằng chính template 16:9 của CLB Sao Việt.
   // Chỉ đọc bảng đang hiển thị; tuyệt đối không thay đổi phép tính hoặc dữ liệu lưu.
   const handleDownloadCommunicationCollection = async (kind: 'policy' | 'contest') => {
-    if (!isAdmin || isEmbedded || clbsvImageExporting || bulkImageExporting) return;
+    if (isEmbedded || clbsvImageExporting || bulkImageExporting) return;
     const original = { activeSheet, policyOpen, saovietOpen, savedContestsList,
       quyTvvNhomFilter, quyTvvNameFilter, tvvmNhomFilter, tvvmNameFilter,
       nsTvvNhomFilter, nsTvvNameFilter, tuyenLuyenNhomFilter, tuyenLuyenNameFilter,
@@ -12186,6 +12188,8 @@ export default function QuanLyPage() {
           table, title: label, subtitle, posterUrl,
           startRow: 0, endRow: 20, accentColor,
           brand: kind === 'policy' ? 'CHÍNH SÁCH ĐẠI LÝ' : 'THI ĐUA',
+          category: kind,
+          programKey: kind === 'policy' ? policyPrograms[index].key : String(contestPrograms[index].id),
         });
         const suffix = `${String(index + 1).padStart(2, '0')}_${fileSafe(label)}.png`;
         entries.push({ name: category ? `${category}/${suffix}` : suffix, blob });
@@ -12195,7 +12199,7 @@ export default function QuanLyPage() {
       setBulkImageExportProgress({ completed: total, total, label: 'Đang đóng gói bộ ảnh ZIP...' });
       const archive = await createStoredZip(entries);
       downloadBlob(archive, `anh-truyen-thong-${kind === 'policy' ? 'chinh-sach' : 'thi-dua'}_${new Date().toISOString().slice(0,10)}.zip`);
-      toast({ title: 'Đã tạo xong bộ ảnh', description: `Tải thành công ${entries.length} ảnh PNG 1920×1080 trong file ZIP.` });
+      toast({ title: 'Đã tạo xong bộ ảnh', description: `Tải thành công ${entries.length} ảnh PNG (kích thước theo bảng) trong file ZIP.` });
     } catch (error) {
       console.error('[Bulk communication image export]', error);
       toast({ title: 'Không thể tải bộ ảnh', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
@@ -12224,7 +12228,7 @@ export default function QuanLyPage() {
   // Wait until the shared AppDataProvider has loaded before rendering each table.
   const homeArchiveLaunchedRef = useRef(false);
   useEffect(() => {
-    if (!mounted || !isAdmin || isEmbedded || appDataVersion === 0 || homeArchiveLaunchedRef.current) return;
+    if (!mounted || isEmbedded || appDataVersion === 0 || homeArchiveLaunchedRef.current) return;
     const requested = new URLSearchParams(window.location.search).get('downloadImages');
     if (requested !== 'clb' && requested !== 'policy' && requested !== 'contest') return;
     homeArchiveLaunchedRef.current = true;
@@ -12240,7 +12244,7 @@ export default function QuanLyPage() {
         ? handleDownloadClbCommunicationImages()
         : handleDownloadCommunicationCollection(requested));
     });
-  }, [mounted, isAdmin, isEmbedded, appDataVersion]);
+  }, [mounted, isEmbedded, appDataVersion]);
 
   // ---------- CLB Sao Việt overview ----------
   // Ba chương trình Sao Việt toàn chặng luôn nằm đầu danh sách. Các chương trình
