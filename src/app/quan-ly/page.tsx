@@ -11869,6 +11869,21 @@ export default function QuanLyPage() {
   const handleDownloadClbCommunicationImages = async () => {
     if (isEmbedded || clbsvImageExporting || bulkImageExporting) return;
 
+    // A home shortcut can start before the async AppData settings hydrate.
+    // Always resolve poster links directly from the persisted settings first.
+    let posterSettings: Record<string, string> = {};
+    try {
+      const posterSettingsResponse = await fetch('/api/settings', { cache: 'no-store' });
+      if (!posterSettingsResponse.ok) throw new Error('Không tải được cấu hình poster CLB Sao Việt.');
+      posterSettings = await posterSettingsResponse.json() as Record<string, string>;
+    } catch (error) {
+      console.error('[CLB image export] Unable to load saved posters:', error);
+      toast({ title: 'Chưa thể tải bộ ảnh', description: 'Không lấy được poster đã lưu. Vui lòng thử lại.', variant: 'destructive' });
+      return;
+    }
+    const savedPoster = (prefix: 'saoviet' | 'clbsv', key: string) =>
+      String(posterSettings[`${prefix}-poster-${key}`] || '').trim();
+
     const waitForBrowserPaint = async () => {
       await new Promise<void>((resolve) => {
         window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
@@ -11896,7 +11911,7 @@ export default function QuanLyPage() {
         title: 'Sao Việt toàn chặng cá nhân',
         subtitle: 'Đối tượng thi đua: Tư vấn viên',
         fileName: '01_sao-viet-toan-chang-ca-nhan',
-        posterUrl: saovietPosters['ca-nhan'] || '',
+        posterUrl: savedPoster('saoviet', 'ca-nhan'),
         accentColor: '#065F46',
       },
       {
@@ -11906,7 +11921,7 @@ export default function QuanLyPage() {
         title: 'Sao Việt toàn chặng – Trưởng nhóm TD',
         subtitle: 'Đối tượng thi đua: Trưởng nhóm tuyển dụng',
         fileName: '02_sao-viet-toan-chang-truong-nhom-td',
-        posterUrl: saovietPosters['tn-td'] || '',
+        posterUrl: savedPoster('saoviet', 'tn-td'),
         accentColor: '#065F46',
       },
       {
@@ -11916,7 +11931,7 @@ export default function QuanLyPage() {
         title: 'Sao Việt toàn chặng – Trưởng nhóm KTM',
         subtitle: 'Đối tượng thi đua: Trưởng nhóm kinh doanh',
         fileName: '03_sao-viet-toan-chang-truong-nhom-ktm',
-        posterUrl: saovietPosters['tn-ktm'] || '',
+        posterUrl: savedPoster('saoviet', 'tn-ktm'),
         accentColor: '#065F46',
       },
       {
@@ -11926,7 +11941,7 @@ export default function QuanLyPage() {
         title: 'Xét danh hiệu CLB Sao Việt cá nhân',
         subtitle: 'Đối tượng thi đua: Tư vấn viên',
         fileName: '04_xet-danh-hieu-clb-sao-viet-ca-nhan',
-        posterUrl: clbsvPosters['ca-nhan'] || '',
+        posterUrl: savedPoster('clbsv', 'ca-nhan'),
         accentColor: '#1E3A8A',
         splitIntoTwo: true,
       },
@@ -11937,7 +11952,7 @@ export default function QuanLyPage() {
         title: 'Xét danh hiệu CLB – Trưởng nhóm TD',
         subtitle: 'Đối tượng thi đua: Trưởng nhóm tuyển dụng',
         fileName: '05_xet-danh-hieu-clb-truong-nhom-td',
-        posterUrl: clbsvPosters['tn-td'] || '',
+        posterUrl: savedPoster('clbsv', 'tn-td'),
         accentColor: '#1E3A8A',
       },
       {
@@ -11947,7 +11962,7 @@ export default function QuanLyPage() {
         title: 'Xét danh hiệu CLB – Trưởng nhóm KTM',
         subtitle: 'Đối tượng thi đua: Trưởng nhóm kinh doanh',
         fileName: '06_xet-danh-hieu-clb-truong-nhom-ktm',
-        posterUrl: clbsvPosters['tn-ktm'] || '',
+        posterUrl: savedPoster('clbsv', 'tn-ktm'),
         accentColor: '#1E3A8A',
       },
     ];
@@ -12027,7 +12042,7 @@ export default function QuanLyPage() {
             pageCount: ranges.length,
             accentColor: spec.accentColor,
             category: spec.tableType === 'contest' ? 'contest' : 'club',
-            visualCategory: 'club', // Both Sao Viet and CLB cards belong to the CLB section.
+            visualCategory: spec.tableType === 'contest' ? 'contest' : 'club', // Sao Việt toàn chặng: teal; xét danh hiệu: deep gold.
             programKey: spec.program,
           });
           images.push({
