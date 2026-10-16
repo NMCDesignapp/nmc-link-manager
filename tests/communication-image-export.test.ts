@@ -70,5 +70,5 @@ test('left panel has distinct navy, teal and dark gold themes', () => {
   assert.match(exporter, /visualCategory === 'policy' \? '#142F51'/);
   assert.match(exporter, /visualCategory === 'contest' \? '#0B665F'/);
   assert.match(exporter, /: '#91620F'/);
-  assert.match(caller, /visualCategory: 'club'/);
+  assert.match(caller, /visualCategory: spec\.tableType === 'contest' \? 'contest' : 'club'/);
 });
