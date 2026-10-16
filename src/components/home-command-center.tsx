@@ -376,13 +376,8 @@ export default function HomeCommandCenter() {
             </div>
 
 
-            {linksError && links.length === 0 && !adminAuthed ? (
-              <div className="rounded-2xl border border-[#704e50] bg-[#3d292f] px-4 py-8 text-center text-sm text-[#f0b5b5]">Không thể tải danh sách liên kết.</div>
-            ) : links.length === 0 && !linksLoading && !adminAuthed ? (
-              <div className="rounded-2xl border border-[#3d5b6d] bg-[#183342] px-4 py-8 text-center text-sm text-[#9cb8c6]">Chưa có liên kết nào.</div>
-            ) : (
               <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-                {adminAuthed && ([
+                {([
                   { key: 'clb', label: 'CLB Sao Việt', color: '#c7a94d' },
                   { key: 'policy', label: 'Chính sách', color: '#43a77f' },
                   { key: 'contest', label: 'Thi đua', color: '#a78bfa' },
@@ -406,6 +401,12 @@ export default function HomeCommandCenter() {
                     </div>
                   </button>
                 ))}
+                {linksError && links.length === 0 && (
+                  <div className="col-span-2 text-xs text-[#f0b5b5]">Không thể tải danh sách liên kết.</div>
+                )}
+                {!linksError && links.length === 0 && !linksLoading && (
+                  <div className="col-span-2 text-xs text-[#9cb8c6]">Chưa có liên kết nào khác.</div>
+                )}
                 {links.map((link) => <LinkTile key={link.id} link={link} onOpen={setSelectedLink} />)}
               </div>
             )}
