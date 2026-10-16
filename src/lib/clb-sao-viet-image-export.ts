@@ -418,7 +418,7 @@ export async function createClbCommunicationImage({
   let posterImage: HTMLImageElement | null = null;
   if (posterUrl.trim()) {
     posterImage = document.createElement('img');
-    if (/^https?:\/\//i.test(posterUrl)) posterImage.crossOrigin = 'anonymous';
+        if (posterUrl.startsWith('http://') || posterUrl.startsWith('https://')) {
     posterImage.src = posterUrl;
     posterImage.alt = title;
     posterImage.style.cssText = 'display:block;width:100%;height:100%;object-fit:contain;object-position:center';
