@@ -72,3 +72,13 @@ test('left panel has distinct navy, teal and dark gold themes', () => {
   assert.match(exporter, /: '#91620F'/);
   assert.match(caller, /visualCategory: spec\.tableType === 'contest' \? 'contest' : 'club'/);
 });
+
+test('all three communication categories use edge-to-edge posters without distortion', () => {
+  // The panel has 18px horizontal text padding, but images must span the
+  // full colored column. Do not crop or stretch the original poster bitmap.
+  assert.match(exporter, /margin:25px -18px 0;width:calc\(100% \+ 36px\)/);
+  assert.match(exporter, /posterImage\.style\.cssText = '[^']*width:100%;height:auto/);
+  assert.match(exporter, /object-fit:contain;object-position:center/);
+  assert.doesNotMatch(exporter, /posterImage\.style\.cssText = '[^']*height:100%/);
+  assert.match(caller, /createClbCommunicationImage\(/);
+});
