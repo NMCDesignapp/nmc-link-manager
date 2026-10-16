@@ -22,9 +22,8 @@ const IMAGE_WIDTH = 1920;
 const IMAGE_HEIGHT = 1080;
 const EXPORT_ROW_COUNT = 20;
 const EXPORT_ROW_HEIGHT = 38;
-const CONDENSED_FONT = "'Roboto Condensed',Arial,sans-serif";
+const CONDENSED_FONT = "Arial,Helvetica,sans-serif";
 const VIETNAMESE_FONT_SAMPLE = 'Nguyễn Thị Nguyệt Phượng - Đối tượng thi đua';
-let condensedFontEmbedCSS = '';
 const POSTER_LOAD_TIMEOUT_MS = 8_000;
 const IMAGE_RENDER_TIMEOUT_MS = 45_000;
 
@@ -198,7 +197,7 @@ export async function createClbCommunicationImage({
   accentColor,
   brand: brandLabel = 'CLB SAO VIỆT',
 }: CommunicationImageOptions) {
-  const { getFontEmbedCSS, toBlob } = await import('html-to-image');
+  const { toBlob } = await import('html-to-image');
   const root = document.createElement('section');
   root.setAttribute('aria-hidden', 'true');
   root.className = 'nmc-clb-communication-export';
@@ -424,9 +423,6 @@ export async function createClbCommunicationImage({
       ]);
       await document.fonts.ready;
     }
-    const fontEmbedCSS = condensedFontEmbedCSS
-      || await getFontEmbedCSS(root, { preferredFontFormat: 'woff2' });
-    condensedFontEmbedCSS = fontEmbedCSS;
     const blob = await withTimeout(
       toBlob(root, {
         width: IMAGE_WIDTH,
@@ -436,7 +432,6 @@ export async function createClbCommunicationImage({
         backgroundColor: '#07140f',
         cacheBust: false,
         skipAutoScale: true,
-        fontEmbedCSS,
       }),
       IMAGE_RENDER_TIMEOUT_MS,
       'Tạo ảnh quá thời gian cho phép. Vui lòng thử lại sau khi tải lại trang.',
