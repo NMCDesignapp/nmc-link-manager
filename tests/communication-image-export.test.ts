@@ -30,7 +30,7 @@ test('CLB and Sao Viet have distinct programs without changing result calculatio
 });
 
 test('export keeps body on one line, wraps only headers and preserves source colors', () => {
-  assert.match(exporter, /cell\.closest\('thead'\) \? 'normal' : 'nowrap'/);
+  assert.match(exporter, /isHeader \? 'normal' : 'nowrap'/);
   assert.match(exporter, /preserveAppearance\(row, rowCopy\)/);
   assert.match(exporter, /'background-color', 'background-image', 'color'/);
   assert.match(exporter, /const tableWidth = widths\.reduce/);
@@ -40,8 +40,35 @@ test('export keeps body on one line, wraps only headers and preserves source col
 });
 
 test('poster has meaningful per-program fallback and uses stored poster when loaded', () => {
-  assert.match(exporter, /createProgramCover\(title, subtitle, brandLabel, accentColor\)/);
+  assert.match(exporter, /createProgramCover\(title, subtitle, brandLabel, sideAccent\)/);
   assert.match(exporter, /posterImage\.naturalWidth > 0/);
   assert.match(exporter, /cover\.replaceWith\(posterImage\)/);
   assert.doesNotMatch(exporter, /CHƯA CÓ POSTER/);
+});
+
+test('image exporter reuses saved app posters, even from internal poster-image paths', () => {
+  assert.match(exporter, /if \(!posterUrl\.startsWith\('data:'\)\)/);
+  assert.match(exporter, /context\.drawImage\(posterImage, 0, 0\)/);
+  assert.match(exporter, /posterImage\.src = canvas\.toDataURL\('image\/png'\)/);
+  assert.match(exporter, /await waitForImage\(posterImage\)/);
+  assert.match(caller, /posterUrl: saovietPosters\['ca-nhan'\]/);
+  assert.match(caller, /posterUrl: clbsvPosters\['ca-nhan'\]/);
+  assert.match(caller, /posterUrl = policyImageLinks\[item\.key\]/);
+});
+
+test('never breaks Vietnamese words and protects the original detail table', () => {
+  assert.match(exporter, /const longestWord = Math\.max/);
+  assert.match(exporter, /occupiedThrough\[column\]/);
+  assert.match(exporter, /'word-break', 'keep-all'/);
+  assert.match(exporter, /'hyphens', 'none'/);
+  assert.doesNotMatch(exporter, /'overflow-wrap', 'break-word'/);
+  assert.match(exporter, /const isCaption = isHeader/);
+  assert.match(exporter, /content\.style\.setProperty\('font-size', size \+ 'px'/);
+});
+
+test('left panel has distinct navy, teal and dark gold themes', () => {
+  assert.match(exporter, /visualCategory === 'policy' \? '#142F51'/);
+  assert.match(exporter, /visualCategory === 'contest' \? '#0B665F'/);
+  assert.match(exporter, /: '#91620F'/);
+  assert.match(caller, /visualCategory: 'club'/);
 });
