@@ -3758,6 +3758,58 @@ function ThiDuaPageInner() {
               cell.style.setProperty('min-width', '0', 'important');
             }
           });
+          // PNG-only column geometry and cell alignment.
+          // The general header rule above uses a 132px minimum, which is
+          // appropriate for labels but makes the STT column much too wide.
+          const exportHeaders = Array.from(tableClone.querySelectorAll<HTMLTableCellElement>('thead tr:first-child th'));
+          const normalizedHeader = (value: string): string =>
+            value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd')
+              .toLowerCase().replace(/\s+/g, ' ').trim();
+          const noteColumnIndex = exportHeaders.findIndex(header =>
+            /^ghi chu\b/.test(normalizedHeader(header.textContent || '')));
+          const numericColumnIndexes = new Set(
+            exportHeaders.flatMap((header, index) => {
+              const label = normalizedHeader(header.textContent || '');
+              return /^(stt\b|tong (?:ip|afyp|fyp|phi|doanh so|so hd|hop dong|thuong|cong)\b|sl\b|so luong\b|so hd\b|ty le\b|doanh so\b|so tien\b|gia tri\b|diem\b)/.test(label)
+                ? [index] : [];
+            }),
+          );
+          const exportSttWidth = '52px';
+          const sttHeader = exportHeaders[0];
+          if (sttHeader && normalizedHeader(sttHeader.textContent || '') === 'stt') {
+            for (const property of ['width', 'min-width', 'max-width']) {
+              sttHeader.style.setProperty(property, exportSttWidth, 'important');
+            }
+            sttHeader.style.setProperty('padding-left', '4px', 'important');
+            sttHeader.style.setProperty('padding-right', '4px', 'important');
+          }
+          tableClone.querySelectorAll<HTMLTableRowElement>('tbody tr').forEach(row => {
+            const cells = Array.from(row.cells);
+            // Separator / subtotal rows can use colspan and must be preserved.
+            if (cells.length !== exportHeaders.length) return;
+            cells.forEach((cell, columnIndex) => {
+              const isStt = columnIndex === 0 && normalizedHeader(sttHeader?.textContent || '') === 'stt';
+              if (isStt) {
+                for (const property of ['width', 'min-width', 'max-width']) {
+                  cell.style.setProperty(property, exportSttWidth, 'important');
+                }
+                cell.style.setProperty('padding-left', '4px', 'important');
+                cell.style.setProperty('padding-right', '4px', 'important');
+              }
+              const alignment = columnIndex === noteColumnIndex
+                ? 'right'
+                : numericColumnIndexes.has(columnIndex) ? 'center' : null;
+              if (!alignment) return;
+              cell.style.setProperty('text-align', alignment, 'important');
+              cell.querySelectorAll<HTMLElement>('*').forEach(content => {
+                content.style.setProperty('text-align', alignment, 'important');
+                if (getComputedStyle(content).display.includes('flex')) {
+                  content.style.setProperty('justify-content',
+                    alignment === 'right' ? 'flex-end' : 'center', 'important');
+                }
+              });
+            });
+          });
           tableContainerClone.style.setProperty('width', 'max-content', 'important');
           tableContainerClone.style.setProperty('max-width', 'none', 'important');
           tableContainerClone.style.setProperty('overflow', 'visible', 'important');
