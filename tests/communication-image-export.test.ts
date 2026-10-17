@@ -111,3 +111,22 @@ test('contest-result PNG has uniformly readable reward/body data and complete he
   assert.match(exportCode, /cell\.style\.setProperty\('word-break', 'keep-all', 'important'\)/);
   assert.match(exportCode, /const intrinsicWidth = Math\.ceil\(Math\.max/);
 });
+
+test('contest PNG narrows STT and aligns numeric columns centrally, notes to the right', () => {
+  const start = contestResult.indexOf('const handleDownloadImage = async () => {');
+  const end = contestResult.indexOf('hideAllScrollbars();', start);
+  const exportCode = contestResult.slice(start, end);
+  assert.match(exportCode, /const exportSttWidth = '52px'/);
+  assert.match(exportCode, /sttHeader\.style\.setProperty\(property, exportSttWidth, 'important'\)/);
+  assert.match(exportCode, /cell\.style\.setProperty\(property, exportSttWidth, 'important'\)/);
+  assert.match(exportCode, /const noteColumnIndex = exportHeaders\.findIndex/);
+  assert.match(exportCode, /const numericColumnIndexes = new Set/);
+  assert.match(exportCode, /columnIndex === noteColumnIndex\s*\? 'right'/);
+  assert.match(exportCode, /numericColumnIndexes\.has\(columnIndex\) \? 'center' : null/);
+  assert.match(exportCode, /content\.style\.setProperty\('text-align', alignment, 'important'\)/);
+  assert.match(exportCode, /alignment === 'right' \? 'flex-end' : 'center'/);
+  assert.match(exportCode, /if \(cells\.length !== exportHeaders\.length\) return/);
+  // The business rules and the saved poster remain untouched.
+  assert.match(exportCode, /const MAX_ROWS_PER_IMAGE = 20;/);
+  assert.match(exportCode, /const MAX_IMAGES_PER_DOWNLOAD = 2;/);
+});
