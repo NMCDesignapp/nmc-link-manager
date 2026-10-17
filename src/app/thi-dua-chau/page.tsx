@@ -3803,7 +3803,7 @@ function ThiDuaPageInner() {
               cell.style.setProperty('text-align', alignment, 'important');
               cell.querySelectorAll<HTMLElement>('*').forEach(content => {
                 content.style.setProperty('text-align', alignment, 'important');
-                if (getComputedStyle(content).display.includes('flex')) {
+                if (content.classList.contains('flex') || content.classList.contains('inline-flex') || content.style.display.includes('flex')) {
                   content.style.setProperty('justify-content',
                     alignment === 'right' ? 'flex-end' : 'center', 'important');
                 }
