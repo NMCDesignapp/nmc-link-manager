@@ -152,6 +152,7 @@ export type ConditionType =
   | 'activity_round_tvv90'
   | 'tvv_pass_count'
   | 'pass_count_ip_afyp'
+  | 'pass_count_contracts'
   | 'top_n_ip'
   | 'recruitment_count';
 
@@ -195,6 +196,7 @@ export interface ContestConfig {
   tvv90MinIP: number;
   referenceContestId?: string;
   includeTNInPassCount?: boolean;
+  tvvContractCountMin?: number;
   topN?: number;
   topNMinIP?: number;
   topNValueType?: 'ip' | 'afyp'; // Loại chỉ tiêu xét Top N: 'ip' (mặc định) hoặc 'afyp'
@@ -219,7 +221,7 @@ export function isActivityRoundMode(ct: ConditionType): boolean {
   );
 }
 export function isTVVPassCountMode(ct: ConditionType): boolean {
-  return ct === 'tvv_pass_count' || ct === 'pass_count_ip_afyp';
+  return ct === 'tvv_pass_count' || ct === 'pass_count_ip_afyp' || ct === 'pass_count_contracts';
 }
 export function isPerContractMode(ct: ConditionType): boolean {
   return ct === 'per_contract_ip' || ct === 'per_contract_afyp';
@@ -898,6 +900,7 @@ export function getConditionLabel(ct: ConditionType): string {
     case 'activity_round_standard_tvvm': return 'Lượt TVVm HĐC';
     case 'activity_round_tvv90': return 'Lượt TVV90';
     case 'tvv_pass_count': return 'TVV đạt CTĐK';
+    case 'pass_count_contracts': return 'Đếm TVV đủ số HĐ';
     case 'pass_count_ip_afyp': return 'Đếm TVV đạt IP+AFYP';
     case 'top_n_ip': return 'Xét Top N IP';
     case 'recruitment_count': return 'Tuyển dụng TVVm';
@@ -993,6 +996,7 @@ export function parseContestConfig(raw: any): ContestConfig {
     tvv90MaxMonths: raw.tvv90MaxMonths ?? 3,
     tvv90MinIP: raw.tvv90MinIP ?? 12_000_000,
     referenceContestId: raw.referenceContestId || '',
+    tvvContractCountMin: Math.max(1, Math.floor(Number(raw.tvvContractCountMin) || 2)),
     includeTNInPassCount: raw.includeTNInPassCount ?? false,
     topN: raw.topN ?? 3,
     topNMinIP: raw.topNMinIP ?? 50_000_000,
@@ -1896,7 +1900,7 @@ export function computeContestStats(
     for (const g of groups) {
       let value: number;
       if (groupValueResolver) value = groupValueResolver(g);
-      else if (conditionType === 'pass_count_ip_afyp') {
+      else if (conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts') {
         value = getGroupTVVPassCountIPAFYP(g, displayContracts, [], config, tvvStructList);
       }
       else if (isActivityRoundMode(conditionType)) value = g.activityRounds;
@@ -1911,7 +1915,7 @@ export function computeContestStats(
       filteredCount++;
       if (effectiveTier) {
         achievedCount++;
-        if (usePhase2) {
+        if (usePhase2 && conditionType !== 'pass_count_contracts') {
           // Phase 2 bonus
           const p2Start = config.phase2StartDate ? new Date(config.phase2StartDate) : null;
           if (p2Start) {
@@ -1930,7 +1934,7 @@ export function computeContestStats(
           totalBonus += computeBonusFromTier(
             effectiveTier,
             g.totalFYP,
-            isActivityRoundMode(conditionType) ? value : undefined,
+            (isActivityRoundMode(conditionType) || conditionType === 'pass_count_contracts') ? value : undefined,
             g.totalFYP
           );
         }
@@ -2282,6 +2286,7 @@ export function getGroupTVVPassCountIPAFYP(
   config: ContestConfig,
   tvvStructList: TVVStructMember[] = []
 ): number {
+  if (config.conditionType === 'pass_count_contracts') return getGroupTVVContractDetails(g, displayContracts, staffList, config, tvvStructList).length;
   if (config.conditionType !== 'pass_count_ip_afyp') return 0;
   const tnAgentCode = g.leader?.agentCode || '';
   const includeTNInPassCount = config.includeTNInPassCount ?? false;
@@ -2421,4 +2426,42 @@ export function getGroupTVVPassCountForReference(
   const leaderCode = group.leader?.agentCode || '';
   return getGroupTVVAgentCodes(group, allContracts, staffList, tvvStructList)
     .filter((agentCode) => (includeLeader || !leaderCode || agentCode !== leaderCode) && passing.has(agentCode)).length;
+}
+
+
+
+/** One TVV is counted once after enough distinct HĐ individually meet BOTH thresholds.
+ * Rows without a contract number remain separate using their source row identity.
+ */
+export function getTVVQualifyingContractMap(
+  contracts: Contract[], ipMin: number, afypMin: number, minimumContracts: number,
+): Map<string, Contract[]> {
+  const byAgent = new Map<string, Map<string, Contract>>();
+  for (const [index, contract] of contracts.entries()) {
+    if (!contract.agentCode || !Number.isFinite(contract.pdt10DT) || !Number.isFinite(contract.afyp)
+      || contract.pdt10DT < ipMin || contract.afyp < afypMin) continue;
+    const rows = byAgent.get(contract.agentCode) || new Map<string, Contract>();
+    const key = contract.contractNumber?.trim() || contract.id || `row:${index}`;
+    if (!rows.has(key)) rows.set(key, contract);
+    byAgent.set(contract.agentCode, rows);
+  }
+  const passing = new Map<string, Contract[]>();
+  const required = Math.max(1, Math.floor(Number(minimumContracts) || 2));
+  for (const [code, rows] of byAgent) {
+    if (rows.size >= required) passing.set(code, [...rows.values()].sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate)));
+  }
+  return passing;
+}
+
+export function getGroupTVVContractDetails(
+  group: GroupData, contracts: Contract[], staff: StaffMember[],
+  config: Pick<ContestConfig, 'secondaryIPMin' | 'secondaryAFYPMin' | 'tvvContractCountMin' | 'includeTNInPassCount'>,
+  structure: TVVStructMember[] = [],
+): { agentCode: string; contracts: Contract[] }[] {
+  const passing = getTVVQualifyingContractMap(contracts, config.secondaryIPMin ?? 0,
+    config.secondaryAFYPMin ?? 0, config.tvvContractCountMin ?? 2);
+  const members = new Set(getGroupTVVAgentCodes(group, contracts, staff, structure));
+  if (config.includeTNInPassCount && group.leader?.agentCode) members.add(group.leader.agentCode);
+  return [...members].filter(code => (config.includeTNInPassCount || code !== group.leader?.agentCode) && passing.has(code))
+    .sort().map(agentCode => ({ agentCode, contracts: passing.get(agentCode)! }));
 }

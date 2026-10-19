@@ -40,7 +40,7 @@ const contestCompatSelect = {
 const recruitedAgentScopeKey = (id: string) => `contest-recruited-agent-scope-${id}`;
 const recruitmentConfigKey = (id: string) => `contest-recruitment-config-${id}`;
 
-type ExtraContractCount = { secondaryContractCountMin: number; secondaryContractIPMin: number };
+type ExtraContractCount = { secondaryContractCountMin: number; secondaryContractIPMin: number; tvvContractCountMin: number };
 const secondaryContractCountKey = (id: string) => `contest-secondary-contract-count-${id}`;
 // Tương thích schema hiện tại: lưu mốc cuối Ngày phát hành theo từng chương trình,
 // không thêm cột Prisma hoặc thay dữ liệu của các chương trình đã tồn tại.
@@ -81,6 +81,7 @@ const nonNegativeNumber = (value: unknown): number => {
   return Number.isFinite(number) ? Math.max(0, number) : 0;
 };
 const normalizeExtraContractCount = (value: any): ExtraContractCount => ({
+  tvvContractCountMin: Math.max(1, Math.floor(nonNegativeNumber(value?.tvvContractCountMin) || 2)),
   secondaryContractCountMin: Math.floor(nonNegativeNumber(value?.secondaryContractCountMin)),
   secondaryContractIPMin: nonNegativeNumber(value?.secondaryContractIPMin),
 });
@@ -327,7 +328,7 @@ export async function POST(request: NextRequest) {
       secondaryLuotHDMin, secondaryLuotHDCMin,
       secondaryLuotHDFilter, secondaryLuotHDCFilter,
       secondaryTotalAFYPMin, secondaryTotalIPMin,
-      secondaryContractCountMin, secondaryContractIPMin,
+      secondaryContractCountMin, secondaryContractIPMin, tvvContractCountMin,
       hideNotAchieved, includeIndividualNTD, includeIndividualTN,
       luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
       referenceContestId, includeTNInPassCount,
@@ -404,7 +405,7 @@ export async function POST(request: NextRequest) {
 
     await saveRecruitedAgentScope(contest.id, recruitedAgentScope);
     await saveRecruitmentConfig(contest.id, recruitmentConfig);
-    const extraContractCount = await saveExtraContractCount(contest.id, { secondaryContractCountMin, secondaryContractIPMin });
+    const extraContractCount = await saveExtraContractCount(contest.id, { secondaryContractCountMin, secondaryContractIPMin, tvvContractCountMin });
     // Nếu trình chỉnh sửa khác chưa hỗ trợ trường mới, không xóa mốc đã lưu.
     if (Object.prototype.hasOwnProperty.call(body, 'issueEndDate')) {
       await saveIssueEndDate(contest.id, normalizedIssueEnd);
@@ -454,6 +455,8 @@ export async function PATCH(request: NextRequest) {
     if (!id) return NextResponse.json({ error: 'Thiếu ID chương trình thi đua' }, { status: 400 });
     const recruitedAgentScopeUpdate = updates.recruitedAgentScope;
     const recruitmentConfigUpdate = updates.recruitmentConfig;
+    const tvvCountUpdate = updates.tvvContractCountMin;
+    delete updates.tvvContractCountMin;
     const extraCountUpdate = updates.secondaryContractCountMin;
     const extraIPUpdate = updates.secondaryContractIPMin;
     const issueEndUpdate = updates.issueEndDate;
@@ -473,9 +476,10 @@ export async function PATCH(request: NextRequest) {
     if (recruitedAgentScopeUpdate !== undefined) await saveRecruitedAgentScope(id, recruitedAgentScopeUpdate);
     if (recruitmentConfigUpdate !== undefined) await saveRecruitmentConfig(id, recruitmentConfigUpdate);
     if (issueEndUpdate !== undefined) await saveIssueEndDate(id, normalizedIssueEnd);
-    if (extraCountUpdate !== undefined || extraIPUpdate !== undefined) {
+    if (extraCountUpdate !== undefined || extraIPUpdate !== undefined || tvvCountUpdate !== undefined) {
       const [current] = await loadExtraContractCount([{ id }]);
       await saveExtraContractCount(id, {
+        tvvContractCountMin: tvvCountUpdate ?? current.tvvContractCountMin,
         secondaryContractCountMin: extraCountUpdate ?? current.secondaryContractCountMin,
         secondaryContractIPMin: extraIPUpdate ?? current.secondaryContractIPMin,
       });
@@ -489,3 +493,4 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Không thể cập nhật chương trình thi đua', details: error?.message }, { status: 500 });
   }
 }
+

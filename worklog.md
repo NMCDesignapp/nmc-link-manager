@@ -1201,3 +1201,17 @@ Work Log:
 - Đồng bộ `kpi-app/src/app/page.tsx` bằng script chuẩn; KPI tách không hiển thị nút tải Excel này.
 - Kiểm tra: build Main/KPI tách đạt; sync --check đạt; 12 kiểm tra từ mã thật và round-trip XLSX đạt, bao gồm kỳ, mã có số 0 đầu, dữ liệu 0, bộ lọc AD, quyền, lỗi tải module và hồi quy AFYP.
 - Lint toàn repository còn lỗi có sẵn (132 errors, 77 warnings trong checkout build). Chưa xác minh UI bằng trình duyệt: Playwright runtime có nhưng thiếu executable Chromium.
+
+
+## 2026-10-19 — Thi đua Nhóm: đếm TVV đủ số HĐ
+
+- Thêm loại `pass_count_contracts`, độc lập với loại xét tổng IP+AFYP cũ.
+- Mỗi TVV đếm một lần khi đủ N HĐ riêng biệt; từng HĐ phải đạt đồng thời IP và AFYP tối thiểu. Có tùy chọn tính cá nhân TN.
+- Lưu số HĐ/TVV trong Setting mở rộng theo chương trình, không thay schema hoặc dữ liệu doanh số.
+- Bảng dùng chung cho xem thử và chương trình đã lưu: STT, NHÓM, MÃ TN, HỌ TÊN TN, HỌ TÊN TVV HOẠT ĐỘNG, NGÀY HL, IP, AFYP, SL TVV HĐ, TIỀN THƯỞNG. Gộp thông tin cấp Nhóm theo rowspan; Excel cùng cấu trúc và merge.
+- Main App là nguồn chuẩn; đã chạy sync-kpi-app.sh và --check. KPI tách tiếp tục dùng nội dung nhúng từ Main App.
+- Kiểm tra local: 31/31 ca nghiệp vụ đạt; sync check đạt. npm ci offline thiếu cache zwitch; build local chưa thể chạy đủ vì truy cập npm bị giới hạn. Cần xác minh build preview của cả Main App và KPI tách trước merge.
+- Chưa xác nhận production cho thay đổi này.
+
+- Preview commit b5ea35f: Main App my-pro và KPI tách kpi-nc-link đều READY; kiểm tra giao diện lựa chọn mới, đổi số HĐ và bật tính TN đạt. SSR xác minh 4 dòng HĐ, 6 ô cấp Nhóm gộp 4 dòng và tiền thưởng xuất hiện một lần.
+- Bổ sung API contest-detail-lite trả tvvContractCountMin để mở lại kết quả lưu đúng cấu hình. Chưa tạo/sửa chương trình thực tế khi kiểm tra preview.
