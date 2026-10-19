@@ -1212,3 +1212,6 @@ Work Log:
 - Main App là nguồn chuẩn; đã chạy sync-kpi-app.sh và --check. KPI tách tiếp tục dùng nội dung nhúng từ Main App.
 - Kiểm tra local: 31/31 ca nghiệp vụ đạt; sync check đạt. npm ci offline thiếu cache zwitch; build local chưa thể chạy đủ vì truy cập npm bị giới hạn. Cần xác minh build preview của cả Main App và KPI tách trước merge.
 - Chưa xác nhận production cho thay đổi này.
+
+- Preview commit b5ea35f: Main App my-pro và KPI tách kpi-nc-link đều READY; kiểm tra giao diện lựa chọn mới, đổi số HĐ và bật tính TN đạt. SSR xác minh 4 dòng HĐ, 6 ô cấp Nhóm gộp 4 dòng và tiền thưởng xuất hiện một lần.
+- Bổ sung API contest-detail-lite trả tvvContractCountMin để mở lại kết quả lưu đúng cấu hình. Chưa tạo/sửa chương trình thực tế khi kiểm tra preview.

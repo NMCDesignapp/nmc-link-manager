@@ -5473,7 +5473,7 @@ function ThiDuaPageInner() {
                             <TableHead className="text-yellow-100 min-w-[90px] font-bold uppercase text-center">
                               <div>SL TVV ĐỦ ĐIỀU KIỆN</div>
                               <div className="text-[9px] italic font-normal normal-case text-amber-300">
-                                {(conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts')
+                                {conditionType === 'pass_count_ip_afyp'
                                   ? `(IP≥${vndToNgan(passCountIPMin)}k + AFYP≥${vndToNgan(passCountAFYPMin)}k)`
                                   : referenceContestId
                                     ? (() => { const rc = savedContests.find(sc => sc.id === referenceContestId); return rc ? rc.title : ''; })()
@@ -5682,7 +5682,7 @@ function ThiDuaPageInner() {
                       );
                     })) : targetType === 'nhom' ? [...groupedData].map((g) => {
                       const groupPhase = getGroupPhaseBonus(g);
-                      const tvvPassCount = (conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts') ? getGroupTVVPassCountIPAFYP(g) : getGroupTVVPassCount(g);
+                      const tvvPassCount = conditionType === 'pass_count_ip_afyp' ? getGroupTVVPassCountIPAFYP(g) : getGroupTVVPassCount(g);
                       const tier = isTVVPassCountMode(conditionType)
                         ? calculateBonus(tvvPassCount).tier
                         : isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(getGroupValue(g)).tier;

@@ -53,11 +53,14 @@ export async function GET(request: NextRequest) {
       console.warn('[contest-detail-lite] recruitedAgentScope fallback read failed:', (error as Error)?.message);
     }
 
+    let tvvContractCountMin = 2;
     let secondaryContractCountMin = 0;
     let secondaryContractIPMin = 0;
     try {
       const setting = await db.setting.findUnique({ where: { key: secondaryContractCountKey(id) }, select: { value: true } });
       const parsed = JSON.parse(setting?.value || 'null');
+      const tvvCount = Number(parsed?.tvvContractCountMin);
+      if (Number.isFinite(tvvCount) && tvvCount >= 1) tvvContractCountMin = Math.floor(tvvCount);
       const count = Number(parsed?.secondaryContractCountMin);
       const ip = Number(parsed?.secondaryContractIPMin);
       if (Number.isFinite(count)) secondaryContractCountMin = Math.max(0, Math.floor(count));
@@ -84,6 +87,7 @@ export async function GET(request: NextRequest) {
         ...contest,
         issueEndDate,
         recruitedAgentScope,
+        tvvContractCountMin,
         secondaryContractCountMin,
         secondaryContractIPMin,
         posterUrl: `/api/contest-poster/${encodeURIComponent(contest.id)}?v=${Number.isFinite(version) ? version : 0}`,
@@ -98,3 +102,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
