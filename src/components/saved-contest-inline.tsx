@@ -22,6 +22,7 @@
  * để kết quả khớp 100% với popup "Kết quả chi tiết" trên trang đó.
  */
 
+import { TVVContractCountTable } from '@/components/tvv-contract-count-table';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Table,
@@ -369,7 +370,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     if (config.conditionType === 'tvv_pass_count') {
       return referencePassCountByGroup.get(group.maNhom) || 0;
     }
-    if (config.conditionType === 'pass_count_ip_afyp') {
+    if (config.conditionType === 'pass_count_ip_afyp' || config.conditionType === 'pass_count_contracts') {
       return getGroupTVVPassCountIPAFYP(group, displayContracts, staffList, config, tvvStructList);
     }
     if (isActivityRoundMode(config.conditionType)) return group.activityRounds;
@@ -900,6 +901,12 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       })
       .sort((a, b) => b.value - a.value);
 
+    if (config.conditionType === 'pass_count_contracts') return <TVVContractCountTable
+      groups={sortedGroups.map(row => row.g)} contracts={displayContracts} staff={staffList} structure={tvvStructList}
+      config={config} loading={isContestDataLoading}
+      reward={(group, count) => { const row = sortedGroups.find(row => row.g === group); return row?.effectiveTier ? formatBonusAmountFromContracts(row.effectiveTier, group.contracts, count) : null; }}
+    />;
+
     const valueLabel = config.includeIndividualTN && !isPassCount
       ? 'TỔNG CỘNG'
       : isPassCountIPAFYP
@@ -1306,3 +1313,4 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
 };
 
 export default SavedContestInline;
+
