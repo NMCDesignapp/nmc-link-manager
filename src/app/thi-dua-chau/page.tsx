@@ -3385,12 +3385,12 @@ function ThiDuaPageInner() {
         if (targetType === 'nhom') {
           const g = groupedData.find(g => g.maNhom === groupKey);
           if (!g) return '';
-          const value = isActivityRoundMode(conditionType) ? g.activityRounds : getGroupValue(g);
+          const value = conditionType === 'pass_count_contracts' ? getGroupTVVPassCountIPAFYP(g) : isActivityRoundMode(conditionType) ? g.activityRounds : getGroupValue(g);
           const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(value) : calculateBonus(value);
           // Check supplementary condition
           const sc = checkSecondaryTotalCondition(g.contracts || []);
           const effectiveTier = sc.passed ? tier : null;
-          return effectiveTier ? formatBonusAmountFromContracts(effectiveTier, g.contracts, g.activityRounds) : '';
+          return effectiveTier ? formatBonusAmountFromContracts(effectiveTier, g.contracts, conditionType === 'pass_count_contracts' ? value : g.activityRounds) : '';
         }
         if (targetType === 'nyd') {
           const n = nydData.find(n => n.nydCode === groupKey);
