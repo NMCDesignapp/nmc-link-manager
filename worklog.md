@@ -1224,3 +1224,10 @@ Work Log:
 - Bảng xem thử và bảng chương trình lưu dùng chung component. Cả hai sheet Excel của loại này chỉ xuất HĐ hợp lệ; sheet kết quả có cả TVV đang tiến tới ngưỡng và vẫn gộp cột cấp Nhóm.
 - Tách hàm danh sách tiến độ khỏi danh sách đạt, giữ điều kiện IP/AFYP, khử trùng HĐ, lựa chọn tính TN và dữ liệu production không đổi.
 - Local: 34/34 ca nghiệp vụ đạt; SSR kiểm tra TVV chưa đủ xuất hiện nhưng không tăng thưởng, HĐ sai ngưỡng vắng, xếp Nhóm/tên và rowspan đúng; sync-kpi-app.sh --check đạt; TypeScript transpile file sửa đạt. Build preview và production cần xác minh theo commit triển khai.
+
+## 2026-10-20 — Nền bảng đếm HĐ/TVV và đường ngăn Nhóm
+
+- Bỏ nền xen kẽ của riêng bảng TVV đếm HĐ, thống nhất nền trắng ở mọi ô, gồm ô rowspan. Dùng selector theo useId riêng của từng bảng để thắng lớp màu KPI dùng chung, không đổi màu bảng khác.
+- Đường ngăn đầu mỗi Nhóm dày 2px màu slate #64748b xuyên suốt 10 cột; border inline giữ độ dày khi clone bảng tải PNG, CSS theo bảng ngăn theme chung làm nhạt đường kẻ.
+- Không thay đổi lọc HĐ, đếm TVV, thưởng, sắp xếp hoặc nội dung thông báo tiến độ.
+- Kiểm tra: 34/34 ca nghiệp vụ đạt; SSR xác nhận 3 Nhóm đều có đường ngăn ở đủ 10 ô kể cả rowspan, giữ gộp ô và nhãn chưa đủ HĐ; TypeScript transpile đạt; sync-kpi-app.sh và --check đạt. Cần xác minh build preview/production cả Main App và KPI tách.
