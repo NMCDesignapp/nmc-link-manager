@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
         if (carryoverOnly) {
           const headers = rows[0] || [];
           const has = (...names: string[]) => names.some(name => headers.includes(name));
-          if (!has('Mã ĐL', 'Mã đại lý', 'Mã số', 'agentCode') || !has('Ngày hiệu lực', 'Ngày HL', 'effectiveDate') || !has('Ngày phát hành', 'Ngày PH', 'Ngày cấp', 'issueDate') || !has('AFYP', 'afyp') || !has('PĐT + 10% ĐT', 'IP+10%PĐT', 'PĐT+10%ĐT', 'pdt10DT')) throw new Error('Sheet HĐ tồn thiếu tiêu đề bắt buộc, giữ dữ liệu cũ.');
+          if (!has('Số hợp đồng', 'Số HĐ', 'contractNumber') || !has('Mã ĐL', 'Mã đại lý', 'Mã số', 'agentCode') || !has('Ngày hiệu lực', 'Ngày HL', 'effectiveDate') || !has('Ngày phát hành', 'Ngày PH', 'Ngày cấp', 'issueDate') || !has('AFYP', 'afyp') || !has('PĐT + 10% ĐT', 'IP+10%PĐT', 'PĐT+10%ĐT', 'pdt10DT')) throw new Error('Sheet HĐ tồn thiếu tiêu đề bắt buộc, giữ dữ liệu cũ.');
           if (records.some(row => Object.values(row).some(Boolean) && !getVal(row, 'Mã ĐL', 'Mã đại lý', 'Mã số', 'agentCode'))) throw new Error('Sheet HĐ tồn có dòng thiếu mã TVV, giữ dữ liệu cũ.');
         }
         const seenContractNumbers = new Set<string>();

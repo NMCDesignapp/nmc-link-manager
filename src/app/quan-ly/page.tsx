@@ -322,7 +322,6 @@ function isCLBMemberTBorTN(position: string | null | undefined): boolean {
 
 const MONTHS: { key: RevenueSubKey; label: string }[] = [
   { key: 'all', label: 'Cả năm' },
-  { key: 'carryover', label: 'HĐ tồn tháng trước' },
   { key: '01', label: 'Tháng 1' }, { key: '02', label: 'Tháng 2' },
   { key: '03', label: 'Tháng 3' }, { key: '04', label: 'Tháng 4' },
   { key: '05', label: 'Tháng 5' }, { key: '06', label: 'Tháng 6' },
@@ -330,6 +329,8 @@ const MONTHS: { key: RevenueSubKey; label: string }[] = [
   { key: '09', label: 'Tháng 9' }, { key: '10', label: 'Tháng 10' },
   { key: '11', label: 'Tháng 11' }, { key: '12', label: 'Tháng 12' },
 ];
+
+const REVENUE_VIEWS = [...MONTHS, { key: 'carryover' as RevenueSubKey, label: 'HĐ tồn tháng trước' }];
 
 const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: boolean; hasSub?: boolean }[] = [
   { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard, synced: false },
@@ -4168,7 +4169,7 @@ export default function QuanLyPage() {
                         </div>
                         <div className={`${sheet.key === 'revenue' ? 'grid grid-cols-2 gap-1.5 p-2' : 'max-h-[calc(100dvh-145px)] overflow-y-auto p-1.5'}`}>
                         {(sheet.key === 'revenue'
-                          ? MONTHS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar }))
+                          ? REVENUE_VIEWS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar }))
                           : sheet.key === 'report'
                           ? POLICY_ITEMS.map(p => ({ key: p.key, label: p.label, Icon: p.icon }))
                           : STRUCTURE_SUBS.map(s => ({ key: s.key, label: s.label, Icon: s.icon }))
@@ -9512,7 +9513,7 @@ export default function QuanLyPage() {
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                {MONTHS.map(m => {
+                {REVENUE_VIEWS.map(m => {
                   const subActive = revenueSub === m.key;
                   const MIcon = m.key === 'all' ? TrendingUp : Calendar;
                   return (
@@ -9534,7 +9535,7 @@ export default function QuanLyPage() {
 
         {/* Month sub-tabs — desktop only */}
         <div className="hidden md:flex md:items-center md:gap-1 md:mb-3 md:flex-wrap">
-          {MONTHS.map(m => (
+          {REVENUE_VIEWS.map(m => (
             <button
               key={m.key}
               onClick={() => { navigateTo({ sheet: 'revenue', revenueSub: m.key }); setSettingsNhomFilter(''); }}
@@ -12863,7 +12864,7 @@ export default function QuanLyPage() {
               // Build sub-items list + click handler based on sheet
               const subItems: { key: string; label: string; Icon: React.ComponentType<{ className?: string }> }[] =
                 sheet.key === 'revenue'
-                  ? MONTHS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar }))
+                  ? REVENUE_VIEWS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar }))
                   : sheet.key === 'report'
                   ? POLICY_ITEMS.map(p => ({ key: p.key, label: p.label, Icon: p.icon }))
                   : sheet.key === 'structure'
