@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { selectContestSourceRows } from '@/lib/carryover-contracts';
 import { useAppData } from '@/lib/app-data-context';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -1082,7 +1083,7 @@ function ThiDuaPageInner() {
 
   const handleSearch = useCallback(() => {
     if (!startDate && !endDate && !issueStartDate && !issueEndDate) { setFilteredContracts([]); toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất một khoảng thời gian' }); return; }
-    let results = [...contracts];
+    let results = [...contracts, ...(appData.carryoverContracts || [])];
     // Lọc theo Ngày hiệu lực (từ-đến)
     if (startDate) { const start = getContestDateBoundary(startDate); results = results.filter((c) => new Date(c.effectiveDate) >= start); }
     if (endDate) { const end = getContestDateBoundary(endDate, true); results = results.filter((c) => new Date(c.effectiveDate) <= end); }
@@ -1095,9 +1096,10 @@ function ThiDuaPageInner() {
       if (secondaryIPMin > 0) results = results.filter((c) => c.pdt10DT >= secondaryIPMin);
     }
     results.sort((a, b) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime());
+    results = selectContestSourceRows(results, Boolean(issueStartDate || issueEndDate));
     setFilteredContracts(results);
     return results;
-  }, [startDate, endDate, issueStartDate, issueEndDate, contracts, useSecondaryCondition, secondaryAFYPMin, secondaryIPMin]);
+  }, [startDate, endDate, issueStartDate, issueEndDate, contracts, appData.carryoverContracts, useSecondaryCondition, secondaryAFYPMin, secondaryIPMin]);
 
   const handleSearchRef = useRef(handleSearch);
   handleSearchRef.current = handleSearch;
@@ -2350,9 +2352,9 @@ function ThiDuaPageInner() {
     const reference = savedContests.find(contest => contest.id === referenceContestId);
     if (!reference) return new Set<string>();
     return getReferenceContestPassingAgentCodes(
-      reference, contracts, staffList, recruiterList, tvvStructList,
+      reference, [...contracts, ...(appData.carryoverContracts || [])], staffList, recruiterList, tvvStructList,
     );
-  }, [conditionType, referenceContestId, savedContests, contracts, staffList, recruiterList, tvvStructList]);
+  }, [conditionType, referenceContestId, savedContests, contracts, appData.carryoverContracts, staffList, recruiterList, tvvStructList]);
 
   // IP+AFYP cũng là phép đếm trên từng TVV, do đó tổng hợp đúng một lần.
   const passingIPAFYPAgentCodes = useMemo(() => {
@@ -4167,19 +4169,7 @@ function ThiDuaPageInner() {
   // Calculate and show results popup
   const handleCalculate = () => {
     if (!startDate && !endDate && !issueStartDate && !issueEndDate) { toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất một khoảng thời gian' }); return; }
-    let results = [...contracts];
-    // Lọc theo Ngày hiệu lực (từ-đến)
-    if (startDate) { const start = getContestDateBoundary(startDate); results = results.filter((c) => new Date(c.effectiveDate) >= start); }
-    if (endDate) { const end = getContestDateBoundary(endDate, true); results = results.filter((c) => new Date(c.effectiveDate) <= end); }
-    // Lọc theo Ngày phát hành (từ-đến)
-    if (issueStartDate) { const start = getContestDateBoundary(issueStartDate); results = results.filter((c) => new Date(c.issueDate) >= start); }
-    if (issueEndDate) { const end = getContestDateBoundary(issueEndDate, true); results = results.filter((c) => new Date(c.issueDate) <= end); }
-    // Secondary condition filter
-    if (useSecondaryCondition) {
-      if (secondaryAFYPMin > 0) results = results.filter((c) => c.afyp >= secondaryAFYPMin);
-      if (secondaryIPMin > 0) results = results.filter((c) => c.pdt10DT >= secondaryIPMin);
-    }
-    results.sort((a, b) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime());
+    const results = handleSearch() || [];
     if (results.length === 0 && subjectCodes.length === 0) {
       setFilteredContracts([]);
       toast({ title: 'Thông báo', description: 'Không tìm thấy hợp đồng nào phù hợp' });

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db, withRetry } from '@/lib/db'
+import { readCarryoverSnapshots } from '@/lib/carryover-store'
 
 const contractSelect = {
   id: true, stt: true, contractNumber: true, agentCode: true, agentName: true,
@@ -41,7 +42,7 @@ async function fetchContracts() {
 // GET /api/quan-ly/all - Fetch all data in one request for faster page load
 export async function GET() {
   try {
-    const [leaders, revenue, contracts, staff, recruiters, tvvStruct] = await withRetry(() =>
+    const [leaders, revenue, contracts, staff, recruiters, tvvStruct, carryoverSnapshots] = await withRetry(() =>
       Promise.all([
         db.leaderInfo.findMany({ orderBy: { agentName: 'asc' } }),
         db.monthlyRevenue.findMany({ orderBy: [{ month: 'desc' }, { nhom: 'asc' }] }),
@@ -67,10 +68,11 @@ export async function GET() {
           },
           orderBy: { agentName: 'asc' },
         }),
+        readCarryoverSnapshots(),
       ])
     )
 
-    return NextResponse.json({ leaders, revenue, contracts, staff, recruiters, tvvStruct }, {
+    return NextResponse.json({ leaders, revenue, contracts, staff, recruiters, tvvStruct, carryoverContracts: carryoverSnapshots.flatMap(s => s.contracts), carryoverSnapshots: carryoverSnapshots.map(({ month, updatedAt, contracts }) => ({ month, updatedAt, count: contracts.length })) }, {
       headers: { 'Cache-Control': 'no-store' },
     })
   } catch (error) {

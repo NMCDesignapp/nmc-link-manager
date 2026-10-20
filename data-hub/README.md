@@ -85,3 +85,9 @@ Dữ liệu bắt đầu từ **dòng Excel số 6 và phải bao gồm dòng 6*
 ## Lưu ý bảo mật
 
 Không chạy đồng thời nhiều bản Data Hub trên cùng máy. Không đưa token, connection string, file `data-hub.config.json` thật, file Excel nghiệp vụ hoặc log chứa dữ liệu khách hàng lên GitHub.
+
+## HĐ tồn tháng trước — v2.3.0
+
+Bản mới tự tạo nguồn revenue-carryover cho cấu hình revenue-history hiện có, dùng nguyên file Doanhso, không đổi token/đường dẫn. Tháng 10 đọc sheet 10, tháng 11 đọc sheet 11 theo Asia/Bangkok. Nguồn doanh thu cũ không đổi. Nguồn mới chỉ lưu HĐ tồn, tuyệt đối không cập nhật doanh thu/KPI. Chỉ chương trình Thi đua có cài ngày phát hành mới sử dụng.
+
+Cập nhật file index.mjs từ repository vào thư mục Data Hub đang chạy (giữ data-hub.config.json và state), rồi chạy RESTART-DATA-HUB.cmd. Không cần activate hoặc đổi nguồn. Kiểm tra last-result có nguồn hậu tố -carryover, ok:true và kỳ/số dòng trên bảng HĐ tồn tháng trước của Main App. File thiếu sheet hoặc sai header sẽ báo lỗi và giữ snapshot cũ. Header hợp lệ nhưng sheet hết HĐ thì cập nhật snapshot rỗng đúng kỳ, không xóa doanh thu. Có thể nhập file Doanhso thủ công ngay tại bảng HĐ tồn nếu chưa cập nhật agent.

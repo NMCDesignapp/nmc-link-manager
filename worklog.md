@@ -1239,3 +1239,14 @@ Work Log:
 - Trong từng Nhóm xếp TVV đạt trước, sau đó TVV chưa đạt theo số HĐ hợp lệ giảm dần, cùng mức theo tên tiếng Việt. Giữ lọc IP/AFYP, số đạt và thưởng.
 - Excel sheet kết quả thêm GHI CHÚ, cùng thứ tự và nội dung; bảng lưu/xem thử/PNG/print dùng component chung. Giữ nền trắng và đường ngăn Nhóm 2px đủ 11 cột.
 - Kiểm tra: 35/35 ca nghiệp vụ đạt; sync-kpi-app.sh và --check đạt. Xác minh build cả hai ứng dụng theo commit trước merge.
+
+## 2026-10-20 — Nguồn HĐ tồn tháng trước riêng cho thi đua
+
+- Thêm snapshot Setting riêng theo tháng, /api/sync carryoverMonth kiểm tra header/ngày/tháng và không chạm Contract/MonthlyRevenue. API đọc/context phân tách nguồn, ẩn snapshot khỏi Settings thông thường. Không migration DB.
+- Quản lý → Doanh thu → HĐ tồn tháng trước: bảng chỉ đọc theo kỳ, lọc Nhóm/tìm kiếm/phân trang, Excel, nhập đúng sheet tháng hiện tại.
+- Live search/popup, chương trình đã lưu và tham chiếu bổ sung nguồn chỉ khi có mốc ngày PH; vẫn áp dụng ngày HL/PH và điều kiện khác, chống tính trùng nguồn bằng Số HĐ/SO_HD_GOC sau lọc. KPI/doanh thu/CLB không nhận nguồn mới.
+- Data Hub v2.3.0 tự đọc sheet tháng hiện tại từ file revenue-history hiện có; checksum theo kỳ, kiểm tra xác nhận server, giữ nguyên luồng cũ. Cần cập nhật process trên máy quản trị; cloud không đọc trực tiếp Excel Windows.
+- Kiểm tra nghiệp vụ/import bằng fixture giả lập, không ghi dữ liệu thật. Typecheck toàn repo có lỗi nền hiện hữu; build/QA được xác minh theo deployment PR.
+
+- Kết quả xác minh: 80/80 test đạt, npm run build local đạt; đồng bộ KPI check đạt. UI desktop preview mở bảng/tìm kiếm/làm mới/nhãn điều hướng; chưa có snapshot thật, chưa kiểm tra mobile. Console chỉ có lỗi extension trình duyệt, không có lỗi ứng dụng quan sát được.
+- npm run lint toàn repo/typecheck còn lỗi nền; các file mới được kiểm tra lint riêng. Đối chiếu bulk /api/quan-ly/all production bị auto-review từ chối vì payload hợp đồng riêng tư; không lấy/đối chiếu tổng production bằng payload đó. Chỉ kiểm tra heartbeat/trạng thái nguồn và giao diện, không ghi dữ liệu thật.

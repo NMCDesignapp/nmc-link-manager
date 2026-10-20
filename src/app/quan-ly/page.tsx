@@ -35,6 +35,7 @@ import {
   downloadBlob,
 } from '@/lib/clb-sao-viet-image-export';
 import { evaluateClbsvPersonalRank } from '@/lib/clb-sao-viet-personal-rank';
+import { CarryoverContractsTable } from '@/components/carryover-contracts-table';
 import { calculateRevenueTVVmAFYP } from '@/lib/revenue-tvvm';
 
 // nmc-sao-viet-exclude-chot-v1
@@ -175,7 +176,7 @@ const KPI_COLORS: Record<string, string> = {
 
 // ==================== CONSTANTS ====================
 type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'tuyen-ngang' | 'revenue' | 'report' | 'structure' | 'kehoach' | 'saoviet' | 'clb-saoviet' | 'vinh-danh';
-type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
+type RevenueSubKey = 'carryover' | 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
 // Sub-sheets within "Cấu trúc" section: leaders (DS TB/TN), recruiters (DS TTN), tuyen-ngang (DS TTN Tuyển Ngang)
 type StructureSubKey = 'leaders' | 'recruiters' | 'tuyen-ngang' | 'tvv' | 'clb-members';
 // Sub-sheets within "Tôn vinh" section: 4 bảng Top 5 trong 6 tháng đầu năm
@@ -328,6 +329,8 @@ const MONTHS: { key: RevenueSubKey; label: string }[] = [
   { key: '09', label: 'Tháng 9' }, { key: '10', label: 'Tháng 10' },
   { key: '11', label: 'Tháng 11' }, { key: '12', label: 'Tháng 12' },
 ];
+
+const REVENUE_VIEWS = [...MONTHS, { key: 'carryover' as RevenueSubKey, label: 'HĐ tồn tháng trước' }];
 
 const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: boolean; hasSub?: boolean }[] = [
   { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard, synced: false },
@@ -4166,7 +4169,7 @@ export default function QuanLyPage() {
                         </div>
                         <div className={`${sheet.key === 'revenue' ? 'grid grid-cols-2 gap-1.5 p-2' : 'max-h-[calc(100dvh-145px)] overflow-y-auto p-1.5'}`}>
                         {(sheet.key === 'revenue'
-                          ? MONTHS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar }))
+                          ? REVENUE_VIEWS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar }))
                           : sheet.key === 'report'
                           ? POLICY_ITEMS.map(p => ({ key: p.key, label: p.label, Icon: p.icon }))
                           : STRUCTURE_SUBS.map(s => ({ key: s.key, label: s.label, Icon: s.icon }))
@@ -9415,6 +9418,7 @@ export default function QuanLyPage() {
   };
 
   const renderRevenue = () => {
+    if (revenueSub === 'carryover') return <CarryoverContractsTable rows={appData.carryoverContracts || []} snapshots={appData.carryoverSnapshots || []} onRefresh={reloadAppData} onBack={() => setRevenueSub('all')} />;
     const currentYear = new Date().getFullYear();
     const monthLabel = MONTHS.find(m => m.key === revenueSub)?.label || '';
 
@@ -9509,7 +9513,7 @@ export default function QuanLyPage() {
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                {MONTHS.map(m => {
+                {REVENUE_VIEWS.map(m => {
                   const subActive = revenueSub === m.key;
                   const MIcon = m.key === 'all' ? TrendingUp : Calendar;
                   return (
@@ -9531,7 +9535,7 @@ export default function QuanLyPage() {
 
         {/* Month sub-tabs — desktop only */}
         <div className="hidden md:flex md:items-center md:gap-1 md:mb-3 md:flex-wrap">
-          {MONTHS.map(m => (
+          {REVENUE_VIEWS.map(m => (
             <button
               key={m.key}
               onClick={() => { navigateTo({ sheet: 'revenue', revenueSub: m.key }); setSettingsNhomFilter(''); }}
@@ -9541,7 +9545,7 @@ export default function QuanLyPage() {
                   : 'bg-white border border-gray-200 text-gray-600 hover:bg-amber-50 shadow-sm'
               }`}
             >
-              {m.key === 'all' ? m.label : `T${Number(m.key)}`}
+              {m.key === 'all' || m.key === 'carryover' ? m.label : `T${Number(m.key)}`} 
               {hasSectionLink(`revenue-${m.key}`) && <Link2 className="w-2.5 h-2.5" />}
             </button>
           ))}
@@ -12860,7 +12864,7 @@ export default function QuanLyPage() {
               // Build sub-items list + click handler based on sheet
               const subItems: { key: string; label: string; Icon: React.ComponentType<{ className?: string }> }[] =
                 sheet.key === 'revenue'
-                  ? MONTHS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar }))
+                  ? REVENUE_VIEWS.map(m => ({ key: m.key, label: m.label, Icon: m.key === 'all' ? TrendingUp : Calendar }))
                   : sheet.key === 'report'
                   ? POLICY_ITEMS.map(p => ({ key: p.key, label: p.label, Icon: p.icon }))
                   : sheet.key === 'structure'
