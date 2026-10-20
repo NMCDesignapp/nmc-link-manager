@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import { NeonDatePicker } from '@/components/neon-date-picker';
 import { TVVContractCountTable } from '@/components/tvv-contract-count-table';
-import { getGroupTVVContractDetails, getGroupTVVContractProgress } from '@/lib/contest-calculator';
+import { getGroupTVVContractDetails, getGroupTVVContractProgress, formatTVVContractProgressNote } from '@/lib/contest-calculator';
 import { expandActivityExportDetails } from '@/lib/contest-export-details';
 import { buildCombinedTopRanking, passesCombinedTopEligibility, supportsCombinedTopRanking } from '@/lib/contest-combined-top-ranking';
 import {
@@ -3343,7 +3343,7 @@ function ThiDuaPageInner() {
       }
     }
     if (conditionType === 'pass_count_contracts') {
-      headers = ['STT', 'NHÓM', 'MÃ TN', 'HỌ TÊN TN', 'HỌ TÊN TVV HOẠT ĐỘNG', 'NGÀY HL', 'IP', 'AFYP', 'SL TVV HĐ', 'TIỀN THƯỞNG'];
+      headers = ['STT', 'NHÓM', 'MÃ TN', 'HỌ TÊN TN', 'HỌ TÊN TVV HOẠT ĐỘNG', 'NGÀY HL', 'IP', 'AFYP', 'SL TVV HĐ', 'TIỀN THƯỞNG', 'GHI CHÚ'];
       rows = []; merges = [];
       const result = groupedData.map(g => {
         const details = getGroupTVVContractProgress(g, displayContracts, staffList, { secondaryIPMin: passCountIPMin, secondaryAFYPMin: passCountAFYPMin, tvvContractCountMin, includeTNInPassCount }, tvvStructList);
@@ -3355,9 +3355,10 @@ function ThiDuaPageInner() {
         const reward = tier && checkSecondaryTotalCondition(g.contracts).passed ? formatBonusAmountFromContracts(tier, g.contracts, count) : '';
         if (hideNotAchieved && !reward) continue;
         const firstRow = rows.length + 1;
-        const contracts = details.flatMap(agent => agent.contracts);
-        for (const [i, c] of (contracts.length ? contracts : [null]).entries()) {
-          rows.push([i === 0 ? ++stt : '', i === 0 ? g.nhom : '', i === 0 ? g.leader?.agentCode || '' : '', i === 0 ? g.leader?.agentName || '' : '', c?.agentName || '—', c ? formatDate(c.effectiveDate) : '', c?.pdt10DT ?? '', c?.afyp ?? '', i === 0 ? count : '', i === 0 ? reward : '']);
+        const contracts = details.flatMap(agent => agent.contracts.map((contract, index) => ({ contract, note: index === 0 ? formatTVVContractProgressNote(agent.contracts.length, agent.qualified) : '' })));
+        for (const [i, detail] of (contracts.length ? contracts : [null]).entries()) {
+          const c = detail?.contract;
+          rows.push([i === 0 ? ++stt : '', i === 0 ? g.nhom : '', i === 0 ? g.leader?.agentCode || '' : '', i === 0 ? g.leader?.agentName || '' : '', c?.agentName || '—', c ? formatDate(c.effectiveDate) : '', c?.pdt10DT ?? '', c?.afyp ?? '', i === 0 ? count : '', i === 0 ? reward : '', detail?.note || '']);
         }
         const lastRow = rows.length;
         if (lastRow > firstRow) for (const col of [0, 1, 2, 3, 8, 9]) merges.push({ s: { r: firstRow, c: col }, e: { r: lastRow, c: col } });
