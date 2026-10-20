@@ -1231,3 +1231,11 @@ Work Log:
 - Đường ngăn đầu mỗi Nhóm dày 2px màu slate #64748b xuyên suốt 10 cột; border inline giữ độ dày khi clone bảng tải PNG, CSS theo bảng ngăn theme chung làm nhạt đường kẻ.
 - Không thay đổi lọc HĐ, đếm TVV, thưởng, sắp xếp hoặc nội dung thông báo tiến độ.
 - Kiểm tra: 34/34 ca nghiệp vụ đạt; SSR xác nhận 3 Nhóm đều có đường ngăn ở đủ 10 ô kể cả rowspan, giữ gộp ô và nhãn chưa đủ HĐ; TypeScript transpile đạt; sync-kpi-app.sh và --check đạt. Cần xác minh build preview/production cả Main App và KPI tách.
+
+
+## 2026-10-20 — Ghi chú riêng và ưu tiên TVV đạt
+
+- Chuyển tiến độ dưới tên TVV sang cột GHI CHÚ; TVV chưa đủ ghi số HĐ hợp lệ hiện có dạng - 01 HĐ, chữ đỏ 15px đậm nghiêng. TVV đạt không ghi chú; chỉ ghi một lần mỗi TVV.
+- Trong từng Nhóm xếp TVV đạt trước, sau đó TVV chưa đạt theo số HĐ hợp lệ giảm dần, cùng mức theo tên tiếng Việt. Giữ lọc IP/AFYP, số đạt và thưởng.
+- Excel sheet kết quả thêm GHI CHÚ, cùng thứ tự và nội dung; bảng lưu/xem thử/PNG/print dùng component chung. Giữ nền trắng và đường ngăn Nhóm 2px đủ 11 cột.
+- Kiểm tra: 35/35 ca nghiệp vụ đạt; sync-kpi-app.sh và --check đạt. Xác minh build cả hai ứng dụng theo commit trước merge.

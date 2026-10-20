@@ -2476,6 +2476,13 @@ export function getGroupTVVContractProgress(
   if (config.includeTNInPassCount && group.leader?.agentCode) members.add(group.leader.agentCode);
   return [...members].filter(code => (config.includeTNInPassCount || code !== group.leader?.agentCode) && qualifying.has(code))
     .map(agentCode => ({ agentCode, contracts: qualifying.get(agentCode)!, qualified: qualifying.get(agentCode)!.length >= required }))
-    .sort((a, b) => (a.contracts[0].agentName || a.agentCode).localeCompare(b.contracts[0].agentName || b.agentCode, 'vi', { sensitivity: 'base' })
+    .sort((a, b) => Number(b.qualified) - Number(a.qualified)
+      || (!a.qualified ? b.contracts.length - a.contracts.length : 0)
+      || (a.contracts[0].agentName || a.agentCode).localeCompare(b.contracts[0].agentName || b.agentCode, 'vi', { sensitivity: 'base' })
       || a.agentCode.localeCompare(b.agentCode));
+}
+
+/** Pending note shows the number of valid contracts already held by this TVV. */
+export function formatTVVContractProgressNote(count: number, qualified: boolean): string {
+  return qualified ? '' : `- ${String(count).padStart(2, '0')} HĐ`;
 }

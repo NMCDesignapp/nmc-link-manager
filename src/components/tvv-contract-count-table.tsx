@@ -2,7 +2,7 @@
 
 import { Fragment, useId } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getGroupTVVContractProgress, formatDate, formatNumber } from '@/lib/contest-calculator';
+import { getGroupTVVContractProgress, formatTVVContractProgressNote, formatDate, formatNumber } from '@/lib/contest-calculator';
 import type { Contract, GroupData, StaffMember, TVVStructMember, ContestConfig } from '@/lib/contest-calculator';
 
 type Props = {
@@ -33,17 +33,20 @@ export function TVVContractCountTable({ groups, contracts, staff, structure, con
         background: #ffffff !important;
         background-image: none !important;
       }
+      #${tableId} [data-tvv-progress-note] > span {
+        color: #dc2626 !important; font-size: 15px !important; font-style: italic !important; font-weight: 700 !important;
+      }
       #${tableId} > tbody > tr[data-tvv-group-start='1'] > td {
         border-top: 2px solid #64748b !important;
       }
     `}</style>
   <Table id={tableId} data-nmc-tvv-contract-table="1">
     <TableHeader className="sticky top-0 z-10 bg-emerald-800">
-      <TableRow>{['STT', 'NHÓM', 'MÃ TN', 'HỌ TÊN TN', 'HỌ TÊN TVV HOẠT ĐỘNG', 'NGÀY HL', 'IP', 'AFYP', 'SL TVV HĐ', 'TIỀN THƯỞNG'].map(label =>
+      <TableRow>{['STT', 'NHÓM', 'MÃ TN', 'HỌ TÊN TN', 'HỌ TÊN TVV HOẠT ĐỘNG', 'NGÀY HL', 'IP', 'AFYP', 'SL TVV HĐ', 'TIỀN THƯỞNG', 'GHI CHÚ'].map(label =>
         <TableHead key={label} scope="col" className="text-center text-xs font-bold text-yellow-100 whitespace-nowrap">{label}</TableHead>)}</TableRow>
     </TableHeader>
     <TableBody>
-      {loading ? <TableRow><TableCell colSpan={10} className="text-center">Đang tải dữ liệu…</TableCell></TableRow> : rows.length === 0 ? <TableRow><TableCell colSpan={10} className="text-center">Không có dữ liệu phù hợp.</TableCell></TableRow> : rows.map((row, index) => {
+      {loading ? <TableRow><TableCell colSpan={11} className="text-center">Đang tải dữ liệu…</TableCell></TableRow> : rows.length === 0 ? <TableRow><TableCell colSpan={11} className="text-center">Không có dữ liệu phù hợp.</TableCell></TableRow> : rows.map((row, index) => {
         const details = row.details.length ? row.details : [null];
         return <Fragment key={row.group.maNhom}>{details.map((detail, detailIndex) => {
           const contract = detail?.contract;
@@ -58,8 +61,7 @@ export function TVVContractCountTable({ groups, contracts, staff, structure, con
             <TableCell rowSpan={details.length} style={cellStyle} className="text-center align-middle whitespace-nowrap">{row.group.leader?.agentName || '—'}</TableCell>
           </>}
           <TableCell style={cellStyle} className="whitespace-nowrap">
-            <div>{contract?.agentName || '—'}</div>
-            {detail && !detail.qualified && detail.firstOfAgent && <div className="text-[10px] font-medium text-amber-700">{detail.contractCount}/{Math.max(1, Math.floor(Number(config.tvvContractCountMin) || 2))} HĐ · Chưa đủ HĐ</div>}
+            {contract?.agentName || '—'}
           </TableCell>
           <TableCell style={cellStyle} className="text-center whitespace-nowrap">{contract ? formatDate(contract.effectiveDate) : '—'}</TableCell>
           <TableCell style={cellStyle} className="text-center whitespace-nowrap">{contract ? formatNumber(contract.pdt10DT) : '—'}</TableCell>
@@ -68,6 +70,9 @@ export function TVVContractCountTable({ groups, contracts, staff, structure, con
             <TableCell rowSpan={details.length} style={cellStyle} className="text-center align-middle font-bold">{row.count}</TableCell>
             <TableCell rowSpan={details.length} style={cellStyle} className="text-center align-middle font-bold text-emerald-700 whitespace-nowrap">{row.reward ?? '—'}</TableCell>
           </>}
+          <TableCell style={cellStyle} className="text-center whitespace-nowrap" data-tvv-progress-note="1">
+            {detail?.firstOfAgent && !detail.qualified && <span>{formatTVVContractProgressNote(detail.contractCount, detail.qualified)}</span>}
+          </TableCell>
         </TableRow>; })}</Fragment>;
       })}
     </TableBody>
