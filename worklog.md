@@ -1250,3 +1250,5 @@ Work Log:
 
 - Kết quả xác minh: 80/80 test đạt, npm run build local đạt; đồng bộ KPI check đạt. UI desktop preview mở bảng/tìm kiếm/làm mới/nhãn điều hướng; chưa có snapshot thật, chưa kiểm tra mobile. Console chỉ có lỗi extension trình duyệt, không có lỗi ứng dụng quan sát được.
 - npm run lint toàn repo/typecheck còn lỗi nền; các file mới được kiểm tra lint riêng. Đối chiếu bulk /api/quan-ly/all production bị auto-review từ chối vì payload hợp đồng riêng tư; không lấy/đối chiếu tổng production bằng payload đó. Chỉ kiểm tra heartbeat/trạng thái nguồn và giao diện, không ghi dữ liệu thật.
+
+- Tương thích khi cập nhật lệch phiên bản: HĐ tồn gửi bằng carryoverCsv, không gửi contractCsv. Server cũ bỏ qua trường mới, không thể nhập nhầm vào Contract; Data Hub chỉ chốt checksum sau xác nhận đúng carryoverMonth/count. API mới từ chối trộn carryover và contractCsv.
