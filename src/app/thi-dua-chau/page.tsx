@@ -3015,7 +3015,7 @@ function ThiDuaPageInner() {
               if (expSecIP) row.push(cIdx === 0 ? formatContestConditionProgress(sc.totalIP, secondaryTotalIPMin) : '');
               row.push(...extraMetricValues(sc, cIdx === 0));
               row.push(c.agentName || '');
-              if (includeEligibilityDateColumns) row.push(recruiterEffectiveDateFor(nydCode || c.maDaiLyTD || c.recruiterCode || ''));
+              if (includeEligibilityDateColumns) row.push(recruiterEffectiveDateFor(c.maDaiLyTD || c.recruiterCode || ''));
               if (showTVVStartDate) row.push(tvvStartDateFor(c));
               row.push(
                 c.contractNumber || '',
@@ -3318,7 +3318,7 @@ function ThiDuaPageInner() {
                 : c.ngayBatDauLamViec;
               return startDate ? formatDate(startDate) : '';
             })(),
-            ...(includeEligibilityDateColumns ? [recruiterEffectiveDateFor(c.maDaiLyTD || c.recruiterCode || '')] : []),
+            ...(includeEligibilityDateColumns ? [recruiterEffectiveDateFor(nydCode || c.maDaiLyTD || c.recruiterCode || '')] : []),
             c.contractNumber || '',
             c.effectiveDate ? formatDate(c.effectiveDate) : '',
             c.issueDate ? formatDate(c.issueDate) : '',

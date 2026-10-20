@@ -362,7 +362,7 @@ const normalizeAgentCode = (value: string | null | undefined) =>
 
 /** Ngày BĐLV chuẩn luôn lấy từ DS TVV Cấu trúc, không suy ra từ dòng hợp đồng. */
 export function buildStructureStartDateMap(
-  tvvStructList: TVVStructMember[] = []
+  tvvStructList: ReadonlyArray<Pick<TVVStructMember, 'agentCode' | 'ngayBatDau'>> = []
 ): Map<string, string | null> {
   const map = new Map<string, string | null>();
   for (const member of tvvStructList) {
@@ -409,7 +409,7 @@ export function getNYDContributingContracts(
 
 export function filterNYDDisplayContracts(
   contracts: Contract[], config: Pick<ContestConfig, 'participants' | 'includeIndividualNTD' | 'recruitedAgentScope'>,
-  recruiters: RecruiterMember[], structure: TVVStructMember[] = []
+  recruiters: RecruiterMember[], structure: ReadonlyArray<Pick<TVVStructMember, 'agentCode' | 'ngayBatDau'>> = []
 ): Contract[] {
   const selected = recruiters.filter(person => !norm(person.nhom || '').toLowerCase().includes('dso')
     && (!config.participants.length || config.participants.some(value => normalizeAgentCode(value) === normalizeAgentCode(person.agentCode) || norm(value) === norm(person.agentName))));
