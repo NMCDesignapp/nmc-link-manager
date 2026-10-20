@@ -9545,7 +9545,7 @@ export default function QuanLyPage() {
                   : 'bg-white border border-gray-200 text-gray-600 hover:bg-amber-50 shadow-sm'
               }`}
             >
-              {m.key === 'all' ? m.label : `T${Number(m.key)}`}
+              {m.key === 'all' || m.key === 'carryover' ? m.label : `T${Number(m.key)}`} 
               {hasSectionLink(`revenue-${m.key}`) && <Link2 className="w-2.5 h-2.5" />}
             </button>
           ))}
