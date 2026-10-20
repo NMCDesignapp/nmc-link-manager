@@ -140,7 +140,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   const config = useMemo<ContestConfig>(() => parseContestConfig(contest), [contest]);
 
   // Data from app context (cast to typed arrays)
-  const allContracts = (appData.contracts || []) as Contract[];
+  const allContracts = useMemo(() => [...(appData.contracts || []), ...(appData.carryoverContracts || [])] as Contract[], [appData.contracts, appData.carryoverContracts]);
   const staffList = (appData.staff || []) as StaffMember[];
   const recruiterList = (appData.recruiters || []) as RecruiterMember[];
   // DS TVV (Cấu trúc) — cần cho filterByEffectiveDate mode và TopN mode

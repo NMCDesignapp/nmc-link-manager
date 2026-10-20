@@ -18,6 +18,8 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 export interface AppData {
   leaders: any[]
   revenue: any[]
+  carryoverContracts: any[]
+  carryoverSnapshots: { month: string; updatedAt: string; count: number }[]
   contracts: any[]
   staff: any[]
   recruiters: any[]
@@ -36,6 +38,8 @@ export interface AppData {
 const initialData: AppData = {
   leaders: [],
   revenue: [],
+  carryoverContracts: [],
+  carryoverSnapshots: [],
   contracts: [],
   staff: [],
   recruiters: [],
@@ -202,6 +206,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
             leaders: quanLyAll.leaders || [],
             revenue: quanLyAll.revenue || [],
             contracts: quanLyAll.contracts || [],
+            carryoverContracts: quanLyAll.carryoverContracts || [],
+            carryoverSnapshots: quanLyAll.carryoverSnapshots || [],
             staff: quanLyAll.staff || [],
             quanLyAll,
           }
@@ -223,6 +229,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           leaders: quanLyAll?.leaders || [],
           revenue: quanLyAll?.revenue || [],
           contracts: quanLyAll?.contracts || [],
+          carryoverContracts: quanLyAll?.carryoverContracts || [],
+          carryoverSnapshots: quanLyAll?.carryoverSnapshots || [],
           staff: quanLyAll?.staff || [],
           recruiters: recruiters || [],
           tuyenNgang: tuyenNgang || [],

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { CARRYOVER_SETTING_PREFIX } from '@/lib/carryover-contracts';
 import { NextRequest, NextResponse } from 'next/server';
 import { isAuthorizedDataHubRequest, isDataHubImport, isGoogleSyncImport } from '@/lib/data-hub-auth';
 import { parseBusinessNumber } from '@/lib/parse-business-number';
@@ -144,6 +145,12 @@ export async function POST(request: NextRequest) {
       replaceHistoricalRevenueMonths?: string[];
       replaceRevenueMonths?: string[];
     };
+    const carryoverMonth = body.carryoverMonth as string | undefined;
+    const carryoverOnly = carryoverMonth !== undefined;
+    if (carryoverOnly && (carryoverMonth !== getCurrentBangkokMonth().label || replaceCurrentRevenueMonth || replaceHistoricalRevenueMonths || replaceRevenueMonths || staffCsv || recruiterCsv)) {
+      return NextResponse.json({ error: 'HĐ tồn chỉ nhận sheet tháng hiện tại và không được ghi kèm doanh thu/cấu trúc' }, { status: 400 });
+    }
+    if (carryoverOnly && (!contractCsv || typeof contractCsv !== 'string')) return NextResponse.json({ error: 'Thiếu dữ liệu sheet HĐ tồn' }, { status: 400 });
     const validMonth = (month: unknown): month is string => typeof month === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
     const replaceDataHubCurrentRevenueMonth = fromDataHub && replaceCurrentRevenueMonth === true;
     const historicalRevenueMonths = fromDataHub && Array.isArray(replaceHistoricalRevenueMonths)
@@ -161,9 +168,15 @@ export async function POST(request: NextRequest) {
       try {
         const rows = parseCSV(contractCsv);
         const records = csvToObjects(rows);
+        if (carryoverOnly) {
+          const headers = rows[0] || [];
+          const has = (...names: string[]) => names.some(name => headers.includes(name));
+          if (!has('Mã ĐL', 'Mã đại lý', 'Mã số', 'agentCode') || !has('Ngày hiệu lực', 'Ngày HL', 'effectiveDate') || !has('Ngày phát hành', 'Ngày PH', 'Ngày cấp', 'issueDate') || !has('AFYP', 'afyp') || !has('PĐT + 10% ĐT', 'IP+10%PĐT', 'PĐT+10%ĐT', 'pdt10DT')) throw new Error('Sheet HĐ tồn thiếu tiêu đề bắt buộc, giữ dữ liệu cũ.');
+          if (records.some(row => Object.values(row).some(Boolean) && !getVal(row, 'Mã ĐL', 'Mã đại lý', 'Mã số', 'agentCode'))) throw new Error('Sheet HĐ tồn có dòng thiếu mã TVV, giữ dữ liệu cũ.');
+        }
         const seenContractNumbers = new Set<string>();
         let upserted = 0;
-        const authoritativeReplacement = replaceDataHubCurrentRevenueMonth || replacementRevenueMonths.length > 0;
+        const authoritativeReplacement = carryoverOnly || replaceDataHubCurrentRevenueMonth || replacementRevenueMonths.length > 0;
         const contractsToCreate: any[] = [];
         let currentMonthWindow: ReturnType<typeof getCurrentBangkokMonth> | null = null;
 
@@ -285,6 +298,7 @@ export async function POST(request: NextRequest) {
           const ngayBatDauLamViec2 = parseDate(ngayBatDauLamViec2Str);
           if (!authoritativeReplacement && !effectiveDate) return;
 
+          if (carryoverOnly && ((effectiveDateStr && (!effectiveDate || !Number.isFinite(effectiveDate.getTime()))) || (issueDateStr && (!issueDate || !Number.isFinite(issueDate.getTime()))))) throw new Error('Ngày trong HĐ tồn không hợp lệ, giữ dữ liệu cũ.');
           const fyp = parseNumber(fypStr) || parseNumber(pdt10DTStr); // FYP fallback to PĐT+10%
           const afyp = parseNumber(afypStr);
           const tinhLuot3tr = parseNumber(tinhLuot3trStr);
@@ -377,6 +391,14 @@ export async function POST(request: NextRequest) {
           }));
         }
 
+        if (carryoverOnly) {
+          const now = new Date().toISOString();
+          const snapshot = { month: carryoverMonth, updatedAt: now, contracts: contractsToCreate.map((row, index) => ({ ...row, id: `carryover:${carryoverMonth}:${index + 1}`, contractNumber: row.contractNumber || '', carryoverMonth })) };
+          const key = `${CARRYOVER_SETTING_PREFIX}${carryoverMonth}`;
+          const value = JSON.stringify(snapshot);
+          await db.setting.upsert({ where: { key }, create: { key, value }, update: { value } });
+          return NextResponse.json({ success: true, carryoverMonth, count: snapshot.contracts.length, errors: [] });
+        }
         if (authoritativeReplacement) {
           // Import nguyên vẹn từng hàng của Sheet gốc. Không loại trùng theo HĐ;
           // do Contract.contractNumber UNIQUE, bản ghi trùng mã được lưu NULL
@@ -450,6 +472,7 @@ export async function POST(request: NextRequest) {
           results.contracts = upserted;
         }
       } catch (err) {
+        if (carryoverOnly) return NextResponse.json({ error: err instanceof Error ? err.message : 'Không thể nhập HĐ tồn' }, { status: 400 });
         results.errors.push(`HĐ: ${err instanceof Error ? err.message : 'Lỗi'}`);
       }
     }

@@ -5,7 +5,7 @@ import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import XLSX from 'xlsx';
 
-const AGENT_VERSION = '2.2.0-20261015';
+const AGENT_VERSION = '2.3.0-20261020';
 const root = path.dirname(fileURLToPath(import.meta.url));
 const configPath = process.env.NMC_DATA_HUB_CONFIG || path.join(root, 'data-hub.config.json');
 const statePath = path.join(root, '.nmc-data-hub-state.json');
@@ -104,10 +104,11 @@ function csvFromWorkbook(file, sheetName, options = {}) {
   // Excel có thể giữ used-range tới hàng nghìn dòng chỉ vì định dạng cũ.
   // Nếu sheet_to_csv trực tiếp, các hàng trống vẫn thành CSV có dấu phẩy và
   // bị bộ đếm hiểu nhầm là dữ liệu. Chỉ xuất các hàng thực sự có giá trị.
-  const values = options.revenueRowsOnly
+  let values = options.revenueRowsOnly
     ? revenueWorksheetValues(sheet, { allNonEmptyRows: options.allNonEmptyRows === true, requireAgentCode: options.requireAgentCode === true })
     : compactWorksheetValues(sheet);
   if (values.length === 0) return '';
+  if (options.isoDates) values = values.map(row => row.map(value => value instanceof Date ? `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}` : value));
   return XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet(values), { FS: ',', RS: '\n', forceQuotes: true });
 }
 
@@ -182,6 +183,10 @@ async function inputFromSource(source) {
   }
 
   if (source.kind === 'revenue-history') return historicalRevenueFromWorkbook(source.file);
+  if (source.kind === 'revenue-carryover') {
+    const month = bangkokYearMonth();
+    return { month, csv: csvFromWorkbook(source.file, String(Number(month.slice(5))), { revenueRowsOnly: true, allNonEmptyRows: true, isoDates: true }) };
+  }
   if (source.kind === 'structure' || source.kind === 'tamthu-detail') return rowsFromWorkbook(source.file, source.sheet);
 
   const extension = path.extname(source.file).toLowerCase();
@@ -197,6 +202,7 @@ async function inputFromSource(source) {
 
 function hasData(input, source) {
   if (source.kind === 'structure' || source.kind === 'tamthu-detail') return Array.isArray(input) && input.length > 0;
+  if (source.kind === 'revenue-carryover') return typeof input?.csv === 'string' && input.csv.trim().length > 0 && /^\d{4}-\d{2}$/.test(input.month);
   if (source.kind === 'revenue-history') {
     return Array.isArray(input?.months) && input.months.length > 0 && typeof input?.csv === 'string';
   }
@@ -279,17 +285,17 @@ function validateRevenuePayload(source, input, payload) {
 async function importOne(config, rawSource, state, forceImport) {
   const source = normalizeSource(rawSource);
   const rawInput = await inputFromSource(source);
-  const historyInput = source.kind === 'revenue-history' ? rawInput : null;
+  const historyInput = ['revenue-history', 'revenue-carryover'].includes(source.kind) ? rawInput : null;
   const input = historyInput ? historyInput.csv : rawInput;
 
-  if (!source.allowEmpty && !hasData(rawInput, source)) {
+  if ((!source.allowEmpty || source.kind === 'revenue-carryover') && !hasData(rawInput, source)) {
     throw new Error(`Nguồn "${source.id}" không có dữ liệu hợp lệ; không công bố bản rỗng.`);
   }
 
   const checksumPayload = historyInput ? JSON.stringify(historyInput) : (typeof input === 'string' ? input : JSON.stringify(input));
   // Quy tắc nguồn doanh số thay đổi: force lại 1 vòng đồng bộ khi cập nhật Data Hub,
   // ngay cả khi Tamthu.xlsx và Doanhso.xlsx chưa được sửa từ lần nhập cũ.
-  const sourceSchemaVersion = ['revenue', 'revenue-history'].includes(source.kind)
+  const sourceSchemaVersion = ['revenue', 'revenue-history', 'revenue-carryover'].includes(source.kind)
     ? 'authoritative-sheet-month-v2'
     : 'unchanged';
   const checksum = sha256(`${sourceSchemaVersion}|${checksumPayload}`);
@@ -312,6 +318,10 @@ async function importOne(config, rawSource, state, forceImport) {
     if (Array.isArray(payload?.errors) && payload.errors.length > 0) {
       throw new Error(`Máy chủ báo lỗi đồng bộ doanh số lịch sử: ${payload.errors.join('; ')}`);
     }
+  } else if (source.kind === 'revenue-carryover') {
+    // Completely separate storage: this request cannot replace revenue months.
+    payload = await postJson(config, '/api/sync', { source: 'nmc-data-hub', contractCsv: input, carryoverMonth: historyInput.month });
+    if (payload?.carryoverMonth !== historyInput.month || payload?.count !== csvDataRowCount(input) || payload?.errors?.length) throw new Error('Máy chủ chưa xác nhận đủ dữ liệu HĐ tồn.');
   } else if (source.kind === 'saoviet') {
     payload = await postJson(config, '/api/saoviet-data/sync', { source: 'nmc-data-hub', program: source.program, csv: input });
   } else if (source.kind === 'structure') {
@@ -372,7 +382,7 @@ async function diagnose(config) {
       if (!source.allowEmpty && !hasData(input, source)) throw new Error('không có dữ liệu hợp lệ');
       let count;
       if (source.kind === 'structure' || source.kind === 'tamthu-detail') count = Array.isArray(input) ? input.length : 0;
-      else if (source.kind === 'revenue-history') count = csvDataRowCount(input.csv);
+      else if (['revenue-history', 'revenue-carryover'].includes(source.kind)) count = csvDataRowCount(input.csv);
       else count = csvDataRowCount(input);
       console.log(`✓ ${source.id}: đọc được ${count} dòng — ${source.file}${source.sheet ? ` [${source.sheet}]` : ''}`);
     } catch (error) {
@@ -415,6 +425,10 @@ async function loadConfig() {
     throw new Error(`Thiếu hoặc sai cấu hình: ${configPath}`);
   }
   config.sources = config.sources.map(normalizeSource);
+  // Reuse the configured Doanhso file; no local path/token/config edits required.
+  const carryoverSources = config.sources.filter(source => source.kind === 'revenue-history')
+    .map(source => ({ ...source, id: `${source.id}-carryover`, kind: 'revenue-carryover', allowEmpty: true }));
+  if (!config.sources.some(source => source.kind === 'revenue-carryover')) config.sources.push(...carryoverSources);
   return config;
 }
 
@@ -462,4 +476,4 @@ if (isMainModule) {
   });
 }
 
-export { csvDataRowCount, revenueWorksheetValues };
+export { csvDataRowCount, revenueWorksheetValues, inputFromSource, importOne, loadConfig };

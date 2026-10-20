@@ -1,3 +1,4 @@
+import { selectContestSourceRows } from './carryover-contracts.ts';
 // nmc-contest-top-eligibility-v1
 
 /**
@@ -30,6 +31,8 @@ export interface Contract {
   maDaiLyTD: string;
   ngayBatDauLamViec: string | null;
   ad?: string;
+  carryoverMonth?: string;
+  nguonDuLieu?: string;
 }
 
 export interface BonusTier {
@@ -1043,7 +1046,7 @@ export function filterContractsByContest(
     (a, b) =>
       new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime()
   );
-  return results;
+  return selectContestSourceRows(results, Boolean(config.issueDate || config.issueEndDate));
 }
 
 // ===== Phase 2: filter by target (TVV / Nhóm / NTD) + DSO exclusion =====

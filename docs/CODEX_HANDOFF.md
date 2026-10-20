@@ -630,3 +630,13 @@ Các bước nâng độ tin cậy được ưu tiên:
 10. smoke test tự động cho Main App và KPI tách sau deploy.
 
 Không tự triển khai các bước này trong một nhiệm vụ khác nếu chưa có phạm vi rõ ràng, nhưng dùng chúng để đánh giá kiến trúc và rủi ro.
+
+## Bổ sung 2026-10-20 — HĐ tồn tháng trước
+
+Nguồn doanh thu/KPI không đổi. Data Hub revenue-carryover đọc sheet tháng hiện tại của cùng file Doanhso đã cấu hình revenue-history. Gửi /api/sync với carryoverMonth và contractCsv; không gửi cờ thay doanh thu. API kiểm tra tháng Bangkok, header và nguồn, lưu JSON snapshot trong Setting riêng nmc-carryover-contracts:YYYY-MM, giữ các kỳ cũ. Không migration schema. /api/quan-ly/all trả carryoverContracts/carryoverSnapshots tách khỏi contracts/revenue; /api/settings không trả hoặc cho sửa các snapshot này.
+
+Quản lý → Doanh thu → HĐ tồn tháng trước có bảng chỉ đọc, chọn kỳ, lọc/tìm kiếm, xuất Excel, nhập file Doanhso đúng sheet hiện tại và làm mới. Nút nhập không ghi Contract hoặc MonthlyRevenue.
+
+Trang Thi đua (tìm kiếm và popup), SavedContestInline và chương trình tham chiếu dùng nguồn bổ sung. Chỉ chương trình có một trong hai mốc Ngày phát hành mới tính; sau lọc đầy đủ, ưu tiên HĐ thường đã hợp lệ khi trùng Số HĐ, rồi thêm HĐ tồn chưa có. HĐ lịch sử thiếu ngày PH có thể được bổ sung bản đã phát hành. Dòng không Số HĐ giữ riêng, không tự gộp theo tên/giá trị. Bảng doanh thu/KPI và chính sách CLB không dùng trường carryoverContracts.
+
+Cần cập nhật index.mjs và khởi động lại Data Hub Windows để nguồn mới chạy; không khẳng định Excel đã lên cloud chỉ từ deploy. Các snapshot rỗng chỉ được thay khi sheet/header hợp lệ; lỗi đọc hoặc sai header giữ dữ liệu cũ.

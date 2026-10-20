@@ -35,6 +35,7 @@ import {
   downloadBlob,
 } from '@/lib/clb-sao-viet-image-export';
 import { evaluateClbsvPersonalRank } from '@/lib/clb-sao-viet-personal-rank';
+import { CarryoverContractsTable } from '@/components/carryover-contracts-table';
 import { calculateRevenueTVVmAFYP } from '@/lib/revenue-tvvm';
 
 // nmc-sao-viet-exclude-chot-v1
@@ -175,7 +176,7 @@ const KPI_COLORS: Record<string, string> = {
 
 // ==================== CONSTANTS ====================
 type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'tuyen-ngang' | 'revenue' | 'report' | 'structure' | 'kehoach' | 'saoviet' | 'clb-saoviet' | 'vinh-danh';
-type RevenueSubKey = 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
+type RevenueSubKey = 'carryover' | 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
 // Sub-sheets within "Cấu trúc" section: leaders (DS TB/TN), recruiters (DS TTN), tuyen-ngang (DS TTN Tuyển Ngang)
 type StructureSubKey = 'leaders' | 'recruiters' | 'tuyen-ngang' | 'tvv' | 'clb-members';
 // Sub-sheets within "Tôn vinh" section: 4 bảng Top 5 trong 6 tháng đầu năm
@@ -321,6 +322,7 @@ function isCLBMemberTBorTN(position: string | null | undefined): boolean {
 
 const MONTHS: { key: RevenueSubKey; label: string }[] = [
   { key: 'all', label: 'Cả năm' },
+  { key: 'carryover', label: 'HĐ tồn tháng trước' },
   { key: '01', label: 'Tháng 1' }, { key: '02', label: 'Tháng 2' },
   { key: '03', label: 'Tháng 3' }, { key: '04', label: 'Tháng 4' },
   { key: '05', label: 'Tháng 5' }, { key: '06', label: 'Tháng 6' },
@@ -9415,6 +9417,7 @@ export default function QuanLyPage() {
   };
 
   const renderRevenue = () => {
+    if (revenueSub === 'carryover') return <CarryoverContractsTable rows={appData.carryoverContracts || []} snapshots={appData.carryoverSnapshots || []} onRefresh={reloadAppData} onBack={() => setRevenueSub('all')} />;
     const currentYear = new Date().getFullYear();
     const monthLabel = MONTHS.find(m => m.key === revenueSub)?.label || '';
 

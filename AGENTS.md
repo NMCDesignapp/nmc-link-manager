@@ -220,3 +220,10 @@ Báo cáo phải có:
 - điều gì chưa thể xác minh trên máy local hoặc production.
 
 Không nói đã deploy, đã đồng bộ, đã active hoặc đã sửa dữ liệu nếu chưa có bằng chứng trực tiếp.
+
+### HĐ tồn tháng trước (bổ sung 2026-10-20)
+
+- Doanh số giữ nguyên: tháng hiện tại = Tamthu sheet 4; lịch sử = sheet tháng của Doanhso.
+- Doanhso sheet tháng hiện tại là nguồn riêng HĐ tồn tháng trước; lưu snapshot theo tháng trong Setting nmc-carryover-contracts:YYYY-MM. Không ghi vào Contract/MonthlyRevenue hoặc cộng vào KPI/doanh thu/chính sách CLB.
+- Chỉ dùng HĐ tồn tại trang Thi đua và chương trình lưu khi có issueDate hoặc issueEndDate. Vẫn lọc ngày HL, ngày PH, đối tượng và các điều kiện khác; không suy diễn ngày PH. HĐ trùng Số HĐ giữa hai nguồn chỉ tính một lần sau lọc; nhận cả SO_HD_GOC.
+- Data Hub mới tự thêm nguồn revenue-carryover từ cấu hình revenue-history; dùng cùng file Doanhso và tự đổi sheet theo tháng Bangkok. Cloud deploy không cập nhật process Data Hub trên Windows.

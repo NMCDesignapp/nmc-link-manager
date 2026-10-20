@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db, withRetry } from '@/lib/db'
+import { CARRYOVER_SETTING_PREFIX } from '@/lib/carryover-contracts'
 
 const DEFAULT_TARGET_REGISTRATION_MONTH = '2026-09'
 const TARGET_REGISTRATION_OPEN_KEY = 'kpi-target-registration-open'
@@ -20,7 +21,7 @@ async function repairSettingIdSequence() {
 
 export async function GET() {
   try {
-    const settings = await withRetry(() => db.setting.findMany({ orderBy: { key: 'asc' } }))
+    const settings = await withRetry(() => db.setting.findMany({ where: { key: { not: { startsWith: CARRYOVER_SETTING_PREFIX } } }, orderBy: { key: 'asc' } }))
 
     const settingsObject = settings.reduce((acc: Record<string, string>, setting: { key: string; value: string | null }) => {
       acc[setting.key] = setting.value || ''
@@ -50,6 +51,7 @@ export async function PUT(request: Request) {
   try {
     const data = await request.json()
     const entries = Object.entries(data)
+    if (entries.some(([key]) => key.startsWith(CARRYOVER_SETTING_PREFIX))) return NextResponse.json({ error: 'HĐ tồn phải nhập qua nguồn riêng' }, { status: 400 })
 
     if (entries.length === 0) {
       return NextResponse.json({ success: true })
