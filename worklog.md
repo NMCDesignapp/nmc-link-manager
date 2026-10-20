@@ -1215,3 +1215,12 @@ Work Log:
 
 - Preview commit b5ea35f: Main App my-pro và KPI tách kpi-nc-link đều READY; kiểm tra giao diện lựa chọn mới, đổi số HĐ và bật tính TN đạt. SSR xác minh 4 dòng HĐ, 6 ô cấp Nhóm gộp 4 dòng và tiền thưởng xuất hiện một lần.
 - Bổ sung API contest-detail-lite trả tvvContractCountMin để mở lại kết quả lưu đúng cấu hình. Chưa tạo/sửa chương trình thực tế khi kiểm tra preview.
+
+
+## 2026-10-20 — Hiển thị TVV đang tiến tới số HĐ yêu cầu
+
+- Loại pass_count_contracts hiển thị TVV có từ 1 HĐ đạt đồng thời ngưỡng IP/AFYP, kể cả chưa đủ N HĐ. Chỉ TVV đủ N mới cộng vào số TVV đạt và xét thưởng Nhóm.
+- Giữ thứ tự Nhóm theo kết quả, sắp họ tên TVV tiếng Việt trong từng Nhóm; giữ HĐ của mỗi TVV liền nhau và theo ngày HL. TVV chưa đủ có ghi chú tiến độ N/N.
+- Bảng xem thử và bảng chương trình lưu dùng chung component. Cả hai sheet Excel của loại này chỉ xuất HĐ hợp lệ; sheet kết quả có cả TVV đang tiến tới ngưỡng và vẫn gộp cột cấp Nhóm.
+- Tách hàm danh sách tiến độ khỏi danh sách đạt, giữ điều kiện IP/AFYP, khử trùng HĐ, lựa chọn tính TN và dữ liệu production không đổi.
+- Local: 34/34 ca nghiệp vụ đạt; SSR kiểm tra TVV chưa đủ xuất hiện nhưng không tăng thưởng, HĐ sai ngưỡng vắng, xếp Nhóm/tên và rowspan đúng; sync-kpi-app.sh --check đạt; TypeScript transpile file sửa đạt. Build preview và production cần xác minh theo commit triển khai.

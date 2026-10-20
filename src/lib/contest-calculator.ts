@@ -2458,10 +2458,24 @@ export function getGroupTVVContractDetails(
   config: Pick<ContestConfig, 'secondaryIPMin' | 'secondaryAFYPMin' | 'tvvContractCountMin' | 'includeTNInPassCount'>,
   structure: TVVStructMember[] = [],
 ): { agentCode: string; contracts: Contract[] }[] {
-  const passing = getTVVQualifyingContractMap(contracts, config.secondaryIPMin ?? 0,
-    config.secondaryAFYPMin ?? 0, config.tvvContractCountMin ?? 2);
+  return getGroupTVVContractProgress(group, contracts, staff, config, structure)
+    .filter(agent => agent.qualified)
+    .map(({ agentCode, contracts }) => ({ agentCode, contracts }));
+}
+
+/** Display every TVV with at least one valid HĐ, without adding pending TVV to rewards. */
+export function getGroupTVVContractProgress(
+  group: GroupData, contracts: Contract[], staff: StaffMember[],
+  config: Pick<ContestConfig, 'secondaryIPMin' | 'secondaryAFYPMin' | 'tvvContractCountMin' | 'includeTNInPassCount'>,
+  structure: TVVStructMember[] = [],
+): { agentCode: string; contracts: Contract[]; qualified: boolean }[] {
+  const qualifying = getTVVQualifyingContractMap(contracts, config.secondaryIPMin ?? 0,
+    config.secondaryAFYPMin ?? 0, 1);
+  const required = Math.max(1, Math.floor(Number(config.tvvContractCountMin) || 2));
   const members = new Set(getGroupTVVAgentCodes(group, contracts, staff, structure));
   if (config.includeTNInPassCount && group.leader?.agentCode) members.add(group.leader.agentCode);
-  return [...members].filter(code => (config.includeTNInPassCount || code !== group.leader?.agentCode) && passing.has(code))
-    .sort().map(agentCode => ({ agentCode, contracts: passing.get(agentCode)! }));
+  return [...members].filter(code => (config.includeTNInPassCount || code !== group.leader?.agentCode) && qualifying.has(code))
+    .map(agentCode => ({ agentCode, contracts: qualifying.get(agentCode)!, qualified: qualifying.get(agentCode)!.length >= required }))
+    .sort((a, b) => (a.contracts[0].agentName || a.agentCode).localeCompare(b.contracts[0].agentName || b.agentCode, 'vi', { sensitivity: 'base' })
+      || a.agentCode.localeCompare(b.agentCode));
 }
