@@ -1,12 +1,13 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Node CommonJS route harness with mocked dependencies. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const ts = require('typescript');
 function compile(file, mocks = {}) {
   const code = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-  const module = { exports: {} };
-  new Function('require', 'module', 'exports', code)(id => { if (!(id in mocks)) throw Error(`Unexpected dependency ${id}`); return mocks[id]; }, module, module.exports);
-  return module.exports;
+  const loaded = { exports: {} };
+  new Function('require', 'module', 'exports', code)(id => { if (!(id in mocks)) throw Error(`Unexpected dependency ${id}`); return mocks[id]; }, loaded, loaded.exports);
+  return loaded.exports;
 }
 const pure = compile('src/lib/carryover-contracts.ts');
 const numbers = compile('src/lib/parse-business-number.ts');

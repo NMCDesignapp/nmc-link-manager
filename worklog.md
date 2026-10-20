@@ -1247,3 +1247,6 @@ Work Log:
 - Live search/popup, chương trình đã lưu và tham chiếu bổ sung nguồn chỉ khi có mốc ngày PH; vẫn áp dụng ngày HL/PH và điều kiện khác, chống tính trùng nguồn bằng Số HĐ/SO_HD_GOC sau lọc. KPI/doanh thu/CLB không nhận nguồn mới.
 - Data Hub v2.3.0 tự đọc sheet tháng hiện tại từ file revenue-history hiện có; checksum theo kỳ, kiểm tra xác nhận server, giữ nguyên luồng cũ. Cần cập nhật process trên máy quản trị; cloud không đọc trực tiếp Excel Windows.
 - Kiểm tra nghiệp vụ/import bằng fixture giả lập, không ghi dữ liệu thật. Typecheck toàn repo có lỗi nền hiện hữu; build/QA được xác minh theo deployment PR.
+
+- Kết quả xác minh: 80/80 test đạt, npm run build local đạt; đồng bộ KPI check đạt. UI desktop preview mở bảng/tìm kiếm/làm mới/nhãn điều hướng; chưa có snapshot thật, chưa kiểm tra mobile. Console chỉ có lỗi extension trình duyệt, không có lỗi ứng dụng quan sát được.
+- npm run lint toàn repo/typecheck còn lỗi nền; các file mới được kiểm tra lint riêng. Đối chiếu bulk /api/quan-ly/all production bị auto-review từ chối vì payload hợp đồng riêng tư; không lấy/đối chiếu tổng production bằng payload đó. Chỉ kiểm tra heartbeat/trạng thái nguồn và giao diện, không ghi dữ liệu thật.
