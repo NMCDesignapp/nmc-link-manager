@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import { NeonDatePicker } from '@/components/neon-date-picker';
 import { TVVContractCountTable } from '@/components/tvv-contract-count-table';
-import { getGroupTVVContractDetails } from '@/lib/contest-calculator';
+import { getGroupTVVContractDetails, getGroupTVVContractProgress } from '@/lib/contest-calculator';
 import { expandActivityExportDetails } from '@/lib/contest-export-details';
 import { buildCombinedTopRanking, passesCombinedTopEligibility, supportsCombinedTopRanking } from '@/lib/contest-combined-top-ranking';
 import {
@@ -3345,11 +3345,12 @@ function ThiDuaPageInner() {
     if (conditionType === 'pass_count_contracts') {
       headers = ['STT', 'NHÓM', 'MÃ TN', 'HỌ TÊN TN', 'HỌ TÊN TVV HOẠT ĐỘNG', 'NGÀY HL', 'IP', 'AFYP', 'SL TVV HĐ', 'TIỀN THƯỞNG'];
       rows = []; merges = [];
-      const result = groupedData.map(g => ({ g, details: getGroupTVVContractDetails(g, displayContracts, staffList, { secondaryIPMin: passCountIPMin, secondaryAFYPMin: passCountAFYPMin, tvvContractCountMin, includeTNInPassCount }, tvvStructList) }))
-        .sort((a, b) => b.details.length - a.details.length);
+      const result = groupedData.map(g => {
+        const details = getGroupTVVContractProgress(g, displayContracts, staffList, { secondaryIPMin: passCountIPMin, secondaryAFYPMin: passCountAFYPMin, tvvContractCountMin, includeTNInPassCount }, tvvStructList);
+        return { g, details, count: details.filter(agent => agent.qualified).length };
+      }).sort((a, b) => b.count - a.count);
       let stt = 0;
-      for (const { g, details } of result) {
-        const count = details.length;
+      for (const { g, details, count } of result) {
         const tier = calculateBonus(count).tier;
         const reward = tier && checkSecondaryTotalCondition(g.contracts).passed ? formatBonusAmountFromContracts(tier, g.contracts, count) : '';
         if (hideNotAchieved && !reward) continue;
@@ -3425,7 +3426,10 @@ function ThiDuaPageInner() {
 
       // Build rows: each contract gets its own row, but THƯỞNG is only shown on first row of group
       type DetailRow = { data: (string | number)[]; groupKey: string };
-      const detailRowData: DetailRow[] = displayContracts.map((c) => {
+      const detailContracts = conditionType === 'pass_count_contracts'
+        ? groupedData.flatMap(g => getGroupTVVContractProgress(g, displayContracts, staffList, { secondaryIPMin: passCountIPMin, secondaryAFYPMin: passCountAFYPMin, tvvContractCountMin, includeTNInPassCount }, tvvStructList).flatMap(agent => agent.contracts))
+        : displayContracts;
+      const detailRowData: DetailRow[] = detailContracts.map((c) => {
         let groupKey = '';
         let bonusValue: string | number = '';
         if (needMerge) {

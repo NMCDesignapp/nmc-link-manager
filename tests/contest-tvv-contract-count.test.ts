@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getTVVQualifyingContractMap, getGroupTVVContractDetails, getGroupTVVPassCountIPAFYP, isTVVPassCountMode, parseContestConfig, computeContestStats } from '../src/lib/contest-calculator.ts';
+import { getTVVQualifyingContractMap, getGroupTVVContractDetails, getGroupTVVContractProgress, getGroupTVVPassCountIPAFYP, isTVVPassCountMode, parseContestConfig, computeContestStats } from '../src/lib/contest-calculator.ts';
 import type { Contract, GroupData } from '../src/lib/contest-calculator.ts';
 
 function contract(agent: string, number: string, ip = 6, afyp = 12): Contract {
@@ -47,4 +47,38 @@ test('saved configuration and group reward stats use the TVV count', () => {
   const stats = computeContestStats(rows, [{ ...group, contracts: rows }], [], [], saved);
   assert.equal(stats.achievedCount, 1);
   assert.equal(stats.totalBonus, 500);
+});
+
+test('show pending TVV with valid HĐ, but count and reward only TVV reaching the required HĐ', () => {
+  const rows = [contract('PASS', '1'), contract('PASS', '2'), contract('PENDING', '1'), contract('INVALID', '1', 5, 99), contract('INVALID', '2', 99, 11)];
+  const progress = getGroupTVVContractProgress(group, rows, [], config);
+  assert.deepEqual(progress.map(agent => [agent.agentCode, agent.contracts.length, agent.qualified]), [
+    ['PASS', 2, true], ['PENDING', 1, false],
+  ]);
+  assert.equal(getGroupTVVPassCountIPAFYP(group, rows, [], config), 1);
+  const saved = { ...config, bonusTiers: [{ id: '1', minFYP: 1, maxFYP: null, bonusAmount: 500, bonusType: 'money_per_tvv' as const, bonusText: '', bonusPercent: 0 }] };
+  assert.equal(computeContestStats(rows, [{ ...group, contracts: rows }], [], [], saved).totalBonus, 500);
+});
+
+test('valid HĐ of pending TVV stay visible and names sort inside the group', () => {
+  const rows = [
+    { ...contract('CODE-A', '1'), agentName: 'TVV Châu' },
+    { ...contract('CODE-Z', '1'), agentName: 'TVV An' },
+    { ...contract('CODE-Z', '2', 5, 12), agentName: 'TVV An' },
+    { ...contract('CODE-M', '1'), agentName: 'TVV Bình' },
+  ];
+  const progress = getGroupTVVContractProgress(group, rows, [], config);
+  assert.deepEqual(progress.map(agent => agent.contracts[0].agentName), ['TVV An', 'TVV Bình', 'TVV Châu']);
+  assert.deepEqual(progress.map(agent => agent.contracts.length), [1, 1, 1]);
+  assert.ok(progress.every(agent => !agent.qualified));
+  assert.equal(getGroupTVVPassCountIPAFYP(group, rows, [], config), 0);
+  assert.ok(getGroupTVVContractProgress(group, rows, [], { ...config, tvvContractCountMin: 1 }).every(agent => agent.qualified));
+});
+
+test('pending TVV obey group membership, TN switch and distinct-HĐ rule', () => {
+  const a = contract('A', '1');
+  const rows = [a, { ...a, id: 'duplicate-row' }, contract('TN', '1'), { ...contract('OTHER', '1'), maNhom: 'G2' }];
+  assert.deepEqual(getGroupTVVContractProgress(group, rows, [], config).map(agent => [agent.agentCode, agent.contracts.length, agent.qualified]), [['A', 1, false]]);
+  assert.deepEqual(getGroupTVVContractProgress(group, rows, [], { ...config, includeTNInPassCount: true }).map(agent => agent.agentCode), ['A', 'TN']);
+  assert.deepEqual(getGroupTVVContractProgress(group, [], [], config), []);
 });
