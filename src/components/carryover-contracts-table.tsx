@@ -53,7 +53,7 @@ export function CarryoverContractsTable({ rows, snapshots, onRefresh, onBack }: 
         .map(row => row.map(value => value instanceof Date ? `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}` : typeof value === 'number' ? String(value) : value));
       if (values.length < 2) throw new Error('Sheet chưa có HĐ; giữ nguyên dữ liệu đã lưu.');
       const csv = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet(values), { forceQuotes: true });
-      const response = await fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contractCsv: csv, carryoverMonth: currentMonth }) });
+      const response = await fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ carryoverCsv: csv, carryoverMonth: currentMonth }) });
       const result = await response.json();
       if (!response.ok || result.error || result.errors?.length) throw new Error(result.error || result.errors?.join('; ') || 'Nhập HĐ tồn thất bại.');
       await onRefresh(); setMonth(currentMonth); setPage(1);

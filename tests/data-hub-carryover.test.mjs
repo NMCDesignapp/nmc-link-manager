@@ -22,7 +22,7 @@ test('Doanhso current sheet feeds isolated carryover request, never revenue; che
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, options) => {
     const body = JSON.parse(options.body); requests.push({ url, body });
-    return { ok: true, json: async () => ({ carryoverMonth: body.carryoverMonth, count: csvDataRowCount(body.contractCsv), errors: [] }) };
+    return { ok: true, json: async () => ({ carryoverMonth: body.carryoverMonth, count: csvDataRowCount(body.carryoverCsv), errors: [] }) };
   };
   try {
     const input = await inputFromSource(source);
@@ -32,6 +32,7 @@ test('Doanhso current sheet feeds isolated carryover request, never revenue; che
     const first = await importOne({ appUrl: 'https://synthetic.invalid', token: 'synthetic-test-value' }, source, state, false);
     assert.equal(first.changed, true); assert.equal(requests.length, 1);
     assert.equal(requests[0].body.carryoverMonth, month);
+    assert.equal(requests[0].body.contractCsv, undefined, 'Old servers must not receive a revenue CSV');
     assert.equal(requests[0].body.replaceHistoricalRevenueMonths, undefined);
     assert.equal(requests[0].body.replaceCurrentRevenueMonth, undefined);
     const second = await importOne({ appUrl: 'https://synthetic.invalid', token: 'synthetic-test-value' }, source, state, false);

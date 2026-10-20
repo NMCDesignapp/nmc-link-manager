@@ -320,7 +320,7 @@ async function importOne(config, rawSource, state, forceImport) {
     }
   } else if (source.kind === 'revenue-carryover') {
     // Completely separate storage: this request cannot replace revenue months.
-    payload = await postJson(config, '/api/sync', { source: 'nmc-data-hub', contractCsv: input, carryoverMonth: historyInput.month });
+    payload = await postJson(config, '/api/sync', { source: 'nmc-data-hub', carryoverCsv: input, carryoverMonth: historyInput.month });
     if (payload?.carryoverMonth !== historyInput.month || payload?.count !== csvDataRowCount(input) || payload?.errors?.length) throw new Error('Máy chủ chưa xác nhận đủ dữ liệu HĐ tồn.');
   } else if (source.kind === 'saoviet') {
     payload = await postJson(config, '/api/saoviet-data/sync', { source: 'nmc-data-hub', program: source.program, csv: input });

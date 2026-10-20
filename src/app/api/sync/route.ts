@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     if (fromGoogleSync && activeSource !== 'google') {
       return NextResponse.json({ error: 'Google Sheets đã tắt vì Data Hub trên máy tính đang là nguồn đồng bộ' }, { status: 409 });
     }
-    const { contractCsv, staffCsv, recruiterCsv, replaceCurrentRevenueMonth, replaceHistoricalRevenueMonths, replaceRevenueMonths } = body as {
+    const { contractCsv: revenueContractCsv, staffCsv, recruiterCsv, replaceCurrentRevenueMonth, replaceHistoricalRevenueMonths, replaceRevenueMonths } = body as {
       contractCsv?: string;
       staffCsv?: string;
       recruiterCsv?: string;
@@ -146,8 +146,11 @@ export async function POST(request: NextRequest) {
       replaceRevenueMonths?: string[];
     };
     const carryoverMonth = body.carryoverMonth as string | undefined;
-    const carryoverOnly = carryoverMonth !== undefined;
-    if (carryoverOnly && (carryoverMonth !== getCurrentBangkokMonth().label || replaceCurrentRevenueMonth || replaceHistoricalRevenueMonths || replaceRevenueMonths || staffCsv || recruiterCsv)) {
+    const carryoverCsv = body.carryoverCsv as string | undefined;
+    const carryoverOnly = carryoverMonth !== undefined || carryoverCsv !== undefined;
+    // Separate field fails closed on old servers: they never receive contractCsv.
+    const contractCsv = carryoverOnly ? carryoverCsv : revenueContractCsv;
+    if (carryoverOnly && (carryoverMonth !== getCurrentBangkokMonth().label || revenueContractCsv || replaceCurrentRevenueMonth || replaceHistoricalRevenueMonths || replaceRevenueMonths || staffCsv || recruiterCsv)) {
       return NextResponse.json({ error: 'HĐ tồn chỉ nhận sheet tháng hiện tại và không được ghi kèm doanh thu/cấu trúc' }, { status: 400 });
     }
     if (carryoverOnly && (!contractCsv || typeof contractCsv !== 'string')) return NextResponse.json({ error: 'Thiếu dữ liệu sheet HĐ tồn' }, { status: 400 });

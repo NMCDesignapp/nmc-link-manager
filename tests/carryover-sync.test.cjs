@@ -25,7 +25,7 @@ function loadRoute({ source = 'data-hub', authorized = true } = {}) {
 const headers = ['Mã ĐL', 'Tên', 'Số hợp đồng', 'Ngày hiệu lực', 'Ngày phát hành', 'PĐT + 10% ĐT', 'AFYP', 'Nhóm', 'Mã Ban/Nhóm'];
 const csv = rows => [headers, ...rows].map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')).join('\n');
 const fixture = ['DEMO', 'Synthetic', 'DEMO-HD', '20/09/2026', '10/10/2026', '6.000.000', '12.000.000', 'Demo', 'G'];
-const body = extra => ({ source: 'nmc-data-hub', contractCsv: csv([fixture]), carryoverMonth: pure.bangkokMonth(), ...extra });
+const body = extra => ({ source: 'nmc-data-hub', carryoverCsv: csv([fixture]), carryoverMonth: pure.bangkokMonth(), ...extra });
 test('real sync handler writes isolated snapshot; no Contract/revenue access; dates/numbers preserved', async () => {
   const { post, writes } = loadRoute(); const result = await post(body());
   assert.equal(result.status, 200); assert.equal(result.body.count, 1); assert.equal(writes.length, 1);
@@ -37,23 +37,23 @@ test('real sync handler writes isolated snapshot; no Contract/revenue access; da
 });
 test('valid empty sheet replaces only the isolated snapshot; malformed header/date never writes', async () => {
   const { post, writes } = loadRoute();
-  assert.equal((await post(body({ contractCsv: csv([]) }))).body.count, 0);
+  assert.equal((await post(body({ carryoverCsv: csv([]) }))).body.count, 0);
   assert.equal(writes.length, 1);
-  assert.equal((await post(body({ contractCsv: 'bad,header\na,b' }))).status, 400);
+  assert.equal((await post(body({ carryoverCsv: 'bad,header\na,b' }))).status, 400);
   const invalid = [...fixture]; invalid[4] = 'invalid';
-  assert.equal((await post(body({ contractCsv: csv([invalid]) }))).status, 400);
+  assert.equal((await post(body({ carryoverCsv: csv([invalid]) }))).status, 400);
   assert.equal(writes.length, 1);
 });
 test('reject wrong month, mixed revenue replacement, unauthorized hub and wrong active source', async () => {
   const { post, writes } = loadRoute();
-  for (const extra of [{ carryoverMonth: '2000-01' }, { replaceCurrentRevenueMonth: true }, { replaceHistoricalRevenueMonths: [] }, { staffCsv: 'x' }]) assert.equal((await post(body(extra))).status, 400);
+  for (const extra of [{ carryoverMonth: '2000-01' }, { replaceCurrentRevenueMonth: true }, { replaceHistoricalRevenueMonths: [] }, { staffCsv: 'x' }, { contractCsv: csv([fixture]) }]) assert.equal((await post(body(extra))).status, 400);
   assert.equal(writes.length, 0);
   assert.equal((await loadRoute({ authorized: false }).post(body())).status, 401);
   assert.equal((await loadRoute({ source: 'google' }).post(body())).status, 409);
 });
 test('manual workbook import uses same isolated pipeline and preserves numberless rows', async () => {
   const { post, writes } = loadRoute(); const blank = [...fixture]; blank[2] = '';
-  assert.equal((await post(body({ source: undefined, contractCsv: csv([blank, blank]) }))).body.count, 2);
+  assert.equal((await post(body({ source: undefined, carryoverCsv: csv([blank, blank]) }))).body.count, 2);
   const rows = JSON.parse(writes[0].update.value).contracts;
   assert.equal(rows[0].contractNumber, ''); assert.notEqual(rows[0].id, rows[1].id);
 });
