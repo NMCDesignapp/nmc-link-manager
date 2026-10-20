@@ -3943,8 +3943,8 @@ function ThiDuaPageInner() {
     [hideNotAchieved, perContractResultRows],
   );
   const filteredTvvTotalRows = useMemo(
-    () => tvvTotalRows.filter(row => (!hideNotAchieved || row.tier) && (row.agent.nhom || row.agent.maNhom)),
-    [hideNotAchieved, tvvTotalRows],
+    () => tvvTotalRows.filter(row => (!hideNotAchieved || (row.tier && checkSecondaryTotalCondition(displayContractsByAgent.get(row.agent.agentCode) || []).passed)) && (row.agent.nhom || row.agent.maNhom)),
+    [hideNotAchieved, tvvTotalRows, checkSecondaryTotalCondition, displayContractsByAgent],
   );
   const paginatedResultTotal = targetType === 'tvv'
     ? (isPerContractMode(conditionType) ? filteredPerContractResultRows.length : filteredTvvTotalRows.length)

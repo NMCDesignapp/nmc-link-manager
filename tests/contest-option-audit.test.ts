@@ -133,3 +133,9 @@ test('actual Main date-search callback delegates same bounds and thresholds as s
  new Function(...Object.keys(scope),callback('handleSearch'))(...Object.values(scope))();
  assert.deepEqual(captured,calc.filterContractsByContest(rows,cfg));
 });
+
+test('actual hide-not-achieved TVV filter excludes supplementary failures',()=>{
+ const scope={tvvTotalRows:[{agent:{agentCode:'A',nhom:'G'},tier:{}},{agent:{agentCode:'B',nhom:'G'},tier:{}}],hideNotAchieved:true,displayContractsByAgent:new Map([['A',[rows[0]]],['B',[rows[1]]]]),checkSecondaryTotalCondition:(r:Contract[])=>({passed:r[0].id==='p2'})};
+ const result=new Function(...Object.keys(scope),callback('filteredTvvTotalRows'))(...Object.values(scope))();
+ assert.deepEqual(result.map((r:{agent:{agentCode:string}})=>r.agent.agentCode),['B']);
+});
