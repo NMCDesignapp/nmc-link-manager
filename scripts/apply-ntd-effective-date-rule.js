@@ -11,6 +11,10 @@ function applyReplacements(relativePath, replacements) {
   let changed = false;
 
   for (const { from, to, label } of replacements) {
+    // The live page now delegates to the shared, already-normalized date rule.
+    if (relativePath === 'src/app/thi-dua-chau/page.tsx'
+      && source.includes('const displayContracts = useMemo(() => filterDisplayContracts(')
+      && ['mô tả bộ lọc kết quả', 'phép so sánh kết quả'].includes(label)) continue;
     if (source.includes(to)) continue;
     if (!source.includes(from)) {
       throw new Error(`[NTD effective-date rule] Không tìm thấy đoạn cần sửa (${label}) trong ${relativePath}`);
@@ -82,3 +86,4 @@ console.log('✓ Quy tắc NTD đã được chuẩn hóa: ngày bắt đầu l�
 
 // Các vá lỗi NTD nhỏ, idempotent, được chạy cùng entrypoint này để dev/build luôn đồng nhất.
 require('./apply-ntd-standard-export-all-contracts.js');
+

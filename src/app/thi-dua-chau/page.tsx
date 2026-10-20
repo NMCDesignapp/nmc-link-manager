@@ -23,7 +23,6 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { selectContestSourceRows } from '@/lib/carryover-contracts';
 import { useAppData } from '@/lib/app-data-context';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -48,6 +47,10 @@ import {
   isChotContestTitle,
 } from '@/lib/contest-archive';
 import {
+  calculateEntityPhaseOutcome,
+  filterContractsByContest,
+  filterDisplayContracts,
+  parseContestConfig,
   calculateNYDPhaseOutcome,
   computeBonusFromContracts,
   getReferenceContestPassingAgentCodes,
@@ -1083,23 +1086,15 @@ function ThiDuaPageInner() {
 
   const handleSearch = useCallback(() => {
     if (!startDate && !endDate && !issueStartDate && !issueEndDate) { setFilteredContracts([]); toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất một khoảng thời gian' }); return; }
-    let results = [...contracts, ...(appData.carryoverContracts || [])];
-    // Lọc theo Ngày hiệu lực (từ-đến)
-    if (startDate) { const start = getContestDateBoundary(startDate); results = results.filter((c) => new Date(c.effectiveDate) >= start); }
-    if (endDate) { const end = getContestDateBoundary(endDate, true); results = results.filter((c) => new Date(c.effectiveDate) <= end); }
-    // Lọc theo Ngày phát hành (từ-đến)
-    if (issueStartDate) { const start = getContestDateBoundary(issueStartDate); results = results.filter((c) => new Date(c.issueDate) >= start); }
-    if (issueEndDate) { const end = getContestDateBoundary(issueEndDate, true); results = results.filter((c) => new Date(c.issueDate) <= end); }
-    // Secondary condition filter
-    if (useSecondaryCondition) {
-      if (secondaryAFYPMin > 0) results = results.filter((c) => c.afyp >= secondaryAFYPMin);
-      if (secondaryIPMin > 0) results = results.filter((c) => c.pdt10DT >= secondaryIPMin);
-    }
-    results.sort((a, b) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime());
-    results = selectContestSourceRows(results, Boolean(issueStartDate || issueEndDate));
+    const results = filterContractsByContest([...contracts, ...(appData.carryoverContracts || [])], parseContestConfig({
+      startDate, endDate, issueDate: issueStartDate, issueEndDate, usePhase2, phase2StartDate, phase2EndDate,
+      conditionType, useSecondaryCondition,
+      secondaryAFYPMin: (conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts') ? passCountAFYPMin : secondaryAFYPMin,
+      secondaryIPMin: (conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts') ? passCountIPMin : secondaryIPMin,
+    }));
     setFilteredContracts(results);
     return results;
-  }, [startDate, endDate, issueStartDate, issueEndDate, contracts, appData.carryoverContracts, useSecondaryCondition, secondaryAFYPMin, secondaryIPMin]);
+  }, [startDate, endDate, issueStartDate, issueEndDate, contracts, appData.carryoverContracts, useSecondaryCondition, secondaryAFYPMin, secondaryIPMin, usePhase2, phase2StartDate, phase2EndDate, conditionType, passCountAFYPMin, passCountIPMin]);
 
   const handleSearchRef = useRef(handleSearch);
   handleSearchRef.current = handleSearch;
@@ -1347,94 +1342,10 @@ function ThiDuaPageInner() {
 
   // Display contracts with subject filter applied
   // LOGIC: Dùng DS nguồn (Staff/Recruiter) làm chuẩn, ánh xạ HĐ vào
-  const displayContracts = useMemo(() => {
-    // Luôn loại trừ hợp đồng thuộc nhóm DSO (không tham gia thi đua)
-    const contractsNoDSO = filteredContracts.filter(c => !norm(c.nhom || '').toLowerCase().includes('dso') && !norm(c.maNhom || '').toLowerCase().includes('dso'));
-    // Áp dụng filter "ngày hiệu lực chức vụ" nếu tích chọn (chỉ cho NTD và Nhóm)
-    // Quy tắc: chỉ giữ HĐ của TVV có ngày bắt đầu LV (DS TVV) bằng hoặc sau ngày hiệu lực chức vụ gần nhất của NTD recruiter
-    let contractsFiltered = contractsNoDSO;
-    if (filterByEffectiveDate && (targetType === 'nyd' || targetType === 'nhom')) {
-      // Build map: agentCode → ngayHieuLuc (NTD recruiter)
-      const ngayHieuLucMap = new Map<string, number>();
-      for (const r of ntdCandidates) {
-        if (r.agentCode && r.ngayHieuLuc) {
-          const t = new Date(r.ngayHieuLuc).getTime();
-          if (!isNaN(t)) ngayHieuLucMap.set(r.agentCode, t);
-        }
-      }
-      // Build map: agentCode → ngayBatDau (TVV từ DS TVV — Cấu trúc)
-      const ngayBatDauMap = new Map<string, number>();
-      for (const t of tvvStructList) {
-        if (t.agentCode && t.ngayBatDau) {
-          const ts = new Date(t.ngayBatDau).getTime();
-          if (!isNaN(ts)) ngayBatDauMap.set(t.agentCode, ts);
-        }
-      }
-      contractsFiltered = contractsNoDSO.filter(c => {
-        const recruiterCode = c.maDaiLyTD || '';
-        if (!recruiterCode) return true;
-        const ngayHieuLucTs = ngayHieuLucMap.get(recruiterCode);
-        if (!ngayHieuLucTs) return true; // NTD không có ngày hiệu lực → không ràng buộc → giữ
-        const ngayBatDauTs = ngayBatDauMap.get(c.agentCode || '');
-        if (!ngayBatDauTs) return false; // TVV không có ngày LV → bỏ qua (theo yêu cầu user)
-        return ngayBatDauTs >= ngayHieuLucTs;
-      });
-    }
-    if (targetType === 'tvv') {
-      if (subjectCodes.length === 0) {
-        // FIX (user request): Khi KHÔNG có DS đối tượng → dùng DS TVV từ Cấu trúc
-        // Quản lý (tvvStructList) làm nguồn DS đối tượng. Chỉ giữ lại HĐ của TVV có
-        // trong Cấu trúc — không lấy DS TVV từ file doanh số (Contracts).
-        // Nếu tvvStructList rỗng (chưa load Cấu trúc) → fallback cũ (tất cả HĐ).
-        if (tvvStructList && tvvStructList.length > 0) {
-          const structCodes = new Set<string>();
-          for (const t of tvvStructList) {
-            if (t.agentCode) structCodes.add(t.agentCode);
-          }
-          return contractsFiltered.filter(c => structCodes.has(c.agentCode));
-        }
-        return contractsFiltered;
-      }
-      // Mã nhập tay chỉ lọc trong DS TVV Cấu trúc, không được tạo người từ file doanh số.
-      const selectedTvvCodes = new Set<string>();
-      for (const member of tvvStructList) {
-        if (subjectCodes.includes(member.agentCode) || subjectCodes.includes(member.agentName)) selectedTvvCodes.add(member.agentCode);
-      }
-      return contractsFiltered.filter(c => selectedTvvCodes.has(c.agentCode));
-    }
-    if (targetType === 'nhom') {
-      // Nhóm: xác định tập mã nhóm hợp lệ từ Staff table (loại DSO)
-      // PA vẫn được tính thi đua bình thường
-      const allowedMaNhom = new Set<string>();
-      if (subjectCodes.length > 0) {
-        // Có nhập đối tượng → tìm mã nhóm từ tên nhóm nhập vào
-        for (const code of subjectCodes) {
-          const codeLower = norm(code).toLowerCase();
-          // Bỏ nhóm DSO (không tham gia thi đua)
-          if (codeLower.includes('dso')) continue;
-          const leader = leadersList.find(l => norm(l.nhom || '').toLowerCase() === codeLower);
-          if (leader?.maNhom) {
-            allowedMaNhom.add(leader.maNhom);
-          } else {
-            allowedMaNhom.add(code);
-          }
-        }
-      } else {
-        // Không nhập đối tượng → lấy tất cả nhóm từ DS TB/TN trong Cấu trúc.
-        for (const leader of leadersList) {
-          const nhomLower = norm(leader.nhom || '').toLowerCase();
-          if (leader.maNhom && !nhomLower.includes('dso') && !leader.maNhom.toLowerCase().includes('dso')) {
-            allowedMaNhom.add(leader.maNhom);
-          }
-        }
-      }
-      return contractsFiltered.filter(c => allowedMaNhom.has(c.maNhom) && !norm(c.nhom || '').toLowerCase().includes('dso'));
-    }
-    if (targetType === 'nyd') {
-      return filterNYDDisplayContracts(contractsFiltered, { participants: subjectCodes, includeIndividualNTD, recruitedAgentScope }, ntdCandidates, tvvStructList);
-    }
-    return contractsFiltered;
-  }, [filteredContracts, subjectCodes, targetType, leadersList, ntdCandidates, filterByEffectiveDate, tvvStructList, includeIndividualNTD, recruitedAgentScope]);
+  const displayContracts = useMemo(() => filterDisplayContracts(filteredContracts, parseContestConfig({
+    targetType, participants: JSON.stringify(subjectCodes), includeIndividualNTD, recruitedAgentScope, filterByEffectiveDate,
+  }), staffList, ntdCandidates, tvvStructList, leadersList),
+  [filteredContracts, subjectCodes, targetType, staffList, leadersList, ntdCandidates, filterByEffectiveDate, tvvStructList, includeIndividualNTD, recruitedAgentScope]);
 
   // Several contest summaries need every contract for the same agent. Build the
   // index once instead of scanning the full contract list again for every row.
@@ -1734,7 +1645,7 @@ function ThiDuaPageInner() {
           phase1Tier: p1Res.tier, phase2Tier: p2Res.tier,
         };
       }
-      return { agent, value, tier, remaining, phaseInfo };
+      return { agent, value, tier: usePhase2 && phase2StartDate ? phaseInfo.phase1Tier || phaseInfo.phase2Tier : tier, remaining, phaseInfo };
     }).sort((a, b) => {
       const valueDiff = b.value - a.value;
       if (valueDiff !== 0) return valueDiff;
@@ -1942,179 +1853,43 @@ function ThiDuaPageInner() {
     return Array.from(map.values());
   }, [displayContracts, targetType, conditionType, leadersList, recruiterList, subjectCodes, includeIndividualTN, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, tvvStructList, calculateLuotWithStructure]);
 
+  const phaseConfig = useMemo(() => parseContestConfig({
+    conditionType, targetType, includeIndividualNTD, recruitedAgentScope, usePhase2, phase2StartDate, phase2EndDate, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, useSecondaryCondition, secondaryTotalAFYPMin, secondaryTotalIPMin, secondaryContractCountMin, secondaryContractIPMin, secondaryLuotHDMin, secondaryLuotHDCMin, secondaryLuotHDFilter, secondaryLuotHDCFilter, bonusTiers: JSON.stringify(bonusTiers), bonusTiers2: JSON.stringify(bonusTiers2),
+  }), [conditionType, targetType, includeIndividualNTD, recruitedAgentScope, usePhase2, phase2StartDate, phase2EndDate, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, useSecondaryCondition, secondaryTotalAFYPMin, secondaryTotalIPMin, secondaryContractCountMin, secondaryContractIPMin, secondaryLuotHDMin, secondaryLuotHDCMin, secondaryLuotHDFilter, secondaryLuotHDCFilter, bonusTiers, bonusTiers2]);
+
   // Phase 2: Split contracts by date and compute bonus — dùng Contracts (nguồn duy nhất) cho TẤT CẢ chế độ
   const phase2Results = useMemo(() => {
     if (!usePhase2 || !phase2StartDate || conditionType === 'pass_count_contracts') return null;
-    const p2Start = new Date(phase2StartDate);
-
-    const isAFYP = conditionType === 'total_afyp' || conditionType === 'per_contract_afyp';
-    const luotThreshold = isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold;
-
-    // TẤT CẢ chế độ: dùng Contracts (nguồn duy nhất), chia theo effectiveDate
-    const excludedGroupLeaderCodes = new Set(
-      targetType === 'nhom' && !includeIndividualTN
-        ? leadersList.map(l => l.agentCode).filter(Boolean)
-        : []
-    );
-    const phase1Contracts = displayContracts.filter(c =>
-      new Date(c.effectiveDate) < p2Start && !excludedGroupLeaderCodes.has(c.agentCode)
-    );
-    const phase2Contracts = displayContracts.filter(c =>
-      new Date(c.effectiveDate) >= p2Start && !excludedGroupLeaderCodes.has(c.agentCode)
-    );
-
-    // Calculate Phase 1 and Phase 2 bonus
-    let phase1Bonus = 0;
-    let phase2Bonus = 0;
-
-    if (targetType === 'nhom') {
-      if (isActivityRoundMode(conditionType)) {
-        // Gộp HĐ theo nhóm + tính lượt
-        const phase1ByNhom = new Map<string, { totalFYP: number; totalAFYP: number; activityRounds: number }>();
-        for (const c of phase1Contracts) {
-          if (!c.maNhom) continue;
-          const existing = phase1ByNhom.get(c.maNhom);
-          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
-          else { phase1ByNhom.set(c.maNhom, { totalFYP: c.pdt10DT, totalAFYP: c.afyp, activityRounds: 0 }); }
-        }
-        for (const [nhom, data] of phase1ByNhom) {
-          const groupContracts = phase1Contracts.filter(c => c.maNhom === nhom);
-          data.activityRounds = calculateLuotWithStructure(groupContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
-          const { tier } = calculateActivityRoundBonusWithTiers(data.activityRounds, bonusTiers);
-          if (tier) phase1Bonus += computeBonusFromTier(tier, data.totalFYP, data.activityRounds);
-        }
-        const phase2ByNhom = new Map<string, { totalFYP: number; totalAFYP: number; activityRounds: number }>();
-        for (const c of phase2Contracts) {
-          if (!c.maNhom) continue;
-          const existing = phase2ByNhom.get(c.maNhom);
-          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
-          else { phase2ByNhom.set(c.maNhom, { totalFYP: c.pdt10DT, totalAFYP: c.afyp, activityRounds: 0 }); }
-        }
-        for (const [nhom, data] of phase2ByNhom) {
-          const groupContracts = phase2Contracts.filter(c => c.maNhom === nhom);
-          data.activityRounds = calculateLuotWithStructure(groupContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
-          const { tier } = calculateActivityRoundBonusWithTiers(data.activityRounds, bonusTiers2);
-          if (tier) phase2Bonus += computeBonusFromTier(tier, data.totalFYP, data.activityRounds);
+    if (isTVVPassCountMode(conditionType) || isRecruitmentMode(conditionType) || isTopNMode(conditionType)) return null;
+    const p2Start = getContestDateBoundary(phase2StartDate);
+    let phase1Bonus = 0, phase2Bonus = 0, phaseAchievedCount = 0;
+    const entityRows = targetType === 'nhom' ? groupedData.map(g => g.contracts)
+      : targetType === 'nyd' ? nydData.map(n => n.contracts)
+      : Array.from(displayContractsByAgent.values());
+    for (const rows of entityRows) {
+      if (!evaluateSecondaryConditions(rows, phaseConfig, tvvStructList).passed) continue;
+      if (targetType === 'tvv' && isPerContractMode(conditionType)) {
+        const ip = sumContractIP(rows);
+        for (const c of rows) {
+          const first = new Date(c.effectiveDate) < p2Start;
+          const value = conditionType === 'per_contract_afyp' ? c.afyp : c.pdt10DT;
+          const { tier } = calculateBonusWithTiers(value, first ? bonusTiers : bonusTiers2);
+          if (tier) phaseAchievedCount++;
+          const bonus = tier ? computeBonusFromTier(tier, c.pdt10DT, undefined, ip) : 0;
+          if (first) phase1Bonus += bonus; else phase2Bonus += bonus;
         }
       } else {
-        // total_ip / total_afyp cho nhóm: gộp HĐ theo nhóm
-        const phase1ByNhom = new Map<string, { totalFYP: number; totalAFYP: number }>();
-        for (const c of phase1Contracts) {
-          if (!c.maNhom) continue;
-          const existing = phase1ByNhom.get(c.maNhom);
-          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
-          else { phase1ByNhom.set(c.maNhom, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
-        }
-        for (const [, data] of phase1ByNhom) {
-          const value = isAFYP ? data.totalAFYP : data.totalFYP;
-          const { tier } = calculateBonusWithTiers(value, bonusTiers);
-          if (tier) phase1Bonus += computeBonusFromTier(tier, data.totalFYP, undefined, data.totalFYP);
-        }
-        const phase2ByNhom = new Map<string, { totalFYP: number; totalAFYP: number }>();
-        for (const c of phase2Contracts) {
-          if (!c.maNhom) continue;
-          const existing = phase2ByNhom.get(c.maNhom);
-          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
-          else { phase2ByNhom.set(c.maNhom, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
-        }
-        for (const [, data] of phase2ByNhom) {
-          const value = isAFYP ? data.totalAFYP : data.totalFYP;
-          const { tier } = calculateBonusWithTiers(value, bonusTiers2);
-          if (tier) phase2Bonus += computeBonusFromTier(tier, data.totalFYP, undefined, data.totalFYP);
-        }
-      }
-    } else if (targetType === 'nyd') {
-      for (const recruiter of ntdCandidates) {
-        phase1Bonus += calculateNYDPhaseOutcome(
-          phase1Contracts,
-          recruiter.agentCode,
-          bonusTiers,
-          conditionType,
-          includeIndividualNTD,
-          luotThreshold,
-          tvv90MaxMonths,
-          tvv90MinIP,
-          structureStartDateByCode,
-          recruitedAgentScope,
-        ).bonus;
-        phase2Bonus += calculateNYDPhaseOutcome(
-          phase2Contracts,
-          recruiter.agentCode,
-          bonusTiers2,
-          conditionType,
-          includeIndividualNTD,
-          luotThreshold,
-          tvv90MaxMonths,
-          tvv90MinIP,
-          structureStartDateByCode,
-          recruitedAgentScope,
-        ).bonus;
-      }
-    } else {
-      // TVV total mode: aggregate by agentCode from Contracts
-      if (isActivityRoundMode(conditionType)) {
-        const phase1AgentMap = new Map<string, { totalFYP: number; totalAFYP: number }>();
-        for (const c of phase1Contracts) {
-          const key = c.agentCode;
-          if (!key) continue;
-          const existing = phase1AgentMap.get(key);
-          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
-          else { phase1AgentMap.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
-        }
-        for (const [agentCode, data] of phase1AgentMap) {
-          const agentContracts = phase1Contracts.filter(c => c.agentCode === agentCode);
-          const rounds = calculateLuotWithStructure(agentContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
-          const { tier } = calculateActivityRoundBonusWithTiers(rounds, bonusTiers);
-          if (tier) phase1Bonus += computeBonusFromTier(tier, data.totalFYP, rounds);
-        }
-        const phase2AgentMap = new Map<string, { totalFYP: number; totalAFYP: number }>();
-        for (const c of phase2Contracts) {
-          const key = c.agentCode;
-          if (!key) continue;
-          const existing = phase2AgentMap.get(key);
-          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
-          else { phase2AgentMap.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
-        }
-        for (const [agentCode, data] of phase2AgentMap) {
-          const agentContracts = phase2Contracts.filter(c => c.agentCode === agentCode);
-          const rounds = calculateLuotWithStructure(agentContracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
-          const { tier } = calculateActivityRoundBonusWithTiers(rounds, bonusTiers2);
-          if (tier) phase2Bonus += computeBonusFromTier(tier, data.totalFYP, rounds);
-        }
-      } else {
-        const phase1AgentMap = new Map<string, { totalFYP: number; totalAFYP: number }>();
-        for (const c of phase1Contracts) {
-          const key = c.agentCode;
-          if (!key) continue;
-          const existing = phase1AgentMap.get(key);
-          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
-          else { phase1AgentMap.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
-        }
-        for (const [, data] of phase1AgentMap) {
-          const value = isAFYP ? data.totalAFYP : data.totalFYP;
-          const { tier } = calculateBonusWithTiers(value, bonusTiers);
-          if (tier) phase1Bonus += computeBonusFromTier(tier, data.totalFYP, undefined, data.totalFYP);
-        }
-        const phase2AgentMap = new Map<string, { totalFYP: number; totalAFYP: number }>();
-        for (const c of phase2Contracts) {
-          const key = c.agentCode;
-          if (!key) continue;
-          const existing = phase2AgentMap.get(key);
-          if (existing) { existing.totalFYP += c.pdt10DT; existing.totalAFYP += c.afyp; }
-          else { phase2AgentMap.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp }); }
-        }
-        for (const [, data] of phase2AgentMap) {
-          const value = isAFYP ? data.totalAFYP : data.totalFYP;
-          const { tier } = calculateBonusWithTiers(value, bonusTiers2);
-          if (tier) phase2Bonus += computeBonusFromTier(tier, data.totalFYP, undefined, data.totalFYP);
-        }
+        const nydCode = targetType === 'nyd' ? nydData[entityRows.indexOf(rows)].nydCode : undefined;
+        const phase = calculateEntityPhaseOutcome(rows, phaseConfig, tvvStructList, nydCode);
+        if (phase.phase1Tier || phase.phase2Tier) phaseAchievedCount++;
+        phase1Bonus += phase.phase1Bonus; phase2Bonus += phase.phase2Bonus;
       }
     }
 
-    const phase1Count = phase1Contracts.length;
-    const phase2Count = phase2Contracts.length;
-    return { phase1Bonus, phase2Bonus, totalBonus: phase1Bonus + phase2Bonus, phase1Count, phase2Count };
-  }, [usePhase2, phase2StartDate, displayContracts, targetType, conditionType, bonusTiers, bonusTiers2, includeIndividualTN, includeIndividualNTD, leadersList, ntdCandidates, staffList, calculateBonusWithTiers, calculateActivityRoundBonusWithTiers, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode, recruitedAgentScope]);
+    return { phase1Bonus, phase2Bonus, phaseAchievedCount, totalBonus: phase1Bonus + phase2Bonus,
+      phase1Count: displayContracts.filter(c => new Date(c.effectiveDate) < p2Start).length,
+      phase2Count: displayContracts.filter(c => new Date(c.effectiveDate) >= p2Start).length };
+  }, [usePhase2, phase2StartDate, conditionType, targetType, groupedData, nydData, displayContracts, displayContractsByAgent, phaseConfig, tvvStructList, bonusTiers, bonusTiers2, includeIndividualNTD, luotHDCTThreshold, luotHDThreshold, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode, recruitedAgentScope, calculateBonusWithTiers]);
 
   // Helper: get the value for comparison based on condition type
   const getContractValue = useCallback((c: Contract): number => {
@@ -2149,7 +1924,8 @@ function ThiDuaPageInner() {
     if (targetType === 'tvv' && isPerContractMode(conditionType)) {
       for (const contract of perContractDisplayContracts) {
         const value = getContractValue(contract);
-        const tier = calculateBonus(value).tier;
+        const tiers = usePhase2 && phase2StartDate && new Date(contract.effectiveDate) >= getContestDateBoundary(phase2StartDate) ? bonusTiers2 : bonusTiers;
+        const tier = calculateBonusWithTiers(value, tiers).tier;
         const agentContracts = displayContractsByAgent.get(contract.agentCode) || [];
         candidates.push({ key: `contract:${contract.id}`, value, qualified: Boolean(tier) && passesSecondaryConditions(agentContracts) && passesTopEligibility(agentContracts, contract) });
       }
@@ -2161,7 +1937,8 @@ function ThiDuaPageInner() {
     } else if (targetType === 'nhom') {
       for (const group of groupedData) {
         const value = getGroupValue(group);
-        const tier = calculateBonus(value).tier;
+        const phase = usePhase2 && phase2StartDate ? calculateEntityPhaseOutcome(group.contracts, phaseConfig, tvvStructList) : null;
+        const tier = phase ? phase.phase1Tier || phase.phase2Tier : calculateBonus(value).tier;
         candidates.push({ key: `nhom:${group.maNhom}`, value, qualified: Boolean(tier) && passesSecondaryConditions(group.contracts || []) && passesTopEligibility(group.contracts || []) });
       }
     } else if (targetType === 'nyd') {
@@ -2169,7 +1946,9 @@ function ThiDuaPageInner() {
         const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? person.recruitCount : person.recruitFYP, person.ownFYP, person.ownActivityRounds, includeIndividualNTD);
         const tier = calculateBonus(value).tier;
         const personContracts = getNYDContributingContracts(person.contracts || displayContracts, person.nydCode, includeIndividualNTD, recruitedAgentScope, structureStartDateByCode);
-        candidates.push({ key: `nyd:${person.nydCode}`, value, qualified: Boolean(tier) && passesSecondaryConditions(personContracts) && passesTopEligibility(personContracts) });
+        const phase = usePhase2 && phase2StartDate ? calculateEntityPhaseOutcome(personContracts, phaseConfig, tvvStructList, person.nydCode) : null;
+        const qualifiedTier = phase ? phase.phase1Tier || phase.phase2Tier : tier;
+        candidates.push({ key: `nyd:${person.nydCode}`, value, qualified: Boolean(qualifiedTier) && passesSecondaryConditions(personContracts) && passesTopEligibility(personContracts) });
       }
     }
 
@@ -2180,7 +1959,7 @@ function ThiDuaPageInner() {
     useSecondaryCondition, secondaryTotalAFYPMin, secondaryTotalIPMin,
     secondaryContractCountMin, secondaryContractIPMin, secondaryLuotHDMin, secondaryLuotHDCMin,
     secondaryLuotHDFilter, secondaryLuotHDCFilter, luotHDThreshold, luotHDCTThreshold, tvvStructList,
-    topEligibilityType, topEligibilityMin,
+    topEligibilityType, topEligibilityMin, usePhase2, phase2StartDate, bonusTiers, bonusTiers2, phaseConfig, calculateBonusWithTiers,
   ]);
 
   const getCombinedTopNote = useCallback((key: string) => combinedTopRankByKey.get(key)?.note || '', [combinedTopRankByKey]);
@@ -2579,7 +2358,7 @@ function ThiDuaPageInner() {
   const handleCopyText = () => {
     if (perContractDisplayContracts.length === 0 && nydData.length === 0 && recruitmentRows.length === 0 && tvvTotalRows.length === 0 && groupedData.length === 0) return;
     const sTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
-    let text = `🏆 ${contestTitle}\n📅 Từ ${startDate ? formatDate(startDate) : '...'} đến ${endDate ? formatDate(endDate) : '...'}\n🎯 ${getTargetLabel(targetType)}\n━━━━━━━━━━━━━━━━━━━━\n📊 Mức thưởng:\n`;
+    let text = `🏆 ${contestTitle}\n📅 Từ ${startDate ? formatDate(startDate) : '...'} đến ${(phase2EndDate || endDate) ? formatDate(phase2EndDate || endDate) : '...'}\n🎯 ${getTargetLabel(targetType)}\n━━━━━━━━━━━━━━━━━━━━\n📊 Mức thưởng:\n`;
     sTiers.forEach((t, i) => { text += `  Mức ${i + 1}: ${isActivityRoundMode(conditionType) || isRecruitmentMode(conditionType) ? `${t.minFYP}${t.maxFYP ? ` - ${t.maxFYP}` : ' ↑'} ${isRecruitmentMode(conditionType) ? 'TVVm' : 'lượt'}` : `${formatCurrency(t.minFYP)}${t.maxFYP ? ` - ${formatCurrency(t.maxFYP)}` : ' ↑'}`} → ${formatBonus(t)}\n`; });
     text += `━━━━━━━━━━━━━━━━━━━━\n`;
     if (targetType === 'nyd' && isRecruitmentMode(conditionType)) {
@@ -2591,9 +2370,14 @@ function ThiDuaPageInner() {
         const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
         const { tier } = calculateBonus(value);
         const rewardContracts = getNYDContributingContracts(n.contracts || displayContracts, n.nydCode, includeIndividualNTD, recruitedAgentScope, structureStartDateByCode);
-        return { nyd: n, tier, value, rewardContracts };
+        return { nyd: n, tier: checkSecondaryTotalCondition(rewardContracts).passed ? tier : null, value, rewardContracts };
       }).sort((a, b) => b.value - a.value).forEach(({ nyd: n, tier, value, rewardContracts }, idx) => {
         const displayVal = isActivityRoundMode(conditionType) ? `${value} Lượt` : formatNumber(value);
+        if (usePhase2 && phase2StartDate) {
+          const phase = calculateEntityPhaseOutcome(rewardContracts, phaseConfig, tvvStructList, n.nydCode);
+          text += `${idx + 1}. ${n.nhom || '—'} | ${n.nydCode} | ${n.nydName} | ${displayVal} | GD1: ${formatCurrency(phase.phase1Bonus)} | GD2: ${formatCurrency(phase.phase2Bonus)} | Tổng: ${formatCurrency(phase.phase1Bonus + phase.phase2Bonus)}\n`;
+          return;
+        }
         text += `${idx + 1}. ${n.nhom || '—'} | ${n.nydCode} | ${n.nydName} | ${n.position || '—'} | ${displayVal} | ${tier ? `Thưởng: ${formatBonusFromContracts(tier, rewardContracts, isActivityRoundMode(conditionType) ? value : n.recruitCount)}` : 'Chưa đạt'}\n`;
       });
     } else if (targetType === 'nhom') {
@@ -2601,12 +2385,13 @@ function ThiDuaPageInner() {
         const groupPhase = getGroupPhaseBonus(g);
         const tvvPassCount = (conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts') ? getGroupTVVPassCountIPAFYP(g) : getGroupTVVPassCount(g);
         const tier = isTVVPassCountMode(conditionType) ? calculateBonus(tvvPassCount).tier : isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(g.activityRounds).tier : calculateBonus(getGroupValue(g)).tier;
-        return { group: g, tier, groupPhase, tvvPassCount };
+        return { group: g, tier: usePhase2 && phase2StartDate && !isTVVPassCountMode(conditionType) ? groupPhase.phase1Tier || groupPhase.phase2Tier : tier, groupPhase, tvvPassCount };
       }).sort((a, b) => {
         const aValue = isTVVPassCountMode(conditionType) ? a.tvvPassCount : isActivityRoundMode(conditionType) ? a.group.activityRounds : getGroupValue(a.group);
         const bValue = isTVVPassCountMode(conditionType) ? b.tvvPassCount : isActivityRoundMode(conditionType) ? b.group.activityRounds : getGroupValue(b.group);
         return bValue - aValue;
-      }).forEach(({ group: g, tier, groupPhase, tvvPassCount }, idx) => {
+      }).forEach(({ group: g, tier: rawTier, groupPhase, tvvPassCount }, idx) => {
+        const tier = checkSecondaryTotalCondition(g.contracts).passed ? rawTier : null;
         if (isTVVPassCountMode(conditionType)) {
           // Bảng đơn giản cho TVV đạt thi đua
           const bonusLabel = tier ? `Thưởng: ${formatBonusFromContracts(tier, g.contracts, tvvPassCount)}` : 'Chưa đạt';
@@ -2632,7 +2417,8 @@ function ThiDuaPageInner() {
           .filter((contract) => contract.agentCode === c.agentCode)
           .reduce((sum, contract) => sum + contract.pdt10DT, 0);
         const phaseInfo = getRowPhaseBonus(cValue, c.pdt10DT, agentTotalIP, c.effectiveDate);
-        return { contract: c, cValue, tier, phaseInfo, agentTotalIP };
+        const passed = checkSecondaryTotalCondition(displayContractsByAgent.get(c.agentCode) || []).passed;
+        return { contract: c, cValue, tier: passed ? tier : null, phaseInfo: passed ? phaseInfo : { ...phaseInfo, phase1Bonus: 0, phase2Bonus: 0 }, agentTotalIP };
       }).sort((a, b) => b.cValue - a.cValue).forEach(({ contract: c, cValue, tier, phaseInfo, agentTotalIP }, idx) => {
         const ipRewardBaseLabel = showPerContractIPRewardBase ? ` | IP: ${formatNumber(c.pdt10DT)}` : '';
         if (usePhase2 && phase2StartDate) {
@@ -2644,9 +2430,15 @@ function ThiDuaPageInner() {
     } else {
       // total_ip / total_afyp mode: use tvvTotalRows (includes TVV with 0 contracts)
       const isAFYP = conditionType === 'total_afyp' || conditionType === 'per_contract_afyp';
-      tvvTotalRows.forEach(({ agent, value, tier }, idx) => {
+      tvvTotalRows.forEach(({ agent, value, tier: rawTier, phaseInfo }, idx) => {
         const valueLabel = isAFYP ? `AFYP: ${formatNumber(value)}` : `IP: ${formatNumber(value)}`;
         const rewardContracts = displayContracts.filter(contract => contract.agentCode === agent.agentCode);
+        const passed = checkSecondaryTotalCondition(rewardContracts).passed;
+        const tier = passed ? rawTier : null;
+        if (usePhase2 && phase2StartDate) {
+          text += `${idx + 1}. ${agent.nhom || '—'} | ${agent.agentCode} | ${agent.agentName} | ${valueLabel} | GD1: ${formatCurrency(passed ? phaseInfo.phase1Bonus : 0)} | GD2: ${formatCurrency(passed ? phaseInfo.phase2Bonus : 0)} | Tổng: ${formatCurrency(passed ? phaseInfo.phase1Bonus + phaseInfo.phase2Bonus : 0)}\n`;
+          return;
+        }
         text += `${idx + 1}. ${agent.nhom || '—'} | ${agent.agentCode} | ${agent.agentName} | ${valueLabel} | ${tier ? `Thưởng: ${formatBonusFromContracts(tier, rewardContracts, isActivityRoundMode(conditionType) ? value : undefined)}` : 'Chưa đạt'}\n`;
       });
     }
@@ -3237,15 +3029,24 @@ function ThiDuaPageInner() {
 
       // Helper: compute bonus for a group of contracts (same key = same TVV / same nhóm / same NTD)
       const getBonusForGroup = (groupKey: string): string => {
+        if (usePhase2 && phase2StartDate && !isTVVPassCountMode(conditionType)) {
+          const entityContracts = targetType === 'nhom' ? groupedData.find(g => g.maNhom === groupKey)?.contracts
+            : targetType === 'nyd' ? nydData.find(n => n.nydCode === groupKey)?.contracts
+            : displayContracts.filter(c => c.agentCode === groupKey);
+          if (!entityContracts) return '';
+          const phase = calculateEntityPhaseOutcome(entityContracts, phaseConfig, tvvStructList, targetType === 'nyd' ? groupKey : undefined);
+          return phase.phase1Tier || phase.phase2Tier ? formatCurrency(phase.phase1Bonus + phase.phase2Bonus) : '';
+        }
+
         if (targetType === 'nhom') {
           const g = groupedData.find(g => g.maNhom === groupKey);
           if (!g) return '';
-          const value = conditionType === 'pass_count_contracts' ? getGroupTVVPassCountIPAFYP(g) : isActivityRoundMode(conditionType) ? g.activityRounds : getGroupValue(g);
+          const value = isTVVPassCountMode(conditionType) ? ((conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts') ? getGroupTVVPassCountIPAFYP(g) : getGroupTVVPassCount(g)) : isActivityRoundMode(conditionType) ? g.activityRounds : getGroupValue(g);
           const { tier } = isActivityRoundMode(conditionType) ? calculateActivityRoundBonus(value) : calculateBonus(value);
           // Check supplementary condition
           const sc = checkSecondaryTotalCondition(g.contracts || []);
           const effectiveTier = sc.passed ? tier : null;
-          return effectiveTier ? formatBonusAmountFromContracts(effectiveTier, g.contracts, conditionType === 'pass_count_contracts' ? value : g.activityRounds) : '';
+          return effectiveTier ? formatBonusAmountFromContracts(effectiveTier, g.contracts, isTVVPassCountMode(conditionType) ? value : g.activityRounds) : '';
         }
         if (targetType === 'nyd') {
           const n = nydData.find(n => n.nydCode === groupKey);
@@ -3301,7 +3102,10 @@ function ThiDuaPageInner() {
           const agentContracts = displayContracts.filter(ac => ac.agentCode === c.agentCode);
           const sc = checkSecondaryTotalCondition(agentContracts);
           const effectiveTier = sc.passed ? tier : null;
-          bonusValue = effectiveTier ? formatBonusAmountFromContracts(effectiveTier, [c], undefined, agentContracts) : '';
+          if (usePhase2 && phase2StartDate) {
+            const phase = getRowPhaseBonus(cValue, c.pdt10DT, sumContractIP(agentContracts), c.effectiveDate);
+            bonusValue = sc.passed && (phase.phase1Tier || phase.phase2Tier) ? formatCurrency(phase.phase1Bonus + phase.phase2Bonus) : '';
+          } else bonusValue = effectiveTier ? formatBonusAmountFromContracts(effectiveTier, [c], undefined, agentContracts) : '';
         }
         return {
           data: [
@@ -3927,12 +3731,12 @@ function ThiDuaPageInner() {
     const tvvAgentCount = targetType === 'tvv'
       ? (isPerContractMode(conditionType) ? perContractDisplayContracts.length : tvvTotalRows.length)
       : displayContracts.length;
-    const achievedCount = targetType === 'nyd'
+    const achievedCount = usePhase2 && phase2Results ? phase2Results.phaseAchievedCount : targetType === 'nyd'
       ? nydAchievedCount
       : targetType === 'nhom'
       ? (isActivityRoundMode(conditionType) ? arAchievedCount : nhomAchievedCount)
       : tvvAchievedCount;
-    const notAchievedCount = targetType === 'nyd'
+    const notAchievedCount = usePhase2 && phase2Results ? (targetType === 'nyd' ? nydData.length : targetType === 'nhom' ? groupedData.length : tvvAgentCount) - phase2Results.phaseAchievedCount : targetType === 'nyd'
       ? nydNotAchievedCount
       : targetType === 'nhom'
       ? (isActivityRoundMode(conditionType) ? arNotAchievedCount : groupedData.length - nhomAchievedCount)
@@ -4099,46 +3903,8 @@ function ThiDuaPageInner() {
         return { phase1Bonus: bonus, phase2Bonus: 0, phase1Tier: tier, phase2Tier: null };
       }
     }
-    const p2Start = new Date(phase2StartDate);
-    const phase1Contracts = group.contracts.filter(c => new Date(c.effectiveDate) < p2Start);
-    const phase2Contracts = group.contracts.filter(c => new Date(c.effectiveDate) >= p2Start);
-
-    let phase1Bonus = 0;
-    let phase2Bonus = 0;
-    let phase1Tier: BonusTier | null = null;
-    let phase2Tier: BonusTier | null = null;
-
-    if (isActivityRoundMode(conditionType)) {
-      const luotThreshold = isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold;
-      const applyTVV90 = conditionType === 'activity_round_tvv90';
-      const p1Rounds = calculateLuotWithStructure(phase1Contracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
-      const p1FYP = phase1Contracts.reduce((s, c) => s + c.pdt10DT, 0);
-      const p1Res = calculateActivityRoundBonusWithTiers(p1Rounds, bonusTiers);
-      phase1Tier = p1Res.tier;
-      if (p1Res.tier) phase1Bonus = computeBonusFromTier(p1Res.tier, p1FYP, p1Rounds);
-
-      const p2Rounds = calculateLuotWithStructure(phase2Contracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
-      const p2FYP = phase2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
-      const p2Res = calculateActivityRoundBonusWithTiers(p2Rounds, bonusTiers2);
-      phase2Tier = p2Res.tier;
-      if (p2Res.tier) phase2Bonus = computeBonusFromTier(p2Res.tier, p2FYP, p2Rounds);
-    } else {
-      const useAFYP = conditionType === 'total_afyp' || conditionType === 'per_contract_afyp';
-      const p1Total = phase1Contracts.reduce((s, c) => s + (useAFYP ? c.afyp : c.pdt10DT), 0);
-      const p1IP = phase1Contracts.reduce((s, c) => s + c.pdt10DT, 0);
-      const p1Res = calculateBonusWithTiers(p1Total, bonusTiers);
-      phase1Tier = p1Res.tier;
-      if (p1Res.tier) phase1Bonus = computeBonusFromTier(p1Res.tier, p1IP, undefined, p1IP);
-
-      const p2Total = phase2Contracts.reduce((s, c) => s + (useAFYP ? c.afyp : c.pdt10DT), 0);
-      const p2IP = phase2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
-      const p2Res = calculateBonusWithTiers(p2Total, bonusTiers2);
-      phase2Tier = p2Res.tier;
-      if (p2Res.tier) phase2Bonus = computeBonusFromTier(p2Res.tier, p2IP, undefined, p2IP);
-    }
-
-    return { phase1Bonus, phase2Bonus, phase1Tier, phase2Tier };
-  }, [usePhase2, phase2StartDate, conditionType, calculateBonus, calculateBonusWithTiers, calculateActivityRoundBonus, calculateActivityRoundBonusWithTiers, bonusTiers, bonusTiers2, isTVVmMode(conditionType), conditionType === 'activity_round_tvv90', luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP]);
+    return calculateEntityPhaseOutcome(group.contracts, phaseConfig, tvvStructList);
+  }, [usePhase2, phase2StartDate, conditionType, calculateBonus, calculateActivityRoundBonus, phaseConfig, tvvStructList]);
 
   // Build NYD result rows
   const nydResultRows = useMemo(() => {
@@ -4149,10 +3915,11 @@ function ThiDuaPageInner() {
       const remaining = getRemainingToNextTier(value);
       const entityContracts = getNYDContributingContracts(n.contracts || displayContracts, n.nydCode, includeIndividualNTD, recruitedAgentScope, structureStartDateByCode);
       const secondaryCheck = checkSecondaryTotalCondition(entityContracts);
-      const effectiveTier = secondaryCheck.passed ? tier : null;
+      const phase = usePhase2 && phase2StartDate ? calculateEntityPhaseOutcome(entityContracts, phaseConfig, tvvStructList, n.nydCode) : null;
+      const effectiveTier = phase ? phase.phase1Tier || phase.phase2Tier : secondaryCheck.passed ? tier : null;
       return { nyd: n, tier, tierIndex, remaining, value, secondaryCheck, effectiveTier };
     }).sort((a, b) => b.value - a.value);
-  }, [nydData, conditionType, includeIndividualNTD, calculateBonus, getRemainingToNextTier, checkSecondaryTotalCondition]);
+  }, [nydData, conditionType, includeIndividualNTD, calculateBonus, getRemainingToNextTier, checkSecondaryTotalCondition, usePhase2, phase2StartDate, phaseConfig, tvvStructList, displayContracts, recruitedAgentScope, structureStartDateByCode]);
 
   // Prepare the expensive per-contract result once and render only one page in
   // the dialog. Excel/copy calculations continue to use the complete arrays.
@@ -4166,13 +3933,13 @@ function ThiDuaPageInner() {
       const phaseInfo = getRowPhaseBonus(cValue, contract.pdt10DT, sumContractIP(agentContracts), contract.effectiveDate);
       const secondaryCheck = checkSecondaryTotalCondition(agentContracts);
       const secondaryPassed = secondaryCheck.passed;
-      const effectiveTier = secondaryPassed ? tier : null;
+      const effectiveTier = secondaryPassed ? (usePhase2 && phase2StartDate ? phaseInfo.phase1Tier || phaseInfo.phase2Tier : tier) : null;
       return { contract, cValue, tier, remaining, phaseInfo, secondaryCheck, secondaryPassed, effectiveTier, agentContracts };
     }).sort((a, b) => b.cValue - a.cValue);
-  }, [targetType, conditionType, perContractDisplayContracts, getContractValue, calculateBonus, getRemainingToNextTier, displayContractsByAgent, getRowPhaseBonus, checkSecondaryTotalCondition]);
+  }, [targetType, conditionType, perContractDisplayContracts, getContractValue, calculateBonus, getRemainingToNextTier, displayContractsByAgent, getRowPhaseBonus, checkSecondaryTotalCondition, usePhase2, phase2StartDate]);
 
   const filteredPerContractResultRows = useMemo(
-    () => hideNotAchieved ? perContractResultRows.filter(row => row.tier) : perContractResultRows,
+    () => hideNotAchieved ? perContractResultRows.filter(row => row.effectiveTier) : perContractResultRows,
     [hideNotAchieved, perContractResultRows],
   );
   const filteredTvvTotalRows = useMemo(
@@ -5287,7 +5054,7 @@ function ThiDuaPageInner() {
                               </TableHead>
                               <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
                                 <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                <div className="text-[9px] font-bold text-red-500 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
+                                <div className="text-[9px] font-bold text-red-500 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {(phase2EndDate || endDate) ? formatDate(phase2EndDate || endDate) : '...'}</div>
                               </TableHead>
                               <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-amber-700">
                                 <div>Tổng Thưởng</div>
@@ -5352,7 +5119,7 @@ function ThiDuaPageInner() {
                                 </TableHead>
                                 <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-emerald-700">
                                   <div className="flex items-center justify-center gap-1"><Sparkles className="w-3 h-3" /> Thưởng</div>
-                                  <div className="text-[9px] font-bold text-red-500 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {endDate ? formatDate(endDate) : '...'}</div>
+                                  <div className="text-[9px] font-bold text-red-500 italic">GD2: {phase2StartDate ? formatDate(phase2StartDate) : '...'} - {(phase2EndDate || endDate) ? formatDate(phase2EndDate || endDate) : '...'}</div>
                                 </TableHead>
                                 <TableHead className="text-yellow-100 min-w-[60px] font-bold uppercase text-center bg-amber-700">
                                   <div>Tổng Thưởng</div>
@@ -5526,13 +5293,13 @@ function ThiDuaPageInner() {
                       const remaining = isTVVPassCountMode(conditionType)
                         ? getRemainingToNextTier(tvvPassCount)
                         : isActivityRoundMode(conditionType) ? getRemainingToNextActivityRoundTier(g.activityRounds) : getRemainingToNextTier(g.totalFYP);
-                      return { group: g, tier, remaining, groupPhase, tvvPassCount };
+                      return { group: g, tier: usePhase2 && phase2StartDate && !isTVVPassCountMode(conditionType) ? groupPhase.phase1Tier || groupPhase.phase2Tier : tier, remaining, groupPhase, tvvPassCount };
                     }).sort((a, b) => {
                       const aValue = isTVVPassCountMode(conditionType) ? a.tvvPassCount : isActivityRoundMode(conditionType) ? a.group.activityRounds : getGroupValue(a.group);
                       const bValue = isTVVPassCountMode(conditionType) ? b.tvvPassCount : isActivityRoundMode(conditionType) ? b.group.activityRounds : getGroupValue(b.group);
                       return bValue - aValue;
                     }).map(({ group, tier, remaining, groupPhase, tvvPassCount }, idx) => {
-                      if (hideNotAchieved && !tier) return null;
+                      if (hideNotAchieved && (!tier || !checkSecondaryTotalCondition(group.contracts || []).passed)) return null;
                       if (!group.nhom && !group.maNhom) return null;
                       // Kiểm tra điều kiện bổ sung Tổng AFYP/Tổng IP cho nhóm
                       const secondaryCheck = checkSecondaryTotalCondition(group.contracts || []);

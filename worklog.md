@@ -1261,3 +1261,9 @@ Work Log:
 - Live dùng computeNYDData chung thay bản tính riêng. Tổng từng NTD không mượn HĐ cùng TVV thuộc NTD khác; tránh nhân đôi dòng NTD khi chọn theo tên; không tự sinh NTD không tồn tại hoặc DSO để xét thưởng.
 - Bảng chi tiết Excel gán đúng NTD đóng góp, gồm trường hợp chọn tính cá nhân; nguồn doanh thu/KPI và dữ liệu production không đổi.
 - Kiểm tra bằng ma trận bật/tắt cá nhân, IP/AFYP/lượt, TVVm/all, điều kiện 3 HĐC/tổng IP, %IP/%tổng IP/%FYC/thưởng mỗi TVV, hai giai đoạn, mã lệch định dạng và tên NTD. Kiểm tra đối chứng before/after bằng mã production; số tiền đối chứng là dữ liệu giả, không phải số thưởng thực tế của chương trình.
+
+## 2026-10-20 — Thi đua option audit and calculation parity
+
+Follow-up after PR #207. Unified live/saved date and subject filters, respected explicit phase-2 end, gated phase rewards by supplementary conditions, and recognized phase-specific tiers in achievement/TOP/hiding. Reused entity phase outcomes across group rows/summary and Excel detail rewards; corrected TVV money-per-round stats, aggregate TVV IP+AFYP filtering, saved group-name multi-select, TN recruiter candidates and copy reward gates. Updated legacy effective-date build transform to recognize delegation to the shared filter.
+
+Added executable option audit fixtures, including extraction of actual Main callbacks and a 42-case target × reward type × phase matrix. Refreshed NTD Excel harness for current column flags and localized reward cells; actual workbook row/merge checks pass. Full option inventory, evidence and unverified areas: docs/THI_DUA_OPTION_AUDIT.md. No business records or saved program configuration changed; no bulk production contract payload fetched. Synthetic correctness does not establish a contract-by-contract reconciliation of production or confirm Data Hub completeness.
