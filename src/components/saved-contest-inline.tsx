@@ -53,6 +53,7 @@ import {
   computeTVVPerContractRows,
   computeContestStats,
   computeNYDData,
+  getNYDContributingContracts,
   computeNYDResultRows,
   evaluateSecondaryConditions,
   getGroupTVVAgentCodes,
@@ -331,7 +332,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       }
     } else if (config.targetType === 'nyd') {
       for (const row of nydResultRows) {
-        const personRows = (row.nyd.contracts || displayContracts).filter(contract => (contract.maDaiLyTD === row.nyd.nydCode && contract.agentCode !== row.nyd.nydCode) || ((config.includeIndividualNTD ?? false) && contract.agentCode === row.nyd.nydCode));
+        const personRows = getNYDContributingContracts(row.nyd.contracts, row.nyd.nydCode, config.includeIndividualNTD, config.recruitedAgentScope, structureStartDates);
         candidates.push({ key: `nyd:${row.nyd.nydCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryConditions(personRows) && passesTopEligibility(personRows) });
       }
     }
@@ -1088,10 +1089,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
                       {row.effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}
                       <span className="font-bold text-emerald-600 text-sm">{formatBonusAmountFromContracts(
                         row.effectiveTier,
-                        row.nyd.contracts.filter((contract) => (
-                          (contract.maDaiLyTD === row.nyd.nydCode && contract.agentCode !== row.nyd.nydCode)
-                          || (includeIndividualNTD && contract.agentCode === row.nyd.nydCode)
-                        )),
+                        getNYDContributingContracts(row.nyd.contracts, row.nyd.nydCode, includeIndividualNTD, config.recruitedAgentScope, structureStartDates),
                         isActivity ? row.value : row.nyd.recruitCount,
                       )}</span>
                     </span>

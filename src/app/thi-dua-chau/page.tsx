@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 import { NeonDatePicker } from '@/components/neon-date-picker';
 import { TVVContractCountTable } from '@/components/tvv-contract-count-table';
-import { getGroupTVVContractDetails, getGroupTVVContractProgress, formatTVVContractProgressNote } from '@/lib/contest-calculator';
+import { computeNYDData, filterNYDDisplayContracts, getNYDContributingContracts, getGroupTVVContractDetails, getGroupTVVContractProgress, formatTVVContractProgressNote } from '@/lib/contest-calculator';
 import { expandActivityExportDetails } from '@/lib/contest-export-details';
 import { buildCombinedTopRanking, passesCombinedTopEligibility, supportsCombinedTopRanking } from '@/lib/contest-combined-top-ranking';
 import {
@@ -1431,19 +1431,10 @@ function ThiDuaPageInner() {
       return contractsFiltered.filter(c => allowedMaNhom.has(c.maNhom) && !norm(c.nhom || '').toLowerCase().includes('dso'));
     }
     if (targetType === 'nyd') {
-      // NTD: xác định tập mã NTD từ Recruiter table
-      // Bỏ NTD thuộc nhóm DSO
-      const ntdNoDSO = ntdCandidates;
-      if (subjectCodes.length > 0) {
-        const selectedNydCodes = new Set(ntdNoDSO.filter(r => subjectCodes.includes(r.agentCode) || subjectCodes.includes(r.agentName)).map(r => r.agentCode));
-        return contractsFiltered.filter(c => selectedNydCodes.has(c.agentCode) || (c.maDaiLyTD && selectedNydCodes.has(c.maDaiLyTD)));
-      }
-      // Không nhập đối tượng → lấy HĐ liên quan đến NTD trong Recruiter table (trừ DSO)
-      const ntdCodes = new Set(ntdNoDSO.map(r => r.agentCode));
-      return contractsFiltered.filter(c => ntdCodes.has(c.agentCode) || ntdCodes.has(c.maDaiLyTD));
+      return filterNYDDisplayContracts(contractsFiltered, { participants: subjectCodes, includeIndividualNTD, recruitedAgentScope }, ntdCandidates, tvvStructList);
     }
     return contractsFiltered;
-  }, [filteredContracts, subjectCodes, targetType, leadersList, ntdCandidates, filterByEffectiveDate, tvvStructList]);
+  }, [filteredContracts, subjectCodes, targetType, leadersList, ntdCandidates, filterByEffectiveDate, tvvStructList, includeIndividualNTD, recruitedAgentScope]);
 
   // Several contest summaries need every contract for the same agent. Build the
   // index once instead of scanning the full contract list again for every row.
@@ -1461,139 +1452,11 @@ function ThiDuaPageInner() {
   // filteredRevenueData & displayRevenueData removed — all data now sourced from Contracts table only
 
   // NYD data computation - use Recruiter table as primary reference
-  const nydData: NYDData[] = useMemo(() => {
-    if (targetType !== 'nyd') return [];
-    const nydMap = new Map<string, NYDData>();
-
-    // Step 1: Load NTD from Recruiter table
-    // Nếu có DS đối tượng → chỉ lấy NTD trong DS, ngược lại lấy tất cả
-    if (subjectCodes.length > 0) {
-      for (const r of ntdCandidates) {
-        if (subjectCodes.includes(r.agentCode) || subjectCodes.includes(r.agentName)) {
-          nydMap.set(r.agentCode, {
-            nydCode: r.agentCode,
-            nydName: r.agentName,
-            nhom: r.nhom,
-            position: r.position || '',
-            startDate: r.startDate,
-            recruitCount: 0,
-            recruitFYP: 0,
-            ownFYP: 0,
-            ownActivityRounds: 0,
-            contracts: [],
-          });
-        }
-      }
-      // Không tạo NTD từ mã tự nhập không thuộc DS TTN/Cấu trúc.
-    } else {
-      // Không có DS đối tượng → lấy tất cả NTD
-      for (const r of ntdCandidates) {
-        nydMap.set(r.agentCode, {
-          nydCode: r.agentCode,
-          nydName: r.agentName,
-          nhom: r.nhom,
-          position: r.position || '',
-          startDate: r.startDate,
-          recruitCount: 0,
-          recruitFYP: 0,
-          ownFYP: 0,
-          ownActivityRounds: 0,
-          contracts: [],
-        });
-      }
-    }
-
-    // Step 2: Calculate recruit data using maDaiLyTD from contracts for mapping
-    // Mã số NTD → ánh xạ sang cột maDaiLyTD trong bảng doanh số
-    const luotThreshold = isStandardMode(conditionType) ? luotHDCTThreshold : luotHDThreshold;
-    const isAFYP = conditionType === 'total_afyp' || conditionType === 'per_contract_afyp';
-    // Build FYP lookup by agentCode — dùng Contracts (nguồn duy nhất) cho TẤT CẢ chế độ
-    const agentFYPLookup = new Map<string, { totalFYP: number; totalAFYP: number; activityRounds: number }>();
-    for (const c of displayContracts) {
-      const key = c.agentCode;
-      if (!key) continue;
-      const existing = agentFYPLookup.get(key);
-      if (existing) {
-        existing.totalFYP += c.pdt10DT;
-        existing.totalAFYP += c.afyp;
-      } else {
-        agentFYPLookup.set(key, { totalFYP: c.pdt10DT, totalAFYP: c.afyp, activityRounds: 0 });
-      }
-    }
-    // Tính activityRounds từ Contracts cho từng agent
-    const agentContractsMap = new Map<string, Contract[]>();
-    for (const c of displayContracts) {
-      const key = c.agentCode;
-      if (!key) continue;
-      if (!agentContractsMap.has(key)) agentContractsMap.set(key, []);
-      agentContractsMap.get(key)!.push(c);
-    }
-    for (const [key, cList] of agentContractsMap) {
-      const data = agentFYPLookup.get(key);
-      if (data) data.activityRounds = calculateLuotWithStructure(cList, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP);
-    }
-    for (const [nydCode, nyd] of nydMap) {
-      // Find all contracts where maDaiLyTD = NTD's agentCode (TVV được tuyển bởi NTD này)
-      const recruitedContracts = displayContracts.filter(c => {
-        if (c.maDaiLyTD !== nydCode || c.agentCode === nydCode) return false;
-        if (recruitedAgentScope !== 'tvvm') return true;
-        return isTVVm(structureStartDateByCode.get(c.agentCode.trim().toUpperCase()) || null);
-      });
-
-      if (isActivityRoundMode(conditionType)) {
-        // Lượt HĐ mode: use activityRounds for recruited agents
-        let totalRounds = 0;
-        let totalRecruitFYP = 0;
-        let recruitedAgents = new Set(recruitedContracts.map(c => c.agentCode));
-        // Lọc TVVm nếu chế độ TVVm (chỉ đếm lượt của TVV mới)
-        if (isTVVmMode(conditionType)) {
-          recruitedAgents = new Set(
-            [...recruitedAgents].filter(agentCode => {
-              return isTVVm(structureStartDateByCode.get(agentCode.trim().toUpperCase()) || null);
-            })
-          );
-        }
-        // Lọc TVV90 nếu chế độ TVV90
-        if (conditionType === 'activity_round_tvv90') {
-          recruitedAgents = new Set(
-            [...recruitedAgents].filter(agentCode => {
-              return isTVV90Agent(recruitedContracts, agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode.get(agentCode.trim().toUpperCase()));
-            })
-          );
-        }
-        for (const agentCode of recruitedAgents) {
-          const rv = agentFYPLookup.get(agentCode);
-          if (rv) {
-            totalRounds += rv.activityRounds;
-            totalRecruitFYP += rv.totalFYP;
-          }
-        }
-        nyd.recruitCount = totalRounds;
-        nyd.recruitFYP = totalRecruitFYP;
-      } else {
-        // NTD FYP mode: get FYP from agentFYPLookup (Contracts cho total_ip/total_afyp)
-        let recruitCount = 0;
-        let recruitFYP = 0;
-        const recruitedAgents = new Set(recruitedContracts.map(c => c.agentCode));
-        for (const agentCode of recruitedAgents) {
-          const rv = agentFYPLookup.get(agentCode);
-          const agentFYP = rv ? (isAFYP ? rv.totalAFYP : rv.totalFYP) : 0;
-          if (agentFYP >= luotHDThreshold) recruitCount++;
-          recruitFYP += agentFYP;
-        }
-        nyd.recruitCount = recruitCount;
-        nyd.recruitFYP = recruitFYP;
-      }
-
-      // Also add NTD's own FYP from agentFYPLookup
-      const ownRevenue = agentFYPLookup.get(nydCode);
-      nyd.ownFYP = ownRevenue ? (isAFYP ? ownRevenue.totalAFYP : ownRevenue.totalFYP) : 0;
-      nyd.ownActivityRounds = ownRevenue?.activityRounds ?? 0;
-      nyd.contracts = [...recruitedContracts, ...(displayContractsByAgent.get(nydCode) || [])];
-    }
-
-    return Array.from(nydMap.values());
-  }, [displayContracts, displayContractsByAgent, conditionType, ntdCandidates, subjectCodes, staffList, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, structureStartDateByCode, calculateLuotWithStructure, recruitedAgentScope]);
+  const nydData: NYDData[] = useMemo(() => computeNYDData(displayContracts, {
+    targetType, conditionType, participants: subjectCodes, includeIndividualNTD, recruitedAgentScope,
+    luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
+  } as import('@/lib/contest-calculator').ContestConfig, ntdCandidates, staffList, tvvStructList),
+  [displayContracts, targetType, conditionType, subjectCodes, includeIndividualNTD, recruitedAgentScope, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, ntdCandidates, staffList, tvvStructList]);
 
   // Nhóm hiển thị luôn lấy theo Cấu trúc. Dữ liệu hợp đồng chỉ là nguồn doanh
   // số nên có thể thiếu tên/mã nhóm, nhưng không được làm trống cột Nhóm.
@@ -2303,12 +2166,9 @@ function ThiDuaPageInner() {
       }
     } else if (targetType === 'nyd') {
       for (const person of nydData) {
-        const value = getNYDContestValue(conditionType, person.recruitFYP, person.ownFYP, person.ownActivityRounds, includeIndividualNTD);
+        const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? person.recruitCount : person.recruitFYP, person.ownFYP, person.ownActivityRounds, includeIndividualNTD);
         const tier = calculateBonus(value).tier;
-        const personContracts = (person.contracts || displayContracts).filter(contract => (
-          (contract.maDaiLyTD === person.nydCode && contract.agentCode !== person.nydCode)
-          || (includeIndividualNTD && contract.agentCode === person.nydCode)
-        ));
+        const personContracts = getNYDContributingContracts(person.contracts || displayContracts, person.nydCode, includeIndividualNTD, recruitedAgentScope, structureStartDateByCode);
         candidates.push({ key: `nyd:${person.nydCode}`, value, qualified: Boolean(tier) && passesSecondaryConditions(personContracts) && passesTopEligibility(personContracts) });
       }
     }
@@ -2730,10 +2590,7 @@ function ThiDuaPageInner() {
       nydData.map(n => {
         const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
         const { tier } = calculateBonus(value);
-        const rewardContracts = (n.contracts || displayContracts).filter(c => (
-          (c.maDaiLyTD === n.nydCode && c.agentCode !== n.nydCode)
-          || (includeIndividualNTD && c.agentCode === n.nydCode)
-        ));
+        const rewardContracts = getNYDContributingContracts(n.contracts || displayContracts, n.nydCode, includeIndividualNTD, recruitedAgentScope, structureStartDateByCode);
         return { nyd: n, tier, value, rewardContracts };
       }).sort((a, b) => b.value - a.value).forEach(({ nyd: n, tier, value, rewardContracts }, idx) => {
         const displayVal = isActivityRoundMode(conditionType) ? `${value} Lượt` : formatNumber(value);
@@ -2932,10 +2789,7 @@ function ThiDuaPageInner() {
         const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
         const { tier } = calculateBonus(value);
         // Check supplementary total condition
-        const nydContracts = (n.contracts || displayContracts).filter(c => (
-          (c.maDaiLyTD === n.nydCode && c.agentCode !== n.nydCode)
-          || (includeIndividualNTD && c.agentCode === n.nydCode)
-        ));
+        const nydContracts = getNYDContributingContracts(n.contracts || displayContracts, n.nydCode, includeIndividualNTD, recruitedAgentScope, structureStartDateByCode);
         const sc = checkSecondaryTotalCondition(nydContracts);
         const effectiveTier = sc.passed ? tier : null;
         const p2Start = usePhase2 && phase2StartDate ? new Date(phase2StartDate) : null;
@@ -2952,10 +2806,7 @@ function ThiDuaPageInner() {
           : Boolean(effectiveTier);
         const rewardNote = hasEffectiveReward ? '' : (!sc.passed ? exportSecondaryDeficit(sc) : 'Chưa đạt mức');
         const startRow = currentRow;
-        const countedContracts = (n.contracts || []).filter(c => (
-          (c.maDaiLyTD === n.nydCode && c.agentCode !== n.nydCode)
-          || (includeIndividualNTD && c.agentCode === n.nydCode)
-        ));
+        const countedContracts = getNYDContributingContracts(n.contracts, n.nydCode, includeIndividualNTD, recruitedAgentScope, structureStartDateByCode);
         const contracts = qualifyingActivityContracts(countedContracts);
         // nmc-ntd-standard-export-all-contracts-v1
         // Với Lượt HĐ Chuẩn của NTD: dùng HĐ đạt ngưỡng chỉ để xác định TVV đủ điều kiện,
@@ -3164,7 +3015,7 @@ function ThiDuaPageInner() {
               if (expSecIP) row.push(cIdx === 0 ? formatContestConditionProgress(sc.totalIP, secondaryTotalIPMin) : '');
               row.push(...extraMetricValues(sc, cIdx === 0));
               row.push(c.agentName || '');
-              if (includeEligibilityDateColumns) row.push(recruiterEffectiveDateFor(c.maDaiLyTD || c.recruiterCode || ''));
+              if (includeEligibilityDateColumns) row.push(recruiterEffectiveDateFor(nydCode || c.maDaiLyTD || c.recruiterCode || ''));
               if (showTVVStartDate) row.push(tvvStartDateFor(c));
               row.push(
                 c.contractNumber || '',
@@ -3401,10 +3252,7 @@ function ThiDuaPageInner() {
           if (!n) return '';
           const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
           const { tier } = calculateBonus(value);
-          const nydContracts = (n.contracts || displayContracts).filter(c => (
-            (c.maDaiLyTD === n.nydCode && c.agentCode !== n.nydCode)
-            || (includeIndividualNTD && c.agentCode === n.nydCode)
-          ));
+          const nydContracts = getNYDContributingContracts(n.contracts || displayContracts, n.nydCode, includeIndividualNTD, recruitedAgentScope, structureStartDateByCode);
           const sc = checkSecondaryTotalCondition(nydContracts);
           const effectiveTier = sc.passed ? tier : null;
           return effectiveTier ? formatBonusAmountFromContracts(effectiveTier, nydContracts, isActivityRoundMode(conditionType) ? value : n.recruitCount) : '';
@@ -3432,14 +3280,17 @@ function ThiDuaPageInner() {
       const detailContracts = conditionType === 'pass_count_contracts'
         ? groupedData.flatMap(g => getGroupTVVContractProgress(g, displayContracts, staffList, { secondaryIPMin: passCountIPMin, secondaryAFYPMin: passCountAFYPMin, tvvContractCountMin, includeTNInPassCount }, tvvStructList).flatMap(agent => agent.contracts))
         : displayContracts;
-      const detailRowData: DetailRow[] = detailContracts.map((c) => {
+      const detailEntries = targetType === 'nyd'
+        ? nydData.flatMap(person => getNYDContributingContracts(person.contracts, person.nydCode, includeIndividualNTD, recruitedAgentScope, structureStartDateByCode).map(contract => ({ contract, nydCode: person.nydCode })))
+        : detailContracts.map(contract => ({ contract, nydCode: '' }));
+      const detailRowData: DetailRow[] = detailEntries.map(({ contract: c, nydCode }) => {
         let groupKey = '';
         let bonusValue: string | number = '';
         if (needMerge) {
           if (targetType === 'nhom') {
             groupKey = c.maNhom || '';
           } else if (targetType === 'nyd') {
-            groupKey = c.maDaiLyTD || c.recruiterCode || '';
+            groupKey = nydCode || c.maDaiLyTD || c.recruiterCode || '';
           } else if (targetType === 'tvv' && !isPerContractMode(conditionType)) {
             groupKey = c.agentCode || '';
           }
@@ -4057,10 +3908,7 @@ function ThiDuaPageInner() {
       ? recruitmentRows.filter(row => row.totalBonus > 0).length
       : nydData.filter(n => {
       const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
-      const entityContracts = n.contracts.filter(c =>
-        (c.maDaiLyTD === n.nydCode && c.agentCode !== n.nydCode) ||
-        (includeIndividualNTD && c.agentCode === n.nydCode)
-      );
+      const entityContracts = getNYDContributingContracts(n.contracts || displayContracts, n.nydCode, includeIndividualNTD, recruitedAgentScope, structureStartDateByCode);
       return calculateBonus(value).tier && checkSecondaryTotalCondition(entityContracts).passed;
     }).length) : 0;
     const nydEntityCount = isRecruitmentMode(conditionType) ? recruitmentRows.length : nydData.length;
@@ -4070,10 +3918,7 @@ function ThiDuaPageInner() {
       : nydData.reduce((sum, n) => {
       const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
       const { tier } = calculateBonus(value);
-      const entityContracts = n.contracts.filter(c =>
-        (c.maDaiLyTD === n.nydCode && c.agentCode !== n.nydCode) ||
-        (includeIndividualNTD && c.agentCode === n.nydCode)
-      );
+      const entityContracts = getNYDContributingContracts(n.contracts || displayContracts, n.nydCode, includeIndividualNTD, recruitedAgentScope, structureStartDateByCode);
       if (!tier || !checkSecondaryTotalCondition(entityContracts).passed) return sum;
       const entityIP = entityContracts.reduce((total, contract) => total + contract.pdt10DT, 0);
       return sum + computeBonusFromTier(tier, entityIP, isActivityRoundMode(conditionType) ? value : n.recruitCount, entityIP);
@@ -4302,10 +4147,7 @@ function ThiDuaPageInner() {
       const value = getNYDContestValue(conditionType, isActivityRoundMode(conditionType) ? n.recruitCount : n.recruitFYP, n.ownFYP, n.ownActivityRounds, includeIndividualNTD);
       const { tier, tierIndex } = calculateBonus(value);
       const remaining = getRemainingToNextTier(value);
-      const entityContracts = n.contracts.filter(c =>
-        (c.maDaiLyTD === n.nydCode && c.agentCode !== n.nydCode) ||
-        (includeIndividualNTD && c.agentCode === n.nydCode)
-      );
+      const entityContracts = getNYDContributingContracts(n.contracts || displayContracts, n.nydCode, includeIndividualNTD, recruitedAgentScope, structureStartDateByCode);
       const secondaryCheck = checkSecondaryTotalCondition(entityContracts);
       const effectiveTier = secondaryCheck.passed ? tier : null;
       return { nyd: n, tier, tierIndex, remaining, value, secondaryCheck, effectiveTier };
@@ -5670,7 +5512,7 @@ function ThiDuaPageInner() {
                               <TableCell className="text-right bg-amber-50 text-xs font-bold text-amber-600 whitespace-nowrap">{formatCurrency(phaseBonus.phase1Bonus + phaseBonus.phase2Bonus)}</TableCell>
                             </>
                           ) : (
-                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmountFromContracts(effectiveTier, nyd.contracts.filter(contract => (contract.maDaiLyTD === nyd.nydCode && contract.agentCode !== nyd.nydCode) || (includeIndividualNTD && contract.agentCode === nyd.nydCode)), isActivityRoundMode(conditionType) ? value : nyd.recruitCount)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
+                            <TableCell className="text-right bg-emerald-50 whitespace-nowrap">{effectiveTier ? <span className="flex items-center justify-end gap-1">{effectiveTier.bonusType === 'gift' ? <Gift className="w-4 h-4 text-pink-500" /> : <Award className="w-4 h-4 text-amber-500" />}<span className="font-bold text-emerald-600 text-sm">{formatBonusAmountFromContracts(effectiveTier, getNYDContributingContracts(nyd.contracts || displayContracts, nyd.nydCode, includeIndividualNTD, recruitedAgentScope, structureStartDateByCode), isActivityRoundMode(conditionType) ? value : nyd.recruitCount)}</span></span> : <span className="text-gray-400 text-xs">—</span>}</TableCell>
                           )}
                           <TableCell className="whitespace-nowrap">{getCombinedTopNote(`nyd:${nyd.nydCode}`) ? <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Crown className="w-4 h-4" />{getCombinedTopNote(`nyd:${nyd.nydCode}`)}</span> : !effectiveTier ? <span className="text-[10px] italic text-gray-400">{nydDeficitNote}</span> : null}</TableCell>
                         </TableRow>

@@ -1252,3 +1252,12 @@ Work Log:
 - npm run lint toàn repo/typecheck còn lỗi nền; các file mới được kiểm tra lint riêng. Đối chiếu bulk /api/quan-ly/all production bị auto-review từ chối vì payload hợp đồng riêng tư; không lấy/đối chiếu tổng production bằng payload đó. Chỉ kiểm tra heartbeat/trạng thái nguồn và giao diện, không ghi dữ liệu thật.
 
 - Tương thích khi cập nhật lệch phiên bản: HĐ tồn gửi bằng carryoverCsv, không gửi contractCsv. Server cũ bỏ qua trường mới, không thể nhập nhầm vào Contract; Data Hub chỉ chốt checksum sau xác nhận đúng carryoverMonth/count. API mới từ chối trộn carryover và contractCsv.
+
+## 2026-10-20 — Rà soát tính cá nhân TTN trong thi đua
+
+- Đọc cấu hình chương trình TTN Hương Sắc tháng 9 trên production: includeIndividualNTD=false, recruitedAgentScope=tvvm, lọc ngày hiệu lực chức vụ, điều kiện 3 lượt HĐC. Không sửa cấu hình hoặc dữ liệu hợp đồng thật.
+- Tái hiện bằng mã production và dữ liệu giả: IP tuyển 25 triệu, IP cá nhân 100 triệu, thưởng 10%, cờ cá nhân false; chỉ tiêu 25 triệu nhưng tổng thưởng cũ 12,5 triệu và tổng IP 125 triệu. Nguồn nyd.contracts còn chứa cá nhân, tổng thưởng % dùng toàn bộ nguồn này.
+- Tách nguồn đóng góp NTD dùng chung cho live/saved, tổng hợp, điều kiện bổ sung, TOP và Excel: không chọn cá nhân thì loại trước khi tổng hợp; chọn TVVm thì chỉ lấy đúng TVVm do NTD đó tuyển. Chuẩn hóa đối chiếu mã để tự tuyển không lọt qua mã lệch hoa/thường/khoảng trắng.
+- Live dùng computeNYDData chung thay bản tính riêng. Tổng từng NTD không mượn HĐ cùng TVV thuộc NTD khác; tránh nhân đôi dòng NTD khi chọn theo tên; không tự sinh NTD không tồn tại hoặc DSO để xét thưởng.
+- Bảng chi tiết Excel gán đúng NTD đóng góp, gồm trường hợp chọn tính cá nhân; nguồn doanh thu/KPI và dữ liệu production không đổi.
+- Kiểm tra bằng ma trận bật/tắt cá nhân, IP/AFYP/lượt, TVVm/all, điều kiện 3 HĐC/tổng IP, %IP/%tổng IP/%FYC/thưởng mỗi TVV, hai giai đoạn, mã lệch định dạng và tên NTD. Kiểm tra đối chứng before/after bằng mã production; số tiền đối chứng là dữ liệu giả, không phải số thưởng thực tế của chương trình.
