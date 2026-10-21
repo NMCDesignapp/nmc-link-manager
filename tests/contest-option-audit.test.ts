@@ -37,8 +37,8 @@ for(const targetType of ['nhom','tvv'] as const) for(const conditionType of ['to
   const total=calc.computeTVVTotalRows(input,cfg,[],[],structure);
   const stats=calc.computeContestStats(input,group,total,[],cfg,[],structure);
   const phase=calc.calculateEntityPhaseOutcome(input,cfg,structure);
-  assert.equal(phase.phase1Bonus,100);assert.equal(phase.phase2Bonus,100);
-  assert.equal(stats.totalBonus,200); assert.equal(stats.achievedCount,1); assert.equal(livePhase(input,cfg).totalBonus,200);
+  assert.equal(phase.phase1Bonus,100);assert.equal(phase.phase2Bonus,activity?0:100);
+  assert.equal(stats.totalBonus,activity?100:200); assert.equal(stats.achievedCount,1); assert.equal(livePhase(input,cfg).totalBonus,activity?100:200);
  });
  test(`${targetType}/${conditionType}: failed supplementary total blocks all phase payouts`,()=>{
   const cfg=config({targetType,conditionType,useSecondaryCondition:true,secondaryTotalIPMin:100,luotHDThreshold:3,luotHDCTThreshold:12});
@@ -76,8 +76,8 @@ test('aggregate TVV IP+AFYP threshold is evaluated after summing, never as a per
 test('TVV money per round summary matches row amount without phases',()=>{
  const cfg=config({targetType:'tvv',conditionType:'activity_round',usePhase2:false,luotHDThreshold:3,bonusTiers:JSON.stringify([{...tiers[0],bonusType:'money_per_round'}])});
  const input=rows.slice(0,2),details=calc.computeTVVTotalRows(input,cfg,[],[],structure);
- assert.equal(details[0].value,2);
- assert.equal(calc.computeContestStats(input,[],details,[],cfg,[],structure).totalBonus,200);
+ assert.equal(details[0].value,1);
+ assert.equal(calc.computeContestStats(input,[],details,[],cfg,[],structure).totalBonus,100);
 });
 
 for(const targetType of ['nhom','tvv','nyd'] as const) test(`${targetType}: actual Excel detail reward callback equals phase result total`,()=>{
@@ -96,7 +96,7 @@ for(const targetType of ['tvv','nhom','nyd'] as const) for(const bonusType of ['
  const total=calc.computeTVVTotalRows(input,cfg,[],recruiters,structure);
  const nyd=calc.computeNYDResultRows(calc.computeNYDData(input,cfg,recruiters,[],structure),cfg,structure);
  const stats=calc.computeContestStats(input,group,total,[],cfg,nyd,structure);
- const expected=bonusType==='percent'||bonusType==='percent_total_ip'?2.4:bonusType==='percent_fyc'?0.6:countReward?200:usePhase2?200:100;
+ const expected=bonusType==='percent'||bonusType==='percent_total_ip'?2.4:bonusType==='percent_fyc'?0.6:countReward?100:usePhase2?200:100;
  assert.ok(Math.abs(stats.totalBonus-expected)<0.000001,`${stats.totalBonus} vs ${expected}`);
  assert.equal(stats.achievedCount,1);
 });
@@ -107,7 +107,7 @@ test('effective and issue ranges intersect inclusively; missing issue date canno
 });
 test('each supplementary switch independently blocks an otherwise qualifying reward at the boundary',()=>{
  const input=rows.slice(0,2);
- for(const [field,at,above] of [['secondaryTotalIPMin',24,25],['secondaryTotalAFYPMin',48,49],['secondaryContractCountMin',2,3],['secondaryLuotHDMin',2,3],['secondaryLuotHDCMin',2,3]] as const){
+ for(const [field,at,above] of [['secondaryTotalIPMin',24,25],['secondaryTotalAFYPMin',48,49],['secondaryContractCountMin',2,3],['secondaryLuotHDMin',1,2],['secondaryLuotHDCMin',1,2]] as const){
   const cfg=config({useSecondaryCondition:true,luotHDThreshold:3,luotHDCTThreshold:12,[field]:at});
   assert.equal(calc.evaluateSecondaryConditions(input,cfg,structure).passed,true,field);
   assert.equal(calc.evaluateSecondaryConditions(input,{...cfg,[field]:above},structure).passed,false,field);

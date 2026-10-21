@@ -1267,3 +1267,10 @@ Work Log:
 Follow-up after PR #207. Unified live/saved date and subject filters, respected explicit phase-2 end, gated phase rewards by supplementary conditions, and recognized phase-specific tiers in achievement/TOP/hiding. Reused entity phase outcomes across group rows/summary and Excel detail rewards; corrected TVV money-per-round stats, aggregate TVV IP+AFYP filtering, saved group-name multi-select, TN recruiter candidates and copy reward gates. Updated legacy effective-date build transform to recognize delegation to the shared filter.
 
 Added executable option audit fixtures, including extraction of actual Main callbacks and a 42-case target × reward type × phase matrix. Refreshed NTD Excel harness for current column flags and localized reward cells; actual workbook row/merge checks pass. Full option inventory, evidence and unverified areas: docs/THI_DUA_OPTION_AUDIT.md. No business records or saved program configuration changed; no bulk production contract payload fetched. Synthetic correctness does not establish a contract-by-contract reconciliation of production or confirm Data Hub completeness.
+
+
+## 2026-10-21 — One activity round per TVV per contest period
+
+Unified Main and saved activity counts through the shared calculator. Distinct normalized TVV codes count once after per-contract qualification across normal/carryover sources and months. The earliest qualifying contract owns the round across both phases; all eligible contracts still contribute IP/AFYP. Supplementary round gates, per-round rewards, summaries and Excel subtotals use this rule. Empty agent codes cannot contribute a round. Existing saved configurations and business records remain unchanged.
+
+Validation: 186 regression tests passed; Main production build and standalone sync check passed. Repository-wide typecheck still has pre-existing errors outside changed files; changed calculation/UI files have no reported type errors. Production verification is recorded separately after deployment.

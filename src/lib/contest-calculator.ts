@@ -434,8 +434,7 @@ export function isTVV90Agent(
 
 /**
  * Một dòng hợp đồng thực sự tạo lượt theo đúng cùng quy tắc dùng để tính tổng.
- * File nguồn đã khống chế tối đa một dòng dương/TVV/tháng nên không khử trùng
- * theo mã TVV tại đây.
+ * Điều kiện từng HĐ vẫn xét cột TÍNH LƯỢT; khử trùng mã TVV ở bộ lọc bên dưới.
  */
 export function isQualifyingActivityContract(
   contract: Contract,
@@ -479,34 +478,44 @@ export function filterQualifyingActivityContracts(
   tvv90MinIP?: number,
   structureStartDates?: ReadonlyMap<string, string | null>
 ): Contract[] {
-  return contracts.filter(contract => isQualifyingActivityContract(
-    contract,
-    contracts,
-    luotThreshold,
-    conditionType,
-    tvv90MaxMonths,
-    tvv90MinIP,
-    structureStartDates
-  ));
+  const seen = new Set<string>();
+  // A program can span source months. Assign a TVV's one round to its earliest
+  // qualifying HĐ so splitting phases or appending carryovers cannot count twice.
+  const representatives = [...contracts].sort((a, b) => {
+    const time = (value: string) => { const t = Date.parse(value); return Number.isFinite(t) ? t : Infinity; };
+    return time(a.effectiveDate) - time(b.effectiveDate)
+      || time(a.issueDate) - time(b.issueDate)
+      || (a.contractNumber || a.id || '').localeCompare(b.contractNumber || b.id || '');
+  }).filter(contract => {
+    const code = normalizeAgentCode(contract.agentCode);
+    if (!code || seen.has(code) || !isQualifyingActivityContract(contract, contracts, luotThreshold,
+      conditionType, tvv90MaxMonths, tvv90MinIP, structureStartDates)) return false;
+    seen.add(code);
+    return true;
+  });
+  const selected = new Set(representatives);
+  return contracts.filter(contract => selected.has(contract));
 }
 
-/** Count rows with tinhLuot3tr >= threshold. Applies TVVm/TVV90 filters per row. */
+/** One qualifying round per normalized TVV code in the complete contest period. */
 export function calculateLuot(
   contracts: Contract[],
   luotThreshold: number,
   conditionType: ConditionType,
   tvv90MaxMonths?: number,
   tvv90MinIP?: number,
-  structureStartDates?: ReadonlyMap<string, string | null>
+  structureStartDates?: ReadonlyMap<string, string | null>,
+  periodContracts: Contract[] = contracts
 ): number {
+  const included = new Set(contracts);
   return filterQualifyingActivityContracts(
-    contracts,
+    periodContracts,
     luotThreshold,
     conditionType,
     tvv90MaxMonths,
     tvv90MinIP,
     structureStartDates
-  ).length;
+  ).filter(contract => included.has(contract)).length;
 }
 
 export interface SecondaryConditionOptions {
@@ -783,21 +792,23 @@ export function calculateNYDPhaseOutcome(
   tvv90MaxMonths?: number,
   tvv90MinIP?: number,
   structureStartDates?: ReadonlyMap<string, string | null>,
-  recruitedAgentScope: RecruitedAgentScope = 'all'
+  recruitedAgentScope: RecruitedAgentScope = 'all',
+  periodContracts: Contract[] = contracts
 ): NYDPhaseOutcome {
   const recruitedContracts = filterRecruitedContractsByScope(contracts, nydCode, recruitedAgentScope, structureStartDates);
   const relevantContracts = getNYDContributingContracts(contracts, nydCode, includeIndividualNTD, recruitedAgentScope, structureStartDates);
   const baseIP = relevantContracts.reduce((sum, contract) => sum + contract.pdt10DT, 0);
 
   if (isActivityRoundMode(conditionType)) {
-    const value = filterQualifyingActivityContracts(
+    const value = calculateLuot(
       relevantContracts,
       luotThreshold,
       conditionType,
       tvv90MaxMonths,
       tvv90MinIP,
-      structureStartDates
-    ).length;
+      structureStartDates,
+      getNYDContributingContracts(periodContracts, nydCode, includeIndividualNTD, recruitedAgentScope, structureStartDates)
+    );
     const { tier } = calculateActivityRoundBonusWithTiers(value, tiers);
     return {
       value,
@@ -1037,12 +1048,12 @@ export function calculateEntityPhaseOutcome(contracts: Contract[], config: Conte
     if (nydCode) {
       const result = calculateNYDPhaseOutcome(rows, nydCode, tiers, config.conditionType, config.includeIndividualNTD ?? false,
         isStandardMode(config.conditionType) ? config.luotHDCTThreshold : config.luotHDThreshold,
-        config.tvv90MaxMonths, config.tvv90MinIP, buildStructureStartDateMap(structure), config.recruitedAgentScope);
+        config.tvv90MaxMonths, config.tvv90MinIP, buildStructureStartDateMap(structure), config.recruitedAgentScope, contracts);
       return { tier: result.tier, bonus: result.bonus };
     }
     const ip = sumContractIP(rows);
     const activity = isActivityRoundMode(config.conditionType);
-    const value = activity ? calculateLuot(rows, isStandardMode(config.conditionType) ? config.luotHDCTThreshold : config.luotHDThreshold, config.conditionType, config.tvv90MaxMonths, config.tvv90MinIP, buildStructureStartDateMap(structure))
+    const value = activity ? calculateLuot(rows, isStandardMode(config.conditionType) ? config.luotHDCTThreshold : config.luotHDThreshold, config.conditionType, config.tvv90MaxMonths, config.tvv90MinIP, buildStructureStartDateMap(structure), contracts)
       : rows.reduce((sum, c) => sum + (config.conditionType.endsWith('afyp') ? c.afyp : c.pdt10DT), 0);
     const { tier } = activity ? calculateActivityRoundBonusWithTiers(value, tiers) : calculateBonusWithTiers(value, tiers);
     return { tier, bonus: tier ? computeBonusFromTier(tier, ip, activity ? value : undefined, ip) : 0 };
@@ -1676,7 +1687,8 @@ export function computeTVVTotalRows(
               conditionType,
               config.tvv90MaxMonths,
               config.tvv90MinIP,
-              structureStartDates
+              structureStartDates,
+              agentContracts
             )
           : isAFYP
             ? p1Contracts.reduce((s, c) => s + c.afyp, 0)
@@ -1688,7 +1700,8 @@ export function computeTVVTotalRows(
               conditionType,
               config.tvv90MaxMonths,
               config.tvv90MinIP,
-              structureStartDates
+              structureStartDates,
+              agentContracts
             )
           : isAFYP
             ? p2Contracts.reduce((s, c) => s + c.afyp, 0)
@@ -2016,12 +2029,12 @@ export function computeContestStats(
         const phase1 = calculateNYDPhaseOutcome(
           phase1Contracts, row.nyd.nydCode, config.bonusTiers, conditionType,
           config.includeIndividualNTD ?? false, threshold, config.tvv90MaxMonths,
-          config.tvv90MinIP, structureStartDates, config.recruitedAgentScope,
+          config.tvv90MinIP, structureStartDates, config.recruitedAgentScope, displayContracts,
         );
         const phase2 = calculateNYDPhaseOutcome(
           phase2Contracts, row.nyd.nydCode, config.bonusTiers2, conditionType,
           config.includeIndividualNTD ?? false, threshold, config.tvv90MaxMonths,
-          config.tvv90MinIP, structureStartDates, config.recruitedAgentScope,
+          config.tvv90MinIP, structureStartDates, config.recruitedAgentScope, displayContracts,
         );
         const phaseAchieved = row.secondaryPassed && Boolean(phase1.tier || phase2.tier);
         if (hideNotAchieved && !phaseAchieved) continue;

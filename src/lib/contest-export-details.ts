@@ -18,7 +18,7 @@ export function expandActivityExportDetails<T extends ActivityDetailContract>(
   const rounds = new Map<string, number>();
   for (const contract of qualifyingContracts) {
     const key = keyOf(contract);
-    if (key) rounds.set(key, (rounds.get(key) || 0) + 1);
+    if (key) rounds.set(key, 1);
   }
   const groups = new Map<string, T[]>();
   for (const contract of scopedContracts) {
@@ -41,3 +41,4 @@ export function expandActivityExportDetails<T extends ActivityDetailContract>(
         }));
     });
 }
+

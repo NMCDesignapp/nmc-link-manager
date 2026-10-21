@@ -48,6 +48,7 @@ import {
 } from '@/lib/contest-archive';
 import {
   calculateEntityPhaseOutcome,
+  calculateLuot as calculateContestLuot,
   filterContractsByContest,
   filterDisplayContracts,
   parseContestConfig,
@@ -305,28 +306,9 @@ function isTVV90Agent(contracts: Contract[], agentCode: string, maxMonths: numbe
   return isTVVm(startDate, maxMonths);
 }
 
-// Helper: calculate lượt for a group of contracts based on tinhLuot3tr
-// Đếm SỐ DÒNG hợp đồng có tinhLuot3tr >= threshold (không phải unique TVV)
-function calculateLuot(contracts: Contract[], luotThreshold: number, conditionType: ConditionType, tvv90MaxMonths?: number, tvv90MinIP?: number, structureStartDates?: Map<string, string | null>): number {
-  let count = 0;
-  for (const c of contracts) {
-    // Thâm niên lấy từ DS TVV Cấu trúc; dữ liệu dòng hợp đồng chỉ là fallback cũ.
-    const structureStartDate = structureStartDates?.get(c.agentCode.trim().toUpperCase());
-    if (isTVVmMode(conditionType)) {
-      const startDate = structureStartDates
-        ? structureStartDate || null
-        : c.ngayBatDauLamViec || c.startDate;
-      if (!isTVVm(startDate)) continue;
-    }
-    if (conditionType === 'activity_round_tvv90') {
-      if (!isTVV90Agent(contracts, c.agentCode, tvv90MaxMonths, tvv90MinIP, structureStartDate)) continue;
-    }
-    // Chỉ đếm giá trị đã xử lý sẵn tại cột TÍNH LƯỢT 3tr; không cộng IP/AFYP.
-    if (c.tinhLuot3tr >= luotThreshold) {
-      count++;
-    }
-  }
-  return count;
+// Use the same unique-TVV counting rule as saved contests, secondary checks and exports.
+function calculateLuot(contracts: Contract[], luotThreshold: number, conditionType: ConditionType, tvv90MaxMonths?: number, tvv90MinIP?: number, structureStartDates?: Map<string, string | null>, periodContracts: Contract[] = contracts): number {
+  return calculateContestLuot(contracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP, structureStartDates, periodContracts);
 }
 
 // CSV auto-sync removed — data is now sourced from Quản lý page only
@@ -1150,8 +1132,8 @@ function ThiDuaPageInner() {
   }, [tvvStructList]);
 
   const calculateLuotWithStructure = useCallback(
-    (rows: Contract[], threshold: number, type: ConditionType, maxMonths?: number, minIP?: number) =>
-      calculateLuot(rows, threshold, type, maxMonths, minIP, structureStartDateByCode),
+    (rows: Contract[], threshold: number, type: ConditionType, maxMonths?: number, minIP?: number, periodRows: Contract[] = rows) =>
+      calculateLuot(rows, threshold, type, maxMonths, minIP, structureStartDateByCode, periodRows),
     [structureStartDateByCode],
   );
 
@@ -1624,12 +1606,12 @@ function ThiDuaPageInner() {
         const p1Revenue = p1Contracts.reduce((s, c) => s + c.pdt10DT, 0);
         const p2Revenue = p2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
         const p1Value = isActivityMode
-          ? calculateLuotWithStructure(p1Contracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP)
+          ? calculateLuotWithStructure(p1Contracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP, agentContracts)
           : isAFYP
             ? p1Contracts.reduce((s, c) => s + c.afyp, 0)
             : p1Revenue;
         const p2Value = isActivityMode
-          ? calculateLuotWithStructure(p2Contracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP)
+          ? calculateLuotWithStructure(p2Contracts, luotThreshold, conditionType, tvv90MaxMonths, tvv90MinIP, agentContracts)
           : isAFYP
             ? p2Contracts.reduce((s, c) => s + c.afyp, 0)
             : p2Revenue;
@@ -2530,6 +2512,7 @@ function ThiDuaPageInner() {
       tvv90MinIP,
       structureStartDateByCode,
       recruitedAgentScope,
+      displayContracts,
     );
     const phaseRewardCell = (tier: BonusTier | null, bonus: number): string | number => {
       if (!tier) return '';
@@ -4689,7 +4672,7 @@ function ThiDuaPageInner() {
                   <div className="space-y-2 pl-4 border-l-2 border-orange-500/30">
                     <div className="text-[10px] text-orange-400/50 font-medium uppercase tracking-wider">Chỉ tiêu hợp đồng và lượt</div>
                     <p className="text-[10px] leading-4 text-emerald-200/70">
-                      Mọi chỉ tiêu được tính riêng trên cùng đối tượng đang xét (TVV, Nhóm hoặc NTD); không gộp dữ liệu giữa các đối tượng. Tổng IP và số lượt là hai điều kiện độc lập.
+                      Mọi chỉ tiêu được tính riêng trên cùng đối tượng đang xét (TVV, Nhóm hoặc NTD); không gộp dữ liệu giữa các đối tượng. Tổng IP và số lượt là hai điều kiện độc lập. Mỗi mã TVV chỉ tính tối đa 1 lượt trong kỳ xét, kể cả HĐ tồn.
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1"><Label className="text-[10px] text-orange-400/70">AFYP/HĐ từ (nđ)</Label><Input type="number" placeholder="0" value={secondaryAFYPMin ? vndToNgan(secondaryAFYPMin) : ''} onChange={(e) => setSecondaryAFYPMin(nganToVnd(parseFloat(e.target.value) || 0))} className="h-7 text-xs border-orange-500/30 bg-gray-800 text-white" /></div>
@@ -5239,12 +5222,14 @@ function ThiDuaPageInner() {
                           includeIndividualNTD, threshold, tvv90MaxMonths, tvv90MinIP,
                           structureStartDateByCode,
                           recruitedAgentScope,
+                          displayContracts,
                         );
                         const phase2 = calculateNYDPhaseOutcome(
                           p2Contracts, nyd.nydCode, bonusTiers2, conditionType,
                           includeIndividualNTD, threshold, tvv90MaxMonths, tvv90MinIP,
                           structureStartDateByCode,
                           recruitedAgentScope,
+                          displayContracts,
                         );
                         return {
                           phase1Bonus: secondaryCheck.passed ? phase1.bonus : 0,
