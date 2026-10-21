@@ -1030,6 +1030,30 @@ export function parseContestConfig(raw: any): ContestConfig {
   };
 }
 
+/** One phase outcome for group/detail/summary consumers. Secondary conditions apply to the whole entity. */
+export function calculateEntityPhaseOutcome(contracts: Contract[], config: ContestConfig, structure: TVVStructMember[] = [], nydCode?: string) {
+  const boundary = getContestDateBoundary(config.phase2StartDate || '');
+  const evaluate = (rows: Contract[], tiers: BonusTier[]) => {
+    if (nydCode) {
+      const result = calculateNYDPhaseOutcome(rows, nydCode, tiers, config.conditionType, config.includeIndividualNTD ?? false,
+        isStandardMode(config.conditionType) ? config.luotHDCTThreshold : config.luotHDThreshold,
+        config.tvv90MaxMonths, config.tvv90MinIP, buildStructureStartDateMap(structure), config.recruitedAgentScope);
+      return { tier: result.tier, bonus: result.bonus };
+    }
+    const ip = sumContractIP(rows);
+    const activity = isActivityRoundMode(config.conditionType);
+    const value = activity ? calculateLuot(rows, isStandardMode(config.conditionType) ? config.luotHDCTThreshold : config.luotHDThreshold, config.conditionType, config.tvv90MaxMonths, config.tvv90MinIP, buildStructureStartDateMap(structure))
+      : rows.reduce((sum, c) => sum + (config.conditionType.endsWith('afyp') ? c.afyp : c.pdt10DT), 0);
+    const { tier } = activity ? calculateActivityRoundBonusWithTiers(value, tiers) : calculateBonusWithTiers(value, tiers);
+    return { tier, bonus: tier ? computeBonusFromTier(tier, ip, activity ? value : undefined, ip) : 0 };
+  };
+  const first = evaluate(contracts.filter(c => new Date(c.effectiveDate) < boundary), config.bonusTiers);
+  const second = evaluate(contracts.filter(c => new Date(c.effectiveDate) >= boundary), config.bonusTiers2);
+  const passed = evaluateSecondaryConditions(contracts, config, structure).passed;
+  return { phase1Tier: passed ? first.tier : null, phase2Tier: passed ? second.tier : null,
+    phase1Bonus: passed ? first.bonus : 0, phase2Bonus: passed ? second.bonus : 0 };
+}
+
 // ===== Phase 1: filter contracts by dates + secondary per-contract condition =====
 export function filterContractsByContest(
   contracts: Contract[],
@@ -1044,6 +1068,11 @@ export function filterContractsByContest(
     const end = getContestDateBoundary(config.endDate, true);
     results = results.filter((c) => new Date(c.effectiveDate) <= end);
   }
+  // GĐ2's explicit end is an additional upper bound inside the overall contest.
+  if (config.usePhase2 && config.phase2StartDate && config.phase2EndDate) {
+    const end = getContestDateBoundary(config.phase2EndDate, true);
+    results = results.filter(c => new Date(c.effectiveDate) <= end);
+  }
   if (config.issueDate) {
     const issueStart = getContestDateBoundary(config.issueDate);
     results = results.filter((c) => new Date(c.issueDate) >= issueStart);
@@ -1053,7 +1082,7 @@ export function filterContractsByContest(
     const issueEnd = getContestDateBoundary(config.issueEndDate, true);
     results = results.filter((c) => new Date(c.issueDate) <= issueEnd);
   }
-  if (config.useSecondaryCondition) {
+  if (config.useSecondaryCondition && config.conditionType !== 'pass_count_ip_afyp') {
     if ((config.secondaryAFYPMin ?? 0) > 0)
       results = results.filter((c) => c.afyp >= (config.secondaryAFYPMin ?? 0));
     if ((config.secondaryIPMin ?? 0) > 0)
@@ -1121,12 +1150,18 @@ export function filterByEffectiveDateRule(
   });
 }
 
+/** Group controls contain display names; tolerate group codes from older configurations. */
+export function matchesContestGroupFilter(selected: string[], name: string, code: string): boolean {
+  return !selected.length || selected.includes(name || '') || selected.includes(code || '');
+}
+
 export function filterDisplayContracts(
   filteredContracts: Contract[],
   config: ContestConfig,
   staffList: StaffMember[],
   recruiterList: RecruiterMember[],
-  tvvStructList?: { agentCode: string; ngayBatDau: string | null }[]
+  tvvStructList?: { agentCode: string; agentName?: string; ngayBatDau: string | null }[],
+  leadersList?: StaffMember[]
 ): Contract[] {
   const subjectCodes = config.participants;
   const targetType = config.targetType;
@@ -1156,26 +1191,24 @@ export function filterDisplayContracts(
       }
       return contractsNoDSO;
     }
-    return contractsNoDSO.filter(
-      (c) =>
-        subjectCodes.includes(c.agentCode) ||
-        subjectCodes.includes(c.agentName)
-    );
+    const selected = new Set((tvvStructList || []).filter(t => subjectCodes.includes(t.agentCode) || subjectCodes.includes(t.agentName || '')).map(t => t.agentCode));
+    return contractsNoDSO.filter(c => selected.has(c.agentCode));
   }
   if (targetType === 'nhom') {
+    const groupSource = leadersList?.length ? leadersList : staffList;
     const allowedMaNhom = new Set<string>();
     if (subjectCodes.length > 0) {
       for (const code of subjectCodes) {
         const codeLower = norm(code).toLowerCase();
         if (codeLower.includes('dso')) continue;
-        const staff = staffList.find(
+        const staff = groupSource.find(
           (s) => norm(s.nhom || '').toLowerCase() === codeLower
         );
         if (staff?.maNhom) allowedMaNhom.add(staff.maNhom);
         else allowedMaNhom.add(code);
       }
     } else {
-      for (const s of staffList) {
+      for (const s of groupSource) {
         const nhomLower = norm(s.nhom || '').toLowerCase();
         if (
           s.maNhom &&
@@ -1673,6 +1706,7 @@ export function computeTVVTotalRows(
           phase2Tier: p2Res.tier,
         };
       }
+      if (phase2Boundary) tier = phaseInfo.phase1Tier || phaseInfo.phase2Tier;
       return { agent, value, tier, remaining, phaseInfo };
     })
     .sort((a, b) => {
@@ -1848,7 +1882,7 @@ export function computeTVVPerContractRows(
       }
       const secondaryCheck = secondaryFor(c.agentCode);
       const secondaryPassed = secondaryCheck.passed;
-      const effectiveTier = secondaryPassed ? tier : null;
+      const effectiveTier = secondaryPassed ? (phase2Date ? phaseInfo.phase1Tier || phaseInfo.phase2Tier : tier) : null;
       return {
         contract: c,
         cValue,
@@ -1917,37 +1951,16 @@ export function computeContestStats(
         ? calculateActivityRoundBonusWithTiers(value, config.bonusTiers)
         : calculateBonusWithTiers(value, config.bonusTiers);
       const secondaryCheck = evaluateSecondaryConditions(g.contracts, config, tvvStructList);
-      const effectiveTier = secondaryCheck.passed ? tier : null;
+      const phase = usePhase2 && config.phase2StartDate && !isTVVPassCountMode(conditionType)
+        ? calculateEntityPhaseOutcome(g.contracts, config, tvvStructList) : null;
+      const effectiveTier = phase ? phase.phase1Tier || phase.phase2Tier : secondaryCheck.passed ? tier : null;
       if (hideNotAchieved && !effectiveTier) continue;
       filteredCount++;
       if (effectiveTier) {
         achievedCount++;
-        if (usePhase2 && conditionType !== 'pass_count_contracts') {
-          // Phase 2 bonus
-          const p2Start = config.phase2StartDate ? new Date(config.phase2StartDate) : null;
-          if (p2Start) {
-            const p1Contracts = g.contracts.filter((c) => new Date(c.effectiveDate) < p2Start);
-            const p2Contracts = g.contracts.filter((c) => new Date(c.effectiveDate) >= p2Start);
-            const isAFYP = conditionType === 'total_afyp' || conditionType === 'per_contract_afyp';
-            const p1Value = isAFYP ? p1Contracts.reduce((s, c) => s + c.afyp, 0) : p1Contracts.reduce((s, c) => s + c.pdt10DT, 0);
-            const p2Value = isAFYP ? p2Contracts.reduce((s, c) => s + c.afyp, 0) : p2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
-            const p1Res = calculateBonusWithTiers(p1Value, config.bonusTiers);
-            const p2Res = calculateBonusWithTiers(p2Value, config.bonusTiers2);
-            const p1IP = p1Contracts.reduce((s, c) => s + c.pdt10DT, 0);
-            const p2IP = p2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
-            totalBonus += (p1Res.tier ? computeBonusFromTier(p1Res.tier, p1IP, undefined, p1IP) : 0) + (p2Res.tier ? computeBonusFromTier(p2Res.tier, p2IP, undefined, p2IP) : 0);
-          }
-        } else {
-          totalBonus += computeBonusFromTier(
-            effectiveTier,
-            g.totalFYP,
-            (isActivityRoundMode(conditionType) || conditionType === 'pass_count_contracts') ? value : undefined,
-            g.totalFYP
-          );
-        }
-      } else {
-        notAchievedCount++;
-      }
+        totalBonus += phase ? phase.phase1Bonus + phase.phase2Bonus : computeBonusFromTier(effectiveTier, g.totalFYP,
+          (isActivityRoundMode(conditionType) || isTVVPassCountMode(conditionType)) ? value : undefined, g.totalFYP);
+      } else notAchievedCount++;
     }
   } else if (isPerContractMode(conditionType) && targetType === 'tvv') {
     for (const row of tvvPerContractRows) {
@@ -1982,7 +1995,7 @@ export function computeContestStats(
           totalBonus += row.phaseInfo.phase1Bonus + row.phaseInfo.phase2Bonus;
         } else {
           const totalAgentIP = agentContracts.reduce((sum, contract) => sum + contract.pdt10DT, 0);
-          totalBonus += computeBonusFromTier(effectiveTier, totalAgentIP, undefined, totalAgentIP);
+          totalBonus += computeBonusFromTier(effectiveTier, totalAgentIP, isActivityRoundMode(conditionType) ? row.value : undefined, totalAgentIP);
         }
       } else {
         notAchievedCount++;
@@ -2278,7 +2291,8 @@ export function computeNYDResultRows(
       const entityContracts = getNYDContributingContracts(n.contracts, n.nydCode, includeIndividualNTD, config.recruitedAgentScope, buildStructureStartDateMap(tvvStructList));
       const secondaryCheck = evaluateSecondaryConditions(entityContracts, config, tvvStructList);
       const secondaryPassed = secondaryCheck.passed;
-      const effectiveTier = secondaryPassed ? tier : null;
+      const phase = config.usePhase2 && config.phase2StartDate ? calculateEntityPhaseOutcome(entityContracts, config, tvvStructList, n.nydCode) : null;
+      const effectiveTier = phase ? phase.phase1Tier || phase.phase2Tier : secondaryPassed ? tier : null;
       return { nyd: n, value, tier, tierIndex, remaining, secondaryCheck, secondaryPassed, effectiveTier };
     })
     .sort((a, b) => b.value - a.value);

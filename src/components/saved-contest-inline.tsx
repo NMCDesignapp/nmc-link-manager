@@ -48,6 +48,7 @@ import {
   parseContestConfig,
   filterContractsByContest,
   filterDisplayContracts,
+  matchesContestGroupFilter,
   computeGroupedData,
   computeTVVTotalRows,
   computeTVVPerContractRows,
@@ -59,6 +60,7 @@ import {
   getGroupTVVAgentCodes,
   getReferenceContestPassingAgentCodes,
   getGroupTVVPassCountIPAFYP,
+  calculateEntityPhaseOutcome,
   calculateNYDPhaseOutcome,
   calculateBonusWithTiers,
   getRemainingToNextTier,
@@ -143,7 +145,14 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   // Data from app context (cast to typed arrays)
   const allContracts = useMemo(() => [...(appData.contracts || []), ...(appData.carryoverContracts || [])] as Contract[], [appData.contracts, appData.carryoverContracts]);
   const staffList = (appData.staff || []) as StaffMember[];
-  const recruiterList = (appData.recruiters || []) as RecruiterMember[];
+  const recruiterList = useMemo(() => {
+    const map = new Map<string, RecruiterMember>();
+    for (const r of (appData.recruiters || []) as RecruiterMember[]) map.set(r.agentCode, r);
+    for (const l of appData.leaders || []) if (l.agentCode && !map.has(l.agentCode)) map.set(l.agentCode, {
+      ...l, startDate: l.startDate || l.ngayBatDau || null, position: l.position || l.chucVu || '',
+    } as RecruiterMember);
+    return [...map.values()];
+  }, [appData.recruiters, appData.leaders]);
   // DS TVV (Cấu trúc) — cần cho filterByEffectiveDate mode và TopN mode
   const tvvStructList = (appData.structureTvv || []) as TVVStructMember[];
   const structureStartDates = useMemo(
@@ -225,8 +234,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
 
   // Step 2: filter by target (TVV / Nhóm / NTD) — pass tvvStructList for filterByEffectiveDate
   const displayContracts = useMemo(
-    () => filterDisplayContracts(filteredContracts, config, staffList, recruiterList, tvvStructList),
-    [filteredContracts, config, staffList, recruiterList, tvvStructList]
+    () => filterDisplayContracts(filteredContracts, config, staffList, recruiterList, tvvStructList, leadersList),
+    [filteredContracts, config, staffList, recruiterList, tvvStructList, leadersList]
   );
 
   // Step 3: compute groupedData / tvvTotalRows / tvvPerContractRows / nydData
@@ -317,7 +326,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     if (config.targetType === 'tvv' && isPerContractMode(config.conditionType)) {
       for (const row of tvvPerContractRows) {
         const agentRows = displayContracts.filter(contract => contract.agentCode === row.contract.agentCode);
-        candidates.push({ key: `contract:${row.contract.id}`, value: row.cValue, qualified: Boolean(row.tier) && passesSecondaryConditions(agentRows) && passesTopEligibility(agentRows, row.contract) });
+        candidates.push({ key: `contract:${row.contract.id}`, value: row.cValue, qualified: Boolean(row.effectiveTier) && passesSecondaryConditions(agentRows) && passesTopEligibility(agentRows, row.contract) });
       }
     } else if (config.targetType === 'tvv') {
       for (const row of tvvTotalRows) {
@@ -327,13 +336,14 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     } else if (config.targetType === 'nhom') {
       for (const group of groupedData) {
         const value = config.conditionType === 'total_afyp' || config.conditionType === 'per_contract_afyp' ? group.totalAFYP : group.totalFYP;
-        const tier = calculateBonusWithTiers(value, config.bonusTiers).tier;
+        const phase = config.usePhase2 && config.phase2StartDate ? calculateEntityPhaseOutcome(group.contracts, config, tvvStructList) : null;
+        const tier = phase ? phase.phase1Tier || phase.phase2Tier : calculateBonusWithTiers(value, config.bonusTiers).tier;
         candidates.push({ key: `nhom:${group.maNhom}`, value, qualified: Boolean(tier) && passesSecondaryConditions(group.contracts || []) && passesTopEligibility(group.contracts || []) });
       }
     } else if (config.targetType === 'nyd') {
       for (const row of nydResultRows) {
         const personRows = getNYDContributingContracts(row.nyd.contracts, row.nyd.nydCode, config.includeIndividualNTD, config.recruitedAgentScope, structureStartDates);
-        candidates.push({ key: `nyd:${row.nyd.nydCode}`, value: row.value, qualified: Boolean(row.tier) && passesSecondaryConditions(personRows) && passesTopEligibility(personRows) });
+        candidates.push({ key: `nyd:${row.nyd.nydCode}`, value: row.value, qualified: Boolean(row.effectiveTier) && passesSecondaryConditions(personRows) && passesTopEligibility(personRows) });
       }
     }
     return buildCombinedTopRanking(candidates, config.topN ?? 3, config.topRewardAmounts || []);
@@ -609,7 +619,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     const filteredRows = tvvPerContractRows.filter((row) => {
       if (hideNotAchieved && !row.effectiveTier) return false;
       if (!row.contract.nhom && !row.contract.maNhom) return false;
-      if (nhomFilter.length > 0 && !nhomFilter.includes(row.contract.nhom !== nhomFilter && row.contract.maNhom || '')) return false;
+      if (!matchesContestGroupFilter(nhomFilter, row.contract.nhom, row.contract.maNhom)) return false;
       if (q && !((row.contract.agentName || '').toLowerCase().includes(q) || (row.contract.agentCode || '').toLowerCase().includes(q))) return false;
       return true;
     });
@@ -727,7 +737,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       const secondaryPassed = evaluateSecondaryConditions(entityContracts, config, tvvStructList).passed;
       if (hideNotAchieved && (!row.tier || !secondaryPassed)) return false;
       if (!row.agent.nhom && !row.agent.maNhom) return false;
-      if (nhomFilter.length > 0 && !nhomFilter.includes(row.agent.nhom !== nhomFilter && row.agent.maNhom || '')) return false;
+      if (!matchesContestGroupFilter(nhomFilter, row.agent.nhom, row.agent.maNhom)) return false;
       if (q && !((row.agent.agentName || '').toLowerCase().includes(q) || (row.agent.agentCode || '').toLowerCase().includes(q))) return false;
       return true;
     });
@@ -864,30 +874,10 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
         const secondaryCheck = evaluateSecondaryConditions(g.contracts, config, tvvStructList);
         const { totalAFYP, totalIP } = secondaryCheck;
         const secondaryPassed = secondaryCheck.passed;
-        const effectiveTier = secondaryPassed ? tier : null;
-        // Phase 2 split — chỉ áp dụng cho non-pass-count modes (pass count dùng giá trị đếm được, không chia phase)
-        let phase1Bonus = 0, phase2Bonus = 0;
-        if (usePhase2 && config.phase2StartDate && !isPassCountIPAFYP && !isPassCount) {
-          const p2Start = new Date(config.phase2StartDate);
-          const p1Contracts = g.contracts.filter((c) => new Date(c.effectiveDate) < p2Start);
-          const p2Contracts = g.contracts.filter((c) => new Date(c.effectiveDate) >= p2Start);
-          if (isActivity) {
-            const p1Rounds = calculateLuot(p1Contracts, isStandardMode(config.conditionType) ? config.luotHDCTThreshold : config.luotHDThreshold, config.conditionType, config.tvv90MaxMonths, config.tvv90MinIP, structureStartDates);
-            const p2Rounds = calculateLuot(p2Contracts, isStandardMode(config.conditionType) ? config.luotHDCTThreshold : config.luotHDThreshold, config.conditionType, config.tvv90MaxMonths, config.tvv90MinIP, structureStartDates);
-            const p1Res = calculateActivityRoundBonusWithTiers(p1Rounds, config.bonusTiers);
-            const p2Res = calculateActivityRoundBonusWithTiers(p2Rounds, config.bonusTiers2);
-            phase1Bonus = p1Res.tier ? computeBonusFromTier(p1Res.tier, p1Contracts.reduce((s, c) => s + c.pdt10DT, 0), p1Rounds) : 0;
-            phase2Bonus = p2Res.tier ? computeBonusFromTier(p2Res.tier, p2Contracts.reduce((s, c) => s + c.pdt10DT, 0), p2Rounds) : 0;
-          } else {
-            const isAFYPLocal = config.conditionType === 'total_afyp' || config.conditionType === 'per_contract_afyp';
-            const p1Value = isAFYPLocal ? p1Contracts.reduce((s, c) => s + c.afyp, 0) : p1Contracts.reduce((s, c) => s + c.pdt10DT, 0);
-            const p2Value = isAFYPLocal ? p2Contracts.reduce((s, c) => s + c.afyp, 0) : p2Contracts.reduce((s, c) => s + c.pdt10DT, 0);
-            const p1Res = calculateBonusWithTiers(p1Value, config.bonusTiers);
-            const p2Res = calculateBonusWithTiers(p2Value, config.bonusTiers2);
-            phase1Bonus = p1Res.tier ? computeBonusFromContracts(p1Res.tier, p1Contracts) : 0;
-            phase2Bonus = p2Res.tier ? computeBonusFromContracts(p2Res.tier, p2Contracts) : 0;
-          }
-        }
+        const phase = usePhase2 && config.phase2StartDate && !isPassCount
+          ? calculateEntityPhaseOutcome(g.contracts, config, tvvStructList) : null;
+        const effectiveTier = phase ? phase.phase1Tier || phase.phase2Tier : secondaryPassed ? tier : null;
+        const phase1Bonus = phase?.phase1Bonus || 0, phase2Bonus = phase?.phase2Bonus || 0;
         return { g, value, tier, effectiveTier, secondaryCheck, secondaryPassed, totalAFYP, totalIP, phase1Bonus, phase2Bonus };
       })
       .filter((row) => {

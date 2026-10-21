@@ -91,7 +91,9 @@ function exportRows(includeOwn = false, usePhase2 = false, conditionType = 'acti
     perContractDisplayContracts: scoped, displayContracts: scoped, groupedData: [], tvvTotalRows: [],
     nydData: [{ nydCode: 'NTD1', nydName: 'NTD test', nhom: 'N1', position: 'TTN',
       recruitCount: 3, recruitFYP: 47_500_000, ownFYP: 14_000_000, ownActivityRounds: 1, contracts: scoped }],
-    showSecondaryTotalColumn: false, showSecondaryRoundColumn: false,
+    recruitmentRows: [], showSecondaryTotalColumn: false, showSecondaryRoundColumn: false,
+    showSecondaryAFYPValueColumn: false, showSecondaryIPValueColumn: false, showSecondaryContractCountColumn: false,
+    secondaryContractCountMin: 0, secondaryContractIPMin: 0, secondaryLuotHDMin: 0, secondaryLuotHDCMin: 0,
     secondaryTotalAFYPMin: 0, secondaryTotalIPMin: 0,
     filterByEffectiveDate: false, targetType: 'nyd', ntdCandidates: [], conditionType,
     luotHDCTThreshold: 12_000_000, luotHDThreshold: 3_000_000,
@@ -100,6 +102,7 @@ function exportRows(includeOwn = false, usePhase2 = false, conditionType = 'acti
     showRateColumn: false, usePhase2, phase2StartDate: new Date().toISOString(),
     bonusTiers: tiers, bonusTiers2: tiers,
     calculateBonus: (value: number) => calculator.calculateActivityRoundBonusWithTiers(value, tiers),
+    getCombinedTopNote: () => '',
     checkSecondaryTotalCondition: () => ({ passed: true }),
     formatBonusAmount: (_tier: unknown, _value: number, rounds: number) => rounds * 100_000,
     toast: () => { throw new Error('unexpected empty export'); },
@@ -113,7 +116,7 @@ test('actual NTD export includes four contracts, one subtotal per TVVm, unchange
   assert.equal(rows.length, 4);
   assert.deepEqual(rows.map((r: unknown[]) => r[col('Số hợp đồng')]), ['A1', 'B1', 'C1', 'C2']);
   assert.equal(rows[0][col('Tổng cộng')], 3);
-  assert.equal(rows[0][col('Thưởng')], 300_000);
+  assert.equal(rows[0][col('Thưởng')], calculator.formatCurrency(300_000));
   assert.equal(rows[2][col('Tổng IP TVV trong kỳ')], 13_000_000);
   assert.equal(rows[3][col('Tổng IP TVV trong kỳ')], '');
   assert.ok(rows.every((r: unknown[]) => r.length === headers.length));
@@ -134,7 +137,7 @@ test('own-contribution toggle, phases and standard NTD export retain calculation
   const own = exportRows(true);
   assert.equal(own.rows.length, 5);
   assert.equal(own.rows[0][own.headers.indexOf('Tổng cộng')], 4);
-  assert.equal(own.rows[0][own.headers.indexOf('Thưởng')], 400_000);
+  assert.equal(own.rows[0][own.headers.indexOf('Thưởng')], calculator.formatCurrency(400_000));
 
   const phase = exportRows(false, true);
   assert.equal(phase.rows.length, 4);
@@ -145,9 +148,10 @@ test('own-contribution toggle, phases and standard NTD export retain calculation
   assert.equal(standard.rows.length, 4);
   assert.deepEqual(standard.rows.map((r: unknown[]) => r[contractCol]), ['A1', 'B1', 'C1', 'C2']);
   assert.equal(standard.rows[0][standard.headers.indexOf('Tổng cộng')], 3);
-  assert.equal(standard.rows[0][standard.headers.indexOf('Thưởng')], 300_000);
+  assert.equal(standard.rows[0][standard.headers.indexOf('Thưởng')], calculator.formatCurrency(300_000));
   assert.ok(!standard.headers.includes('Mã TVV'));
   assert.ok(!standard.headers.includes('Tổng IP TVV trong kỳ'));
   assert.ok(!standard.headers.includes('Lượt TVVm'));
   assert.ok(standard.rows.every((r: unknown[]) => r.length === standard.headers.length));
 });
+
