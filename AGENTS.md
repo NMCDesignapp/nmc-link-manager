@@ -137,6 +137,8 @@ Data Hub dùng kiểu mirror/replace cho nhiều nguồn. Không chuyển thành
 
 ### Thi đua
 
+- Mỗi mã TVV chỉ tính tối đa 1 lượt hoạt động trong toàn kỳ xét của chương trình, kể cả HĐ tồn và hai giai đoạn. HĐ đủ chuẩn sớm nhất nhận lượt; chuẩn hóa mã trim/uppercase, không đếm mã rỗng. IP/AFYP vẫn cộng các HĐ hợp lệ.
+
 - Kết quả phải có toàn bộ TVV đủ điều kiện, kể cả chưa có doanh số/0 doanh số, trừ khi bật “ẩn TVV chưa đạt”.
 - TVV PA có kết quả 0 phải xếp sau TVV không phải PA có kết quả 0.
 - Mã cấu trúc PA thực tế đã có trường hợp `U104101014`; đừng suy đoán PA chỉ từ nhãn hiển thị.
