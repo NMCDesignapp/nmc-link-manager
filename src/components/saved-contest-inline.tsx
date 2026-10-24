@@ -1203,7 +1203,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     </div>
   );
 
-  if (config.registeredProgram) return <RegisteredTargetResults program={config.registeredProgram} contracts={allContracts} config={config} title={config.title} posterUrl={posterUrl} structure={tvvStructList} />;
+  if (config.registeredProgram) return <RegisteredTargetResults program={config.registeredProgram} contracts={allContracts} config={config} title={config.title} posterUrl={posterUrl} structure={tvvStructList} leaders={leadersList} />;
 
   return (
     <div className="flex flex-col h-full gap-2" data-saoviet-table={`saved-${config.id}`} data-nmc-kpi-detail-shell="saved-contest">

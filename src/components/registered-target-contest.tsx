@@ -1,7 +1,7 @@
 'use client';
 import React, { useMemo, useState } from 'react';
 import { type RegisteredProgram, parseTargetSheet } from '@/lib/contest-registered-targets';
-import { computeRegisteredResults, registeredExportRows, type RegisteredResult } from '@/lib/contest-registered-results';
+import { computeRegisteredResults, registeredExportRows, registeredGroupLeader, type RegisteredLeader, type RegisteredResult } from '@/lib/contest-registered-results';
 import { type ContestConfig, type Contract } from '@/lib/contest-calculator';
 const number = (v: number) => v.toLocaleString('vi-VN', {maximumFractionDigits: 0});
 export async function exportRegisteredTargets(rows: RegisteredResult[], program: RegisteredProgram, title: string) {
@@ -12,7 +12,7 @@ export async function exportRegisteredTargets(rows: RegisteredResult[], program:
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, sheet, 'Ket qua');
   XLSX.writeFile(wb, `${title.replace(/[\\/:*?"<>|]/g, '_') || 'Muc_tieu_dang_ky'}.xlsx`);
 }
-export function RegisteredTargetSetup({value,onChange}:{value: RegisteredProgram;onChange:(p: RegisteredProgram)=>void}) {
+export function RegisteredTargetSetup({value,onChange,leaders=[]}:{value: RegisteredProgram;onChange:(p: RegisteredProgram)=>void;leaders?:RegisteredLeader[]}) {
   const [message,setMessage] = useState(''); const [busy,setBusy] = useState(false);
   const change = (patch: Partial<RegisteredProgram>) => onChange({...value,...patch});
   const input = 'rounded border border-emerald-500/40 bg-slate-900 text-white p-2 min-w-0 w-full';
@@ -33,7 +33,7 @@ export function RegisteredTargetSetup({value,onChange}:{value: RegisteredProgram
       <span>{value.rows.length} đối tượng</span>
     </div>
     {message&&<p role="status" className="text-amber-200">{message}</p>}
-    {value.rows.length>0&&<div className="max-h-48 overflow-auto rounded border border-emerald-500/30"><table className="w-full text-xs"><thead><tr>{['STT','Nhóm','Mã số','Họ tên TVV','Chức vụ','Mục tiêu (đ)'].map(h=><th key={h} className="p-2 text-left">{h}</th>)}</tr></thead><tbody>{value.rows.slice(0,50).map(r=><tr key={r.code}><td className="p-2">{r.stt}</td><td>{r.group}</td><td>{r.code}</td><td>{r.name}</td><td>{r.position}</td><td className="text-right pr-2">{number(r.target)} đ</td></tr>)}</tbody></table></div>}
+    {value.rows.length>0&&<div className="max-h-48 overflow-auto rounded border border-emerald-500/30"><table className="w-full text-xs"><thead><tr>{['STT','Nhóm',value.scope==='nhom'?'Mã TN':'Mã TVV',value.scope==='nhom'?'Họ tên TN':'Họ tên TVV','Chức vụ','Mục tiêu (đ)'].map(h=><th key={h} className="p-2 text-left">{h}</th>)}</tr></thead><tbody>{value.rows.slice(0,50).map(r=>{const leader=value.scope==='nhom'?registeredGroupLeader(r.code,leaders):null;return <tr key={r.code}><td className="p-2">{r.stt}</td><td>{r.group}</td><td>{value.scope==='nhom'?(leader?.agentCode||'—'):r.code}</td><td>{value.scope==='nhom'?(leader?.agentName||'Chưa có TN trong Cấu trúc'):r.name}</td><td>{value.scope==='nhom'?(leader?.chucVu||leader?.position||'—'):r.position}</td><td className="text-right pr-2">{number(r.target)} đ</td></tr>})}</tbody></table></div>}
     <div className="grid sm:grid-cols-2 gap-3"><label>Chỉ tính HĐ có IP từ (đ)<input aria-label="IP mỗi HĐ từ (đ)" className={input} type="number" min="0" value={value.minIP} onChange={e=>change({minIP:numeric(e.target.value)})}/></label><label>Chỉ tính HĐ có AFYP từ (đ)<input aria-label="AFYP mỗi HĐ từ (đ)" className={input} type="number" min="0" value={value.minAFYP} onChange={e=>change({minAFYP:numeric(e.target.value)})}/></label></div>
     <p className="font-bold">Mức thưởng theo tỷ lệ hoàn thành mục tiêu (%)</p><p className="text-xs">Chọn mức cao nhất đã đạt, không cộng dồn các mức. So sánh trên số thực tế, trước khi làm tròn.</p>
     {value.tiers.map((t,i)=><div key={t.id} className="grid grid-cols-2 sm:grid-cols-4 gap-2 rounded border border-emerald-500/30 p-2">
@@ -46,11 +46,11 @@ export function RegisteredTargetSetup({value,onChange}:{value: RegisteredProgram
     <label className="flex gap-2"><input type="checkbox" checked={value.hideNotAchieved} onChange={e=>change({hideNotAchieved:e.target.checked})}/>Ẩn đối tượng chưa đạt</label>
   </section>;
 }
-export function RegisteredTargetResults({program,contracts,config,title,posterUrl='',structure=[]}:{program:RegisteredProgram;contracts:Contract[];config:ContestConfig;title:string;posterUrl?:string;structure?:{agentCode:string;maBanNhom?:string}[]}) {
+export function RegisteredTargetResults({program,contracts,config,title,posterUrl='',structure=[],leaders=[]}:{program:RegisteredProgram;contracts:Contract[];config:ContestConfig;title:string;posterUrl?:string;structure?:{agentCode:string;maBanNhom?:string}[];leaders?:RegisteredLeader[]}) {
   const [page,setPage]=useState(0);
   const [query,setQuery]=useState(''); const [error,setError]=useState('');
-  const all=useMemo(()=>computeRegisteredResults(contracts,config,program,structure),[contracts,config,program,structure]);
-  const rows=all.filter(r=>(!program.hideNotAchieved||r.tier)&&`${r.group} ${r.code} ${r.name}`.toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi')));
+  const all=useMemo(()=>computeRegisteredResults(contracts,config,program,structure,leaders),[contracts,config,program,structure,leaders]);
+  const rows=all.filter(r=>(!program.hideNotAchieved||r.tier)&&`${r.group} ${program.scope==='nhom'?r.leaderCode:r.code} ${program.scope==='nhom'?r.leaderName:r.name}`.toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi')));
   const currentPage=Math.min(page,Math.max(0,Math.ceil(rows.length/100)-1));
   const visibleRows=rows.slice(currentPage*100,(currentPage+1)*100);
   return <section className="bg-white text-slate-800" data-registered-target-results>
@@ -58,7 +58,7 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
     {posterUrl&&<img src={posterUrl} alt={title} className="max-h-64 w-full object-contain"/>}
     <div className="p-2 flex gap-2 flex-wrap"><input aria-label="Tìm đối tượng đăng ký" placeholder="Tìm nhóm, mã, họ tên" className="p-2 border rounded text-slate-900" value={query} onChange={e=>{setQuery(e.target.value);setPage(0);}}/><button type="button" className="border rounded px-3" onClick={()=>{void exportRegisteredTargets(rows,program,title).catch(e=>setError(String(e)));}}>Tải Excel kết quả</button></div>
     {error&&<p role="alert">{error}</p>}
-    <div className="overflow-auto"><table className="w-full text-xs border-collapse"><thead className="bg-emerald-900 text-yellow-100"><tr>{registeredExportRows([],program)[0].map((h,i)=><th key={i} className="p-2 border border-emerald-700 whitespace-nowrap">{h}</th>)}</tr></thead><tbody>{visibleRows.map(r=><tr key={r.code} className="border-b-2 border-slate-300">{[r.stt,r.group,r.code,r.name,r.position,`${number(r.target)} đ`,`${number(r.actual)} đ`,`${r.percent.toLocaleString('vi-VN',{maximumFractionDigits:2})}%`,`${number(r.bonus)} đ`,r.tier?.type==='gift'?r.tier.text:r.tier?'Đạt':`Chưa đạt · còn ${number(Math.max(0,Math.min(...program.tiers.map(t=>r.target*t.minPercent/100))-r.actual))} đ`].map((v,i)=><td key={i} className={`p-2 whitespace-nowrap ${i>=5?'text-center':''} ${i===9?(r.tier?'font-bold text-emerald-700':'italic text-red-600'):''}`}>{v}</td>)}</tr>)}</tbody></table></div>
+    <div className="overflow-auto"><table className="w-full text-xs border-collapse"><thead className="bg-emerald-900 text-yellow-100"><tr>{registeredExportRows([],program)[0].map((h,i)=><th key={i} className="p-2 border border-emerald-700 whitespace-nowrap">{h}</th>)}</tr></thead><tbody>{visibleRows.map(r=><tr key={r.code} className="border-b-2 border-slate-300">{[r.stt,r.group,program.scope==='nhom'?(r.leaderCode||'—'):r.code,program.scope==='nhom'?(r.leaderName||'Chưa có TN trong Cấu trúc'):r.name,program.scope==='nhom'?(r.leaderPosition||'—'):r.position,`${number(r.target)} đ`,`${number(r.actual)} đ`,`${r.percent.toLocaleString('vi-VN',{maximumFractionDigits:2})}%`,`${number(r.bonus)} đ`,r.tier?.type==='gift'?r.tier.text:r.tier?'Đạt':`Chưa đạt · còn ${number(Math.max(0,Math.min(...program.tiers.map(t=>r.target*t.minPercent/100))-r.actual))} đ`].map((v,i)=><td key={i} className={`p-2 whitespace-nowrap ${i>=5?'text-center':''} ${i===9?(r.tier?'font-bold text-emerald-700':'italic text-red-600'):''}`}>{v}</td>)}</tr>)}</tbody></table></div>
     {rows.length>100&&<div className="p-2 flex justify-center gap-3"><button type="button" disabled={currentPage===0} onClick={()=>setPage(currentPage-1)}>Trước</button><span>Trang {currentPage+1}/{Math.ceil(rows.length/100)} · {rows.length} đối tượng</span><button type="button" disabled={(currentPage+1)*100>=rows.length} onClick={()=>setPage(currentPage+1)}>Sau</button></div>}
     {!rows.length&&<p className="p-4 text-center">Chưa có đối tượng phù hợp.</p>}
     <p className="p-3 font-semibold border-t bg-emerald-50">Tổng đối tượng: {all.length} · Đạt: {all.filter(r=>r.tier).length} · Tổng mục tiêu: {number(all.reduce((s,r)=>s+r.target,0))} đ · Thực hiện: {number(all.reduce((s,r)=>s+r.actual,0))} đ · Tổng thưởng: {number(all.reduce((s,r)=>s+r.bonus,0))} đ</p>

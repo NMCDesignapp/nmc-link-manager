@@ -52,3 +52,20 @@ test('Excel columns retain exact numbers in đồng and gift rewards',()=>{
  const rows=computeRegisteredResults([contract('a','001',10_000_000)],cfg(),p);const data=registeredExportRows(rows,p);
  assert.equal(data[1][5],10_000_000);assert.equal(data[1][6],10_000_000);assert.equal(data[1][9],'Demo Gift');assert.equal(rows[0].bonus,0);
 });
+test('group exports show TN identity and never expose the internal group code',()=>{
+ const p={...program(),scope:'nhom' as const,rows:[{...program().rows[0],code:'GROUP-INTERNAL'}]};
+ const leaders=[{agentCode:'LEADER-A',agentName:'TN mẫu',maBanNhom:'GROUP-INTERNAL',chucVu:'Trưởng nhóm'}];
+ const results=computeRegisteredResults([contract('g','001',10_000_000,{maNhom:'GROUP-INTERNAL'})],cfg(),p,[],leaders);
+ assert.equal(results[0].actual,10_000_000);assert.equal(results[0].leaderCode,'LEADER-A');
+ const out=registeredExportRows(results,p);assert.equal(out[0][2],'Mã TN');assert.equal(out[0][3],'Họ tên TN');assert.equal(out[1][2],'LEADER-A');assert.equal(out[1][3],'TN mẫu');assert.ok(!JSON.stringify(out).includes('GROUP-INTERNAL'));
+});
+test('group chooses the TN instead of TB in the same group',()=>{
+ const p={...program(),scope:'nhom' as const,rows:[{...program().rows[0],code:'G01'}]};
+ const leaders=[{agentCode:'TB',agentName:'TB mẫu',maNhom:'G01',position:'Trưởng ban'},{agentCode:'TN',agentName:'TN mẫu',maNhom:'G01',position:'Trưởng nhóm'}];
+ assert.equal(computeRegisteredResults([],cfg(),p,[],leaders)[0].leaderCode,'TN');
+});
+test('missing/ambiguous TN never falls back to displaying group code as a person code',()=>{
+ const p={...program(),scope:'nhom' as const,rows:[{...program().rows[0],code:'GROUP-INTERNAL'}]};
+ const out=registeredExportRows(computeRegisteredResults([],cfg(),p),p);
+ assert.equal(out[1][2],'—');assert.ok(!JSON.stringify(out).includes('GROUP-INTERNAL'));
+});

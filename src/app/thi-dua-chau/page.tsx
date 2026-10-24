@@ -1031,7 +1031,7 @@ function ThiDuaPageInner() {
   // ===== AppDataContext: đọc dữ liệu đã preload khi app mở =====
   const { data: appData, dataVersion, reload: reloadAppData } = useAppData();
   const registeredContracts = useMemo(() => [...contracts, ...(appData.carryoverContracts || [])], [contracts, appData.carryoverContracts]);
-  const registeredResultProps = registeredProgram ? { program: registeredProgram, contracts: registeredContracts, config: registeredConfig, title: contestTitle, structure: tvvStructList } : null;
+  const registeredResultProps = registeredProgram ? { program: registeredProgram, contracts: registeredContracts, config: registeredConfig, title: contestTitle, structure: tvvStructList, leaders: leadersList } : null;
 
   // Sync từ context → local state. Chỉ chạy khi dataVersion đổi (tức là context vừa load xong).
   // QUAN TRỌNG: tvvStructList + leadersList cũng sync từ context → tự động cập nhật khi
@@ -2351,7 +2351,7 @@ function ThiDuaPageInner() {
   };
 
   const handleCopyText = () => {
-    if (registeredProgram) { void navigator.clipboard.writeText(registeredExportRows(computeRegisteredResults(registeredContracts,registeredConfig,registeredProgram,tvvStructList),registeredProgram).map(r=>r.join('\t')).join('\n')); return; }
+    if (registeredProgram) { void navigator.clipboard.writeText(registeredExportRows(computeRegisteredResults(registeredContracts,registeredConfig,registeredProgram,tvvStructList,leadersList),registeredProgram).map(r=>r.join('\t')).join('\n')); return; }
     if (perContractDisplayContracts.length === 0 && nydData.length === 0 && recruitmentRows.length === 0 && tvvTotalRows.length === 0 && groupedData.length === 0) return;
     const sTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
     let text = `🏆 ${contestTitle}\n📅 Từ ${startDate ? formatDate(startDate) : '...'} đến ${(phase2EndDate || endDate) ? formatDate(phase2EndDate || endDate) : '...'}\n🎯 ${getTargetLabel(targetType)}\n━━━━━━━━━━━━━━━━━━━━\n📊 Mức thưởng:\n`;
@@ -2443,7 +2443,7 @@ function ThiDuaPageInner() {
 
   const handleExport = async () => {
     try {
-    if (registeredProgram) { await exportRegisteredTargets(computeRegisteredResults(registeredContracts, registeredConfig, registeredProgram, tvvStructList), registeredProgram, contestTitle); return; }
+    if (registeredProgram) { await exportRegisteredTargets(computeRegisteredResults(registeredContracts, registeredConfig, registeredProgram, tvvStructList, leadersList), registeredProgram, contestTitle); return; }
     if (perContractDisplayContracts.length === 0 && nydData.length === 0 && recruitmentRows.length === 0 && groupedData.length === 0 && tvvTotalRows.length === 0) { toast({ title: 'Thông báo', description: 'Không có dữ liệu' }); return; }
     let headers: string[];
     let rows: (string | number)[][];
@@ -4161,7 +4161,7 @@ function ThiDuaPageInner() {
             </button>
           </CardHeader>
           <CardContent className="px-4 pb-4 space-y-3" style={{ display: showConfig ? 'block' : 'none' }}>
-              {registeredProgram ? <RegisteredTargetSetup value={registeredProgram} onChange={setRegisteredProgram} /> : <>
+              {registeredProgram ? <RegisteredTargetSetup value={registeredProgram} onChange={setRegisteredProgram} leaders={leadersList} /> : <>
               <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2">
                 <p className="text-[11px] font-extrabold uppercase tracking-wide text-amber-200">{contestKindMeta.title}</p>
                 <p className="mt-0.5 text-[10px] leading-4 text-amber-100/70">{contestKindMeta.detail}</p>
