@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as XLSX from 'xlsx';
-import { parseTargetSheet, defaultRegisteredProgram, decodeRegisteredProgram } from '../src/lib/contest-registered-targets.ts';
+import { parseTargetSheet, defaultRegisteredProgram, decodeRegisteredProgram, type RegisteredProgram } from '../src/lib/contest-registered-targets.ts';
 import { computeRegisteredResults, registeredExportRows } from '../src/lib/contest-registered-results.ts';
 import { parseContestConfig, type Contract } from '../src/lib/contest-calculator.ts';
-const heads=['STT','Nhóm','Mã số','Họ tên TVV','Chức vụ','Mục tiêu đăng ký'];
-const sample=[[1,'Demo','001','Người A','TVV','10.000.000'],[2,'Demo','002','Người B','TVV',20_000_000]];
-const program=()=>({...defaultRegisteredProgram(),rows:parseTargetSheet([heads,...sample]),tiers:[{id:'100',minPercent:100,type:'money' as const,amount:100_000,text:''},{id:'120',minPercent:120,type:'money' as const,amount:200_000,text:''}]});
+const heads=['STT','Nhóm','Mã số','Họ tên TVV','Chức vụ','Mục tiêu đăng ký','Phân loại'];
+const sample=[[1,'Demo','001','Người A','TVV','10.000.000',1],[2,'Demo','002','Người B','TVV',20_000_000,1]];
+const program=(): RegisteredProgram=>({...defaultRegisteredProgram(),rows:parseTargetSheet([heads,...sample]),tiers:[{id:'100',minPercent:100,type:'money' as const,amount:100_000,text:''},{id:'120',minPercent:120,type:'money' as const,amount:200_000,text:''}]});
 const cfg=()=>parseContestConfig({startDate:'2026-10-01',endDate:'2026-10-31',conditionType:'total_ip',targetType:'tvv'});
 const contract=(id:string,agentCode:string,ip:number,extra={})=>({id,contractNumber:id,agentCode,agentName:'Tên trên doanh số khác file',maNhom:'G01',effectiveDate:'2026-10-10',issueDate:'2026-10-11',pdt10DT:ip,afyp:ip*2,...extra}) as Contract;
 test('real XLSX roundtrip preserves text codes, exact đồng and file order',()=>{
@@ -68,4 +68,32 @@ test('missing/ambiguous TN never falls back to displaying group code as a person
  const p={...program(),scope:'nhom' as const,rows:[{...program().rows[0],code:'GROUP-INTERNAL'}]};
  const out=registeredExportRows(computeRegisteredResults([],cfg(),p),p);
  assert.equal(out[1][2],'—');assert.ok(!JSON.stringify(out).includes('GROUP-INTERNAL'));
+});
+test('classification is mandatory in new files and accepts only 1, 2, 3',()=>{
+ for(const value of ['',0,4,1.5,'Nhóm 1']) assert.throws(()=>parseTargetSheet([heads,[1,'Demo','A','Người A','TVV',100,value]]),/Phân loại/);
+ assert.throws(()=>parseTargetSheet([heads.slice(0,-1),sample[0].slice(0,-1)]),/Phân loại/);
+ for(const value of [1,2,3]) assert.equal(parseTargetSheet([heads,[1,'Demo','A','Người A','TVV',100,value]])[0].classification,value);
+});
+test('each classification has independent money, gift and percentage rewards at the same completion',()=>{
+ const p=program();p.rows=[1,2,3].map(n=>({...p.rows[0],code:`A${n}`,classification:n as 1|2|3}));
+ p.tiers=[{id:'a',classification:1,minPercent:100,type:'money',amount:123,text:''},{id:'b',classification:2,minPercent:100,type:'gift',amount:0,text:'Quà nhóm 2'},{id:'c',classification:3,minPercent:100,type:'percent_ip',amount:10,text:''}];
+ const saved=decodeRegisteredProgram(JSON.stringify(p))!;
+ const rows=computeRegisteredResults([1,2,3].map(n=>contract(String(n),`A${n}`,10_000_000)),cfg(),saved);
+ assert.equal(rows[0].bonus,123);assert.equal(rows[1].bonus,0);assert.equal(rows[1].tier?.text,'Quà nhóm 2');assert.equal(rows[2].bonus,1_000_000);
+ const exp=registeredExportRows(rows,p);assert.ok(!exp[0].includes('Phân loại'));assert.equal(exp[0].length,10);
+});
+test('missing classification rewards fail validation instead of borrowing another group tier',()=>{
+ const p=program();p.rows=[{...p.rows[0],classification:2}];
+ assert.throws(()=>decodeRegisteredProgram(p),/phân loại/);
+ assert.equal(computeRegisteredResults([contract('x','001',99_000_000)],cfg(),p)[0].tier,null);
+});
+test('classification 2 can have a different threshold without changing classification 1',()=>{
+ const p=program();p.rows=[{...p.rows[0],code:'A',classification:1},{...p.rows[0],code:'B',classification:2}];
+ p.tiers=[{id:'a',classification:1,minPercent:100,type:'money',amount:100,text:''},{id:'b',classification:2,minPercent:120,type:'money',amount:999,text:''}];
+ const rows=computeRegisteredResults([contract('a','A',10_000_000),contract('b','B',10_000_000)],cfg(),p);
+ assert.equal(rows[0].bonus,100);assert.equal(rows[1].tier,null);
+});
+test('legacy saved registration data without classification remains group 1',()=>{
+ const p=program();delete p.rows[0].classification;delete p.rows[1].classification;
+ assert.equal(decodeRegisteredProgram(p)!.rows[0].classification,1);
 });
