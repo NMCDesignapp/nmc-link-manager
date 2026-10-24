@@ -137,6 +137,8 @@ Data Hub dùng kiểu mirror/replace cho nhiều nguồn. Không chuyển thành
 
 ### Thi đua
 
+- Thi đua mục tiêu đăng ký Excel dùng payload participants kind registered-target-v1; giữ tương thích mảng mã cũ. TVV cộng theo mã TVV, Nhóm cộng theo mã nhóm (maNhom; fallback Cấu trúc khi trống), không ghép theo tên. Mã nhóm chỉ dùng tính toán; bảng preview/kết quả/Excel hiển thị mã/họ tên/chức vụ TN từ Cấu trúc, không dùng mã nhóm thay mã TN. Mục tiêu/thực hiện/thưởng bằng đồng; so tỷ lệ chưa làm tròn, chọn mức thưởng cao nhất đạt. Dùng chung component kết quả Main/saved/KPI.
+
 - Mỗi mã TVV chỉ tính tối đa 1 lượt hoạt động trong toàn kỳ xét của chương trình, kể cả HĐ tồn và hai giai đoạn. HĐ đủ chuẩn sớm nhất nhận lượt; chuẩn hóa mã trim/uppercase, không đếm mã rỗng. IP/AFYP vẫn cộng các HĐ hợp lệ.
 
 - Kết quả phải có toàn bộ TVV đủ điều kiện, kể cả chưa có doanh số/0 doanh số, trừ khi bật “ẩn TVV chưa đạt”.

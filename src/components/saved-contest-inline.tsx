@@ -22,6 +22,7 @@
  * để kết quả khớp 100% với popup "Kết quả chi tiết" trên trang đó.
  */
 
+import { RegisteredTargetResults } from '@/components/registered-target-contest';
 import { TVVContractCountTable } from '@/components/tvv-contract-count-table';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -1201,6 +1202,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       </span>
     </div>
   );
+
+  if (config.registeredProgram) return <RegisteredTargetResults program={config.registeredProgram} contracts={allContracts} config={config} title={config.title} posterUrl={posterUrl} structure={tvvStructList} leaders={leadersList} />;
 
   return (
     <div className="flex flex-col h-full gap-2" data-saoviet-table={`saved-${config.id}`} data-nmc-kpi-detail-shell="saved-contest">

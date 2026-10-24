@@ -1,3 +1,4 @@
+import { decodeRegisteredProgram, type RegisteredProgram } from './contest-registered-targets.ts';
 import { selectContestSourceRows } from './carryover-contracts.ts';
 // nmc-contest-top-eligibility-v1
 
@@ -164,6 +165,7 @@ export type RecruitedAgentScope = 'all' | 'tvvm';
 
 /** Config snapshot extracted from a saved Contest row. */
 export interface ContestConfig {
+  registeredProgram?: RegisteredProgram | null;
   id: string;
   title: string;
   startDate: string;
@@ -990,6 +992,7 @@ export function parseContestConfig(raw: any): ContestConfig {
   try {
     const parsed = JSON.parse(raw.participants || '[]');
     if (Array.isArray(parsed)) participants = parsed;
+    else if (parsed?.kind === 'registered-target-v1') participants = decodeRegisteredProgram(parsed)!.rows.map(row => row.code);
   } catch { /* ignore */ }
 
   return {
@@ -1004,6 +1007,7 @@ export function parseContestConfig(raw: any): ContestConfig {
     bonusTiers,
     posterUrl: raw.posterUrl || '',
     participants,
+    registeredProgram: decodeRegisteredProgram(raw.participants || '[]'),
     usePhase2: raw.usePhase2 ?? false,
     phase2StartDate: raw.phase2StartDate ?? null,
     phase2EndDate: raw.phase2EndDate ?? null,

@@ -8,6 +8,9 @@
 
 // nmc-contest-combined-top-ranking-v1
 
+import { RegisteredTargetSetup, RegisteredTargetResults, exportRegisteredTargets } from '@/components/registered-target-contest';
+import { defaultRegisteredProgram, decodeRegisteredProgram, type RegisteredProgram } from '@/lib/contest-registered-targets';
+import { computeRegisteredResults, registeredExportRows } from '@/lib/contest-registered-results';
 import React, { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 // useSettings removed — no CSV sync, data from Quản lý page
@@ -862,6 +865,10 @@ function ThiDuaPageInner() {
   const printRef = useRef<HTMLDivElement>(null);
   const resultContentRef = useRef<HTMLDivElement>(null);
 
+  const [registeredProgram, setRegisteredProgram] = useState<RegisteredProgram | null>(null);
+  const registeredConfig = useMemo(() => parseContestConfig({ startDate, endDate, issueDate: issueStartDate, issueEndDate }), [startDate, endDate, issueStartDate, issueEndDate]);
+
+
   const contestKind = useMemo<ContestKind>(() => {
     if (usePhase2) return 'two_phase';
     if (isRecruitmentMode(conditionType)) return 'recruitment';
@@ -881,6 +888,7 @@ function ThiDuaPageInner() {
 
   const chooseContestKind = useCallback((kind: ContestKind) => {
     setShowConfig(true);
+    setRegisteredProgram(null);
     if (kind !== contestKind) {
       setSelectedSubjectTypes(new Set());
       setThiDuaSubjects('');
@@ -1022,6 +1030,8 @@ function ThiDuaPageInner() {
 
   // ===== AppDataContext: đọc dữ liệu đã preload khi app mở =====
   const { data: appData, dataVersion, reload: reloadAppData } = useAppData();
+  const registeredContracts = useMemo(() => [...contracts, ...(appData.carryoverContracts || [])], [contracts, appData.carryoverContracts]);
+  const registeredResultProps = registeredProgram ? { program: registeredProgram, contracts: registeredContracts, config: registeredConfig, title: contestTitle, structure: tvvStructList, leaders: leadersList } : null;
 
   // Sync từ context → local state. Chỉ chạy khi dataVersion đổi (tức là context vừa load xong).
   // QUAN TRỌNG: tvvStructList + leadersList cũng sync từ context → tự động cập nhật khi
@@ -2096,16 +2106,18 @@ function ThiDuaPageInner() {
   // Save contest with all new fields
   const handleSaveContest = async () => {
     if (!contestTitle) { toast({ title: 'Lỗi', description: 'Nhập tên chương trình' }); return; }
+    if (registeredProgram && (!registeredProgram.rows.length || !registeredProgram.tiers.length)) { toast({title:'Thiếu cấu hình',description:'Nạp Excel đối tượng và ít nhất một mức thưởng.'}); return; }
+    if (registeredProgram) { try { decodeRegisteredProgram(registeredProgram); } catch(e) { toast({title:'Cấu hình không hợp lệ',description:String(e)}); return; } }
     setIsSaving(true);
     try {
       const res = await fetch('/api/contests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
         title: contestTitle, startDate, endDate, issueDate: issueStartDate || undefined,
         issueEndDate: issueEndDate || null,
-        conditionType, targetType: (conditionType === 'tvv_pass_count' || (conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts')) ? 'nhom' : targetType, bonusTiers: JSON.stringify(bonusTiers),
-        posterUrl, participants: JSON.stringify(subjectCodes),
-        usePhase2: conditionType === 'pass_count_contracts' ? false : usePhase2, phase2StartDate: phase2StartDate || undefined, phase2EndDate: phase2EndDate || undefined,
+        conditionType: registeredProgram ? (registeredProgram.metric === 'ip' ? 'total_ip' : 'total_afyp') : conditionType, targetType: registeredProgram ? (registeredProgram.scope === 'nhom' ? 'nhom' : 'tvv') : (conditionType === 'tvv_pass_count' || (conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts')) ? 'nhom' : targetType, bonusTiers: JSON.stringify(bonusTiers),
+        posterUrl, participants: JSON.stringify(registeredProgram || subjectCodes),
+        usePhase2: registeredProgram || conditionType === 'pass_count_contracts' ? false : usePhase2, phase2StartDate: phase2StartDate || undefined, phase2EndDate: phase2EndDate || undefined,
         bonusTiers2: JSON.stringify(bonusTiers2),
-        useSecondaryCondition,
+        useSecondaryCondition: registeredProgram ? false : useSecondaryCondition,
         secondaryLuotHDMin, secondaryLuotHDCMin, secondaryLuotHDFilter, secondaryLuotHDCFilter,
         secondaryTotalAFYPMin, secondaryTotalIPMin,
         secondaryContractCountMin, secondaryContractIPMin,
@@ -2221,6 +2233,7 @@ function ThiDuaPageInner() {
     setResultPage(0);
     setSelectedContestId(contestId); const contest = savedContests.find(c => c.id === contestId); if (!contest) return;
     setContestTitle(contest.title); setStartDate(new Date(contest.startDate).toISOString().slice(0, 10)); setEndDate(new Date(contest.endDate).toISOString().slice(0, 10));
+    setRegisteredProgram(decodeRegisteredProgram(contest.participants || '[]'));
     setConditionType(contest.conditionType as ConditionType);
     // tvv_pass_count chỉ dành cho nhóm → tự động set targetType = 'nhom'
     setTargetType((contest.conditionType === 'tvv_pass_count' || (contest.conditionType === 'pass_count_ip_afyp' || contest.conditionType === 'pass_count_contracts') ? 'nhom' : (contest.targetType || 'tvv')) as TargetType);
@@ -2338,6 +2351,7 @@ function ThiDuaPageInner() {
   };
 
   const handleCopyText = () => {
+    if (registeredProgram) { void navigator.clipboard.writeText(registeredExportRows(computeRegisteredResults(registeredContracts,registeredConfig,registeredProgram,tvvStructList,leadersList),registeredProgram).map(r=>r.join('\t')).join('\n')); return; }
     if (perContractDisplayContracts.length === 0 && nydData.length === 0 && recruitmentRows.length === 0 && tvvTotalRows.length === 0 && groupedData.length === 0) return;
     const sTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
     let text = `🏆 ${contestTitle}\n📅 Từ ${startDate ? formatDate(startDate) : '...'} đến ${(phase2EndDate || endDate) ? formatDate(phase2EndDate || endDate) : '...'}\n🎯 ${getTargetLabel(targetType)}\n━━━━━━━━━━━━━━━━━━━━\n📊 Mức thưởng:\n`;
@@ -2429,6 +2443,7 @@ function ThiDuaPageInner() {
 
   const handleExport = async () => {
     try {
+    if (registeredProgram) { await exportRegisteredTargets(computeRegisteredResults(registeredContracts, registeredConfig, registeredProgram, tvvStructList, leadersList), registeredProgram, contestTitle); return; }
     if (perContractDisplayContracts.length === 0 && nydData.length === 0 && recruitmentRows.length === 0 && groupedData.length === 0 && tvvTotalRows.length === 0) { toast({ title: 'Thông báo', description: 'Không có dữ liệu' }); return; }
     let headers: string[];
     let rows: (string | number)[][];
@@ -3801,6 +3816,11 @@ function ThiDuaPageInner() {
   // Calculate and show results popup
   const handleCalculate = () => {
     if (!startDate && !endDate && !issueStartDate && !issueEndDate) { toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất một khoảng thời gian' }); return; }
+    if (registeredProgram) {
+      if (!registeredProgram.rows.length || !registeredProgram.tiers.length) { toast({title:'Thiếu cấu hình',description:'Nạp Excel đối tượng và mức thưởng trước khi tính.'}); return; }
+      try { decodeRegisteredProgram(registeredProgram); } catch(e) {toast({title:'Cấu hình không hợp lệ',description:String(e)});return;}
+      setIsResultDialogOpen(true); return;
+    }
     const results = handleSearch() || [];
     if (results.length === 0 && subjectCodes.length === 0) {
       setFilteredContracts([]);
@@ -4114,7 +4134,7 @@ function ThiDuaPageInner() {
                   ['pass_count', 'Đếm TVV đạt', UserCheck, 'indigo'],
                   ['two_phase', 'Thi đua 2 giai đoạn', Layers, 'sky'],
                 ] as const).map(([kind, label, Icon, color]) => {
-                  const active = contestKind === kind;
+                  const active = !registeredProgram && contestKind === kind;
                   const activeClass = color === 'violet' ? 'border-violet-300 bg-violet-500/35 text-white' : color === 'rose' ? 'border-rose-300 bg-rose-500/35 text-white' : color === 'indigo' ? 'border-indigo-300 bg-indigo-500/35 text-white' : color === 'sky' ? 'border-sky-300 bg-sky-500/35 text-white' : 'border-emerald-300 bg-emerald-500/35 text-white';
                   return (
                     <button key={kind} type="button" onClick={() => chooseContestKind(kind)} aria-pressed={active}
@@ -4123,6 +4143,7 @@ function ThiDuaPageInner() {
                     </button>
                   );
                 })}
+                <button type="button" aria-pressed={!!registeredProgram} onClick={() => { setRegisteredProgram(current => current || defaultRegisteredProgram()); setShowConfig(true); }} className={`rounded-lg border px-2 py-2 text-xs font-bold ${registeredProgram ? 'bg-amber-600 text-white border-amber-300' : 'border-amber-500/40 text-amber-100'}`}>Mục tiêu đăng ký (Excel)</button>
               </div>
             </div>
           </CardContent>
@@ -4140,6 +4161,7 @@ function ThiDuaPageInner() {
             </button>
           </CardHeader>
           <CardContent className="px-4 pb-4 space-y-3" style={{ display: showConfig ? 'block' : 'none' }}>
+              {registeredProgram ? <RegisteredTargetSetup value={registeredProgram} onChange={setRegisteredProgram} leaders={leadersList} /> : <>
               <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2">
                 <p className="text-[11px] font-extrabold uppercase tracking-wide text-amber-200">{contestKindMeta.title}</p>
                 <p className="mt-0.5 text-[10px] leading-4 text-amber-100/70">{contestKindMeta.detail}</p>
@@ -4769,6 +4791,7 @@ function ThiDuaPageInner() {
 
               <Separator className="bg-emerald-500/20" />
 
+              </>}
               {/* Poster upload inside config */}
               <div className="flex items-center gap-2">
                 <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/80 hover:bg-emerald-600 text-white rounded-lg text-xs font-medium transition-colors">
@@ -4794,7 +4817,7 @@ function ThiDuaPageInner() {
         {/* Summary Cards - below buttons, visible when results exist */}
         {(perContractDisplayContracts.length > 0 || nydData.length > 0 || recruitmentRows.length > 0 || tvvTotalRows.length > 0 || groupedData.length > 0) && (
           <div className="space-y-2">
-            <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalFYP={displayTotalFYP} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} formatCurrency={formatCurrency} formatNumber={formatNumber} formatDate={formatDate} variant="gradient" />
+            {registeredProgram ? <div className="p-3 text-emerald-100">{contestTitle} · {registeredProgram.rows.length} đối tượng · {registeredProgram.metric.toUpperCase()} theo mục tiêu đăng ký (đ)</div> : <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalFYP={displayTotalFYP} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} formatCurrency={formatCurrency} formatNumber={formatNumber} formatDate={formatDate} variant="gradient" />}
 
             {usePhase2 && phase2Results && (
               <div className="rounded-lg bg-gradient-to-r from-sky-900/40 to-cyan-900/40 border border-sky-500/20 p-3">
@@ -4997,13 +5020,13 @@ function ThiDuaPageInner() {
             <div ref={printRef}>
               {/* Poster image - full width, 21:9 aspect ratio, no gaps */}
               {posterUrl && <div className="mb-3 w-full overflow-hidden" style={{ aspectRatio: '21/9' }}><img src={posterUrl} alt="Poster" className="w-full h-full object-fill shadow-md" /></div>}
-              {!posterUrl && (
+              {!posterUrl && !registeredProgram && (
                 <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalFYP={displayTotalFYP} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} formatCurrency={formatCurrency} formatNumber={formatNumber} formatDate={formatDate} variant="white" />
               )}
 
               {/* Result Table - slightly larger */}
               <div className={`${isEmbedMode ? 'overflow-x-auto' : 'contest-result-table-wrapper'} border border-emerald-600 shadow-sm mt-3`} id="result-table-container">
-                {conditionType === 'pass_count_contracts' ? <TVVContractCountTable
+                {registeredResultProps ? <RegisteredTargetResults {...registeredResultProps} /> : conditionType === 'pass_count_contracts' ? <TVVContractCountTable
                   groups={groupedData} contracts={displayContracts} staff={staffList} structure={tvvStructList}
                   config={{ secondaryIPMin: passCountIPMin, secondaryAFYPMin: passCountAFYPMin, tvvContractCountMin, includeTNInPassCount }}
                   hideNotAchieved={hideNotAchieved}
@@ -5468,7 +5491,7 @@ function ThiDuaPageInner() {
               </div>
             </div>
           </div>
-          {conditionType !== 'pass_count_contracts' && paginatedResultTotal > CONTEST_RESULT_PAGE_SIZE && (
+          {!registeredProgram && conditionType !== 'pass_count_contracts' && paginatedResultTotal > CONTEST_RESULT_PAGE_SIZE && (
             <div className="flex items-center justify-center gap-3 border-t border-gray-200 bg-white px-3 py-2 text-xs text-gray-600">
               <Button type="button" variant="outline" size="sm" disabled={safeResultPage === 0} onClick={() => setResultPage(current => Math.max(0, current - 1))} className="h-7 border-gray-300 px-3 text-xs text-gray-700">Trước</Button>
               <span>Hiển thị {resultPageStart + 1}–{Math.min(resultPageStart + CONTEST_RESULT_PAGE_SIZE, paginatedResultTotal)} / {paginatedResultTotal}</span>
