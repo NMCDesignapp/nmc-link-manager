@@ -53,7 +53,7 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
   const rows=all.filter(r=>(!program.hideNotAchieved||r.tier)&&`${r.group} ${program.scope==='nhom'?r.leaderCode:r.code} ${program.scope==='nhom'?r.leaderName:r.name}`.toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi')));
   const currentPage=Math.min(page,Math.max(0,Math.ceil(rows.length/100)-1));
   const visibleRows=rows.slice(currentPage*100,(currentPage+1)*100);
-  return <section className="bg-white text-slate-800" data-registered-target-results>
+  return <section className="bg-white text-slate-800" data-registered-target-results data-saoviet-table={config.id ? `saved-${config.id}` : undefined} data-nmc-kpi-detail-shell="saved-contest">
     <div className="p-3 bg-emerald-950 text-white"><h2 className="font-bold text-lg">{title}</h2><p>{String(config.startDate||'').slice(0,10)} – {String(config.endDate||'').slice(0,10)} · Theo {program.scope==='nhom'?'mã nhóm':'mã TVV'} · {program.metric.toUpperCase()} (đ)</p></div>
     {posterUrl&&<img src={posterUrl} alt={title} className="max-h-64 w-full object-contain"/>}
     <div className="p-2 flex gap-2 flex-wrap"><input aria-label="Tìm đối tượng đăng ký" placeholder="Tìm nhóm, mã, họ tên" className="p-2 border rounded text-slate-900" value={query} onChange={e=>{setQuery(e.target.value);setPage(0);}}/><button type="button" className="border rounded px-3" onClick={()=>{void exportRegisteredTargets(rows,program,title).catch(e=>setError(String(e)));}}>Tải Excel kết quả</button></div>
