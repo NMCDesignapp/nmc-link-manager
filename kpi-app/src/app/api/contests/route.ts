@@ -1,3 +1,4 @@
+import { decodeRegisteredProgram } from '@/lib/contest-registered-targets';
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { createDefaultContestPoster } from '@/lib/contest-poster';
@@ -347,6 +348,8 @@ export async function POST(request: NextRequest) {
     if (normalizedIssueEnd && issueDate && normalizedIssueEnd < String(issueDate).slice(0, 10)) {
       return NextResponse.json({ error: 'Ngày phát hành đến phải từ ngày phát hành bắt đầu trở đi' }, { status: 400 });
     }
+    try { decodeRegisteredProgram(participants); } catch (error) { return NextResponse.json({error: (error as Error).message}, {status:400}); }
+
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
     if (isNaN(parsedStart.getTime()) || isNaN(parsedEnd.getTime())) {
@@ -454,6 +457,7 @@ export async function PATCH(request: NextRequest) {
     const { id, ...updates } = body as { id: string; [key: string]: any };
     if (!id) return NextResponse.json({ error: 'Thiếu ID chương trình thi đua' }, { status: 400 });
     const recruitedAgentScopeUpdate = updates.recruitedAgentScope;
+    if (updates.participants !== undefined) { try { decodeRegisteredProgram(updates.participants); } catch(error) { return NextResponse.json({error:(error as Error).message},{status:400}); } }
     const recruitmentConfigUpdate = updates.recruitmentConfig;
     const tvvCountUpdate = updates.tvvContractCountMin;
     delete updates.tvvContractCountMin;

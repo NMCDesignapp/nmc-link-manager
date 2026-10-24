@@ -25,7 +25,7 @@ export function computeRegisteredResults(contracts: Contract[], config: ContestC
     const actual = program.metric === 'ip' ? ip : afyp;
     const percent = actual / row.target * 100;
     // Compare unrounded values; a displayed rounded 100% must not create a reward.
-    const tier = [...program.tiers].sort((a,b) => b.minPercent - a.minPercent).find(t => actual * 100 >= row.target * t.minPercent) || null;
+    const tier = [...program.tiers].filter(t => (t.classification ?? 1) === (row.classification ?? 1)).sort((a,b) => b.minPercent - a.minPercent).find(t => actual * 100 >= row.target * t.minPercent) || null;
     const bonus = !tier || tier.type === 'gift' ? 0 : tier.type === 'percent_ip' ? ip * tier.amount / 100 : tier.type === 'percent_afyp' ? afyp * tier.amount / 100 : tier.amount;
     const leader = program.scope === 'nhom' ? registeredGroupLeader(row.code, leaders) : null;
     return {...row, leaderCode: targetCode(leader?.agentCode), leaderName: leader?.agentName || '', leaderPosition: leader?.chucVu || leader?.position || '', actual, ip, afyp, percent, tier, bonus};
