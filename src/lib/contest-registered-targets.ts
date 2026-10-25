@@ -4,22 +4,23 @@ export type TargetReward = { id: string; classification?: 1 | 2 | 3; minPercent:
 export type RegisteredProgram = { kind: 'registered-target-v1'; scope: 'tvv' | 'nhom'; metric: 'ip' | 'afyp'; rows: RegisteredTarget[]; tiers: TargetReward[]; minIP: number; minAFYP: number; hideNotAchieved: boolean };
 export const targetCode = (v: unknown) => String(v ?? '').trim().toUpperCase();
 const header = (v: unknown) => String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().replace(/[^a-z0-9]/g, '');
-const columns = ['stt', 'nhom', 'maso', 'hotentvv', 'chucvu', 'muctieudangky', 'phanloai'];
+const columns = ['nhom', 'maso', 'hoten', 'muctieudangky'];
+const inputHeader = (v: unknown) => { const key = header(v); return key === 'hotentvv' || key === 'hotentn' ? 'hoten' : key; };
 export function parseTargetSheet(data: unknown[][]): RegisteredTarget[] {
-  const at = data.findIndex(row => columns.every(c => row.map(header).includes(c)));
-  if (at < 0) throw new Error('Thiếu cột: STT, Nhóm, Mã số, Họ tên TVV, Chức vụ, Mục tiêu đăng ký, Phân loại.');
-  const keys = data[at].map(header); const seen = new Set<string>(); const rows: RegisteredTarget[] = [];
+  const at = data.findIndex(row => columns.every(c => row.map(inputHeader).includes(c)));
+  if (at < 0) throw new Error('Thiếu cột: Nhóm, Mã số, Họ tên, Mục tiêu đăng ký.');
+  const keys = data[at].map(inputHeader); const seen = new Set<string>(); const rows: RegisteredTarget[] = [];
   for (let i = at + 1; i < data.length; i++) {
     const r = data[i]; if (r.every(v => v === '' || v == null)) continue;
     const cell = (key: string) => r[keys.indexOf(key)];
     const code = targetCode(cell('maso')); const raw = cell('muctieudangky');
     const value = parseBusinessNumber(raw);
-    const classification = Number(String(cell('phanloai') ?? '').trim());
+    const classification = keys.includes('phanloai') ? Number(String(cell('phanloai') ?? '').trim()) : 1;
     if (![1,2,3].includes(classification)) throw Error(`Dòng ${i + 1}: Phân loại chỉ nhận 1, 2 hoặc 3.`);
-    if (!code || !String(cell('hotentvv') ?? '').trim() || !String(cell('nhom') ?? '').trim()) throw new Error(`Dòng ${i + 1}: thiếu mã số, nhóm hoặc họ tên.`);
+    if (!code || !String(cell('hoten') ?? '').trim() || !String(cell('nhom') ?? '').trim()) throw new Error(`Dòng ${i + 1}: thiếu mã số, nhóm hoặc họ tên.`);
     if (seen.has(code)) throw new Error(`Dòng ${i + 1}: mã số ${code} bị trùng.`);
     if (!(value > 0) || !Number.isSafeInteger(value) || (typeof raw === 'string' && !/^[\d\s.,đĐ₫VNDvnd]+$/.test(raw.trim()))) throw new Error(`Dòng ${i + 1}: mục tiêu phải là số tiền nguyên dương theo đồng.`);
-    seen.add(code); rows.push({ stt: String(cell('stt') ?? rows.length + 1), group: String(cell('nhom')).trim(), code, name: String(cell('hotentvv')).trim(), position: String(cell('chucvu') ?? '').trim(), target: value, classification: classification as 1 | 2 | 3 });
+    seen.add(code); rows.push({ stt: String(cell('stt') || rows.length + 1), group: String(cell('nhom')).trim(), code, name: String(cell('hoten')).trim(), position: String(cell('chucvu') ?? '').trim(), target: value, classification: classification as 1 | 2 | 3 });
   }
   if (!rows.length) throw new Error('File chưa có đối tượng thi đua.');
   if (rows.length > 5000) throw new Error('Tối đa 5.000 đối tượng mỗi chương trình.');

@@ -75,7 +75,7 @@ visit(ast);
 const cutoff = exportBody.indexOf("const XLSX = await import('xlsx');");
 assert.ok(cutoff > 0, 'export row-builder boundary must exist');
 const rowBuilder = ts.transpileModule(
-  valueHelper + '\n' + exportBody.slice(1, cutoff).replace(/if \(registeredProgram\) \{ await exportRegisteredTargets[^\n]+\n/, '') + 'return {headers, rows, merges}; } catch (error) { throw error; }',
+  valueHelper + '\n' + exportBody.slice(1, cutoff).replace(/if \(registeredProgram\) \{ await exportRegisteredTargets[^\n]+\n/, '').replace(/if \(registeredProgram && registeredSaoViet.loading\) [^\n]+\n/, '') + 'return {headers, rows, merges}; } catch (error) { throw error; }',
   { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
 ).outputText;
 

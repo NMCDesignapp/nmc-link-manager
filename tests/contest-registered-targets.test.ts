@@ -50,14 +50,14 @@ test('saved payload roundtrip and legacy participant arrays remain compatible',(
 test('Excel columns retain exact numbers in đồng and gift rewards',()=>{
  const p=program();p.tiers=[{id:'g',minPercent:100,type:'gift',amount:0,text:'Demo Gift'} as any];
  const rows=computeRegisteredResults([contract('a','001',10_000_000)],cfg(),p);const data=registeredExportRows(rows,p);
- assert.equal(data[1][5],10_000_000);assert.equal(data[1][6],10_000_000);assert.equal(data[1][9],'Demo Gift');assert.equal(rows[0].bonus,0);
+ assert.equal(data[1][5],10_000_000);assert.equal(data[1][6],10_000_000);assert.equal(data[1][8],'Demo Gift');assert.equal(rows[0].bonus,0);
 });
 test('group exports show TN identity and never expose the internal group code',()=>{
  const p={...program(),scope:'nhom' as const,rows:[{...program().rows[0],code:'GROUP-INTERNAL'}]};
  const leaders=[{agentCode:'LEADER-A',agentName:'TN mẫu',maBanNhom:'GROUP-INTERNAL',chucVu:'Trưởng nhóm'}];
  const results=computeRegisteredResults([contract('g','001',10_000_000,{maNhom:'GROUP-INTERNAL'})],cfg(),p,[],leaders);
  assert.equal(results[0].actual,10_000_000);assert.equal(results[0].leaderCode,'LEADER-A');
- const out=registeredExportRows(results,p);assert.equal(out[0][2],'Mã TN');assert.equal(out[0][3],'Họ tên TN');assert.equal(out[1][2],'LEADER-A');assert.equal(out[1][3],'TN mẫu');assert.ok(!JSON.stringify(out).includes('GROUP-INTERNAL'));
+ const out=registeredExportRows(results,p);assert.equal(out[0][2],'MÃ TN');assert.equal(out[0][3],'HỌ TÊN TN');assert.equal(out[1][2],'LEADER-A');assert.equal(out[1][3],'TN mẫu');assert.ok(!JSON.stringify(out).includes('GROUP-INTERNAL'));
 });
 test('group chooses the TN instead of TB in the same group',()=>{
  const p={...program(),scope:'nhom' as const,rows:[{...program().rows[0],code:'G01'}]};
@@ -69,9 +69,9 @@ test('missing/ambiguous TN never falls back to displaying group code as a person
  const out=registeredExportRows(computeRegisteredResults([],cfg(),p),p);
  assert.equal(out[1][2],'—');assert.ok(!JSON.stringify(out).includes('GROUP-INTERNAL'));
 });
-test('classification is mandatory in new files and accepts only 1, 2, 3',()=>{
+test('optional classification accepts only 1, 2, 3 when provided',()=>{
  for(const value of ['',0,4,1.5,'Nhóm 1']) assert.throws(()=>parseTargetSheet([heads,[1,'Demo','A','Người A','TVV',100,value]]),/Phân loại/);
- assert.throws(()=>parseTargetSheet([heads.slice(0,-1),sample[0].slice(0,-1)]),/Phân loại/);
+ assert.equal(parseTargetSheet([heads.slice(0,-1),sample[0].slice(0,-1)])[0].classification,1);
  for(const value of [1,2,3]) assert.equal(parseTargetSheet([heads,[1,'Demo','A','Người A','TVV',100,value]])[0].classification,value);
 });
 test('each classification has independent money, gift and percentage rewards at the same completion',()=>{
@@ -80,7 +80,7 @@ test('each classification has independent money, gift and percentage rewards at 
  const saved=decodeRegisteredProgram(JSON.stringify(p))!;
  const rows=computeRegisteredResults([1,2,3].map(n=>contract(String(n),`A${n}`,10_000_000)),cfg(),saved);
  assert.equal(rows[0].bonus,123);assert.equal(rows[1].bonus,0);assert.equal(rows[1].tier?.text,'Quà nhóm 2');assert.equal(rows[2].bonus,1_000_000);
- const exp=registeredExportRows(rows,p);assert.ok(!exp[0].includes('Phân loại'));assert.equal(exp[0].length,10);
+ const exp=registeredExportRows(rows,p);assert.ok(!exp[0].includes('Phân loại'));assert.equal(exp[0].length,9);
 });
 test('missing classification rewards fail validation instead of borrowing another group tier',()=>{
  const p=program();p.rows=[{...p.rows[0],classification:2}];

@@ -137,6 +137,8 @@ Data Hub dùng kiểu mirror/replace cho nhiều nguồn. Không chuyển thành
 
 ### Thi đua
 
+- Bảng mục tiêu Excel: Nhóm/Mã số/Họ tên/Mục tiêu đăng ký là bốn cột bắt buộc; STT/Chức vụ không bắt buộc, Phân loại tùy chọn (thiếu cột thì mặc định 1). Không hiện Chức vụ. FYP lũy kế đến 30/09/2026 = Sao Việt toàn chặng ca-nhan theo mã TVV (mã TN khi bảng nhóm) trừ IP doanh số thường tháng 10/2026 của cùng cá nhân, theo tháng nguồn Tamthu/Doanhso ưu tiên ngày PH rồi ngày HL, không dùng HĐ tồn hoặc bộ lọc thi đua. Nguồn thiếu/trùng mã phải hiện chưa có dữ liệu, không gán 0; giữ nguyên hiệu số âm để đối chiếu.
+
 - Thi đua mục tiêu đăng ký Excel dùng payload participants kind registered-target-v1; giữ tương thích mảng mã cũ. TVV cộng theo mã TVV, Nhóm cộng theo mã nhóm (maNhom; fallback Cấu trúc khi trống), không ghép theo tên. Mã nhóm chỉ dùng tính toán; bảng preview/kết quả/Excel hiển thị mã/họ tên/chức vụ TN từ Cấu trúc, không dùng mã nhóm thay mã TN. Excel có cột Phân loại 1/2/3, mỗi loại có bộ mức thưởng độc lập; kết quả chỉ phân biệt bằng màu nền cả dòng, không hiện cột Phân loại trong app/Excel kết quả. Mục tiêu/thực hiện/thưởng bằng đồng; so tỷ lệ chưa làm tròn, chọn mức thưởng cao nhất đạt. Dùng chung component kết quả Main/saved/KPI.
 
 - Mỗi mã TVV chỉ tính tối đa 1 lượt hoạt động trong toàn kỳ xét của chương trình, kể cả HĐ tồn và hai giai đoạn. HĐ đủ chuẩn sớm nhất nhận lượt; chuẩn hóa mã trim/uppercase, không đếm mã rỗng. IP/AFYP vẫn cộng các HĐ hợp lệ.
