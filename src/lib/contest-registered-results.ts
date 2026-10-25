@@ -1,3 +1,4 @@
+import { registeredFypBaseline, type SaoVietPersonalRow } from './contest-registered-fyp.ts';
 import { filterContractsByContest, type Contract, type ContestConfig } from './contest-calculator.ts';
 import { targetCode, type RegisteredProgram, type RegisteredTarget, type TargetReward } from './contest-registered-targets.ts';
 export type RegisteredLeader = { agentCode?: string; agentName?: string; maNhom?: string; maBanNhom?: string; position?: string; chucVu?: string };
@@ -8,8 +9,9 @@ export function registeredGroupLeader(code: string, leaders: RegisteredLeader[])
   const unique = new Map((tn.length ? tn : matches).filter(l=>targetCode(l.agentCode)).map(l=>[targetCode(l.agentCode),l]));
   return unique.size === 1 ? [...unique.values()][0] : null;
 }
-export type RegisteredResult = RegisteredTarget & { leaderCode: string; leaderName: string; leaderPosition: string; actual: number; ip: number; afyp: number; percent: number; tier: TargetReward | null; bonus: number };
-export function computeRegisteredResults(contracts: Contract[], config: ContestConfig, program: RegisteredProgram, structure: {agentCode:string;maBanNhom?:string}[] = [], leaders: RegisteredLeader[] = []): RegisteredResult[] {
+export type RegisteredResult = RegisteredTarget & { cumulativeFyp: number | null; leaderCode: string; leaderName: string; leaderPosition: string; actual: number; ip: number; afyp: number; percent: number; tier: TargetReward | null; bonus: number };
+export function computeRegisteredResults(contracts: Contract[], config: ContestConfig, program: RegisteredProgram, structure: {agentCode:string;maBanNhom?:string}[] = [], leaders: RegisteredLeader[] = [], saoVietRows: SaoVietPersonalRow[] | null = null): RegisteredResult[] {
+  const baseline = registeredFypBaseline(contracts, saoVietRows);
   const eligible = filterContractsByContest(contracts, { ...config, usePhase2: false, useSecondaryCondition: false });
   const groups = new Map(structure.map(r => [targetCode(r.agentCode), targetCode(r.maBanNhom)]));
   const totals = new Map<string, {ip: number; afyp: number}>();
@@ -28,9 +30,10 @@ export function computeRegisteredResults(contracts: Contract[], config: ContestC
     const tier = [...program.tiers].filter(t => (t.classification ?? 1) === (row.classification ?? 1)).sort((a,b) => b.minPercent - a.minPercent).find(t => actual * 100 >= row.target * t.minPercent) || null;
     const bonus = !tier || tier.type === 'gift' ? 0 : tier.type === 'percent_ip' ? ip * tier.amount / 100 : tier.type === 'percent_afyp' ? afyp * tier.amount / 100 : tier.amount;
     const leader = program.scope === 'nhom' ? registeredGroupLeader(row.code, leaders) : null;
-    return {...row, leaderCode: targetCode(leader?.agentCode), leaderName: leader?.agentName || '', leaderPosition: leader?.chucVu || leader?.position || '', actual, ip, afyp, percent, tier, bonus};
+    return {...row, cumulativeFyp: baseline.get(program.scope === 'nhom' ? targetCode(leader?.agentCode) : targetCode(row.code)) ?? null, leaderCode: targetCode(leader?.agentCode), leaderName: leader?.agentName || '', leaderPosition: leader?.chucVu || leader?.position || '', actual, ip, afyp, percent, tier, bonus};
   });
 }
+export const registeredHeaders = (program: RegisteredProgram) => ['STT','NHÓM',program.scope === 'nhom' ? 'MÃ TN' : 'MÃ SỐ',program.scope === 'nhom' ? 'HỌ TÊN TN' : 'HỌ TÊN','FYP LŨY KẾ\n(TỪ 01/12/25 - 30/11/26)','MỤC TIÊU ĐĂNG KÝ\n(Đ)',`${program.metric.toUpperCase()} THÁNG 10\n(Đ)`,'TIẾN ĐỘ HT MỤC TIÊU\nT10','THƯỞNG'];
 export function registeredExportRows(rows: RegisteredResult[], program: RegisteredProgram) {
-  return [['STT','Nhóm',program.scope === 'nhom' ? 'Mã TN' : 'Mã TVV',program.scope === 'nhom' ? 'Họ tên TN' : 'Họ tên TVV',program.scope === 'nhom' ? 'Chức vụ TN' : 'Chức vụ','Mục tiêu đăng ký (đ)',`Thực hiện ${program.metric.toUpperCase()} (đ)`,'Tỷ lệ HT (%)','Tiền thưởng (đ)','Quà / Ghi chú'], ...rows.map(r => [r.stt,r.group,program.scope==='nhom'?(r.leaderCode||'—'):r.code,program.scope==='nhom'?(r.leaderName||'Chưa có TN trong Cấu trúc'):r.name,program.scope==='nhom'?(r.leaderPosition||'—'):r.position,r.target,r.actual,r.percent,r.bonus,r.tier?.type === 'gift' ? r.tier.text : r.tier ? 'Đạt' : 'Chưa đạt'])];
+  return [registeredHeaders(program), ...rows.map(r => [r.stt,r.group,program.scope==='nhom'?(r.leaderCode||'—'):r.code,program.scope==='nhom'?(r.leaderName||'Chưa có TN trong Cấu trúc'):r.name,r.cumulativeFyp ?? 'Chưa có dữ liệu',r.target,r.actual,r.percent,r.tier?.type === 'gift' ? r.tier.text : r.tier ? r.bonus : 'Chưa đạt'])];
 }

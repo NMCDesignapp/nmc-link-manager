@@ -1288,3 +1288,12 @@ Validation: 198 calculation/source/export regression tests passed in UTC (the ex
 ### Excel classification follow-up
 
 Added required Phân loại input column (1/2/3), with three independent reward tier sets and matching before reward selection. Classification is retained in saved JSON only, never rendered as a result/export column. App rows use a consistent light background per classification; group codes remain hidden and TN identity remains visible. Missing reward configuration for an imported classification is rejected rather than borrowing another set. Legacy registered payloads without classification retain group 1 semantics. Includes the existing saved table image-export selector. Validation: 203 regression tests passed with TZ=UTC and Main build passed.
+
+
+## 2026-10-25 — Registered contest cumulative FYP and compact result columns
+
+Import now accepts Nhóm/Mã số/Họ tên/Mục tiêu đăng ký without STT or position; legacy headers still work, and optional Phân loại defaults to 1 when the column is absent. Preserved independent classification rewards and row colors. Removed position from app/export and used nine requested columns, uppercase headers with highlighted italic second lines.
+
+Cumulative FYP is the authoritative DB-backed Sao Viet ca-nhan value minus ordinary October 2026 IP for the same normalized agent code, matching revenue source-month precedence. It is independent of contest date/contract-threshold filters and excludes contest-only carryovers. Group views use the resolved displayed TN personal identity, while target attainment continues to aggregate the group. Missing/duplicate source identities are explicit unknowns, not zero; negative differences remain exact. The FYP title retains the requested full-cycle label, with a nearby September-baseline formula explanation.
+
+Added a shared read-only, cached, periodically refreshed source hook for Main and saved results; Excel/copy use the same FYP calculation. No schema changes or production business-record writes. Validation: 210 source/calculation/export regressions pass with TZ=UTC; Main build and standalone source synchronization check pass. Existing unrelated typecheck errors remain.

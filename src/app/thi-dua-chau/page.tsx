@@ -8,6 +8,7 @@
 
 // nmc-contest-combined-top-ranking-v1
 
+import { useRegisteredFyp } from '@/hooks/use-registered-fyp';
 import { RegisteredTargetSetup, RegisteredTargetResults, exportRegisteredTargets } from '@/components/registered-target-contest';
 import { defaultRegisteredProgram, decodeRegisteredProgram, type RegisteredProgram } from '@/lib/contest-registered-targets';
 import { computeRegisteredResults, registeredExportRows } from '@/lib/contest-registered-results';
@@ -866,6 +867,7 @@ function ThiDuaPageInner() {
   const resultContentRef = useRef<HTMLDivElement>(null);
 
   const [registeredProgram, setRegisteredProgram] = useState<RegisteredProgram | null>(null);
+  const registeredSaoViet = useRegisteredFyp(Boolean(registeredProgram));
   const registeredConfig = useMemo(() => parseContestConfig({ startDate, endDate, issueDate: issueStartDate, issueEndDate }), [startDate, endDate, issueStartDate, issueEndDate]);
 
 
@@ -2351,7 +2353,8 @@ function ThiDuaPageInner() {
   };
 
   const handleCopyText = () => {
-    if (registeredProgram) { void navigator.clipboard.writeText(registeredExportRows(computeRegisteredResults(registeredContracts,registeredConfig,registeredProgram,tvvStructList,leadersList),registeredProgram).map(r=>r.join('\t')).join('\n')); return; }
+    if (registeredProgram && registeredSaoViet.loading) { toast({title:'Đang tải FYP Sao Việt',description:'Vui lòng đợi tải xong số liệu lũy kế.'}); return; }
+    if (registeredProgram) { void navigator.clipboard.writeText(registeredExportRows(computeRegisteredResults(registeredContracts,registeredConfig,registeredProgram,tvvStructList,leadersList,registeredSaoViet.rows),registeredProgram).map(r=>r.join('\t')).join('\n')); return; }
     if (perContractDisplayContracts.length === 0 && nydData.length === 0 && recruitmentRows.length === 0 && tvvTotalRows.length === 0 && groupedData.length === 0) return;
     const sTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
     let text = `🏆 ${contestTitle}\n📅 Từ ${startDate ? formatDate(startDate) : '...'} đến ${(phase2EndDate || endDate) ? formatDate(phase2EndDate || endDate) : '...'}\n🎯 ${getTargetLabel(targetType)}\n━━━━━━━━━━━━━━━━━━━━\n📊 Mức thưởng:\n`;
@@ -2443,7 +2446,8 @@ function ThiDuaPageInner() {
 
   const handleExport = async () => {
     try {
-    if (registeredProgram) { await exportRegisteredTargets(computeRegisteredResults(registeredContracts, registeredConfig, registeredProgram, tvvStructList, leadersList), registeredProgram, contestTitle); return; }
+    if (registeredProgram && registeredSaoViet.loading) { toast({title:'Đang tải FYP Sao Việt',description:'Vui lòng đợi tải xong số liệu lũy kế.'}); return; }
+    if (registeredProgram) { await exportRegisteredTargets(computeRegisteredResults(registeredContracts, registeredConfig, registeredProgram, tvvStructList, leadersList, registeredSaoViet.rows), registeredProgram, contestTitle); return; }
     if (perContractDisplayContracts.length === 0 && nydData.length === 0 && recruitmentRows.length === 0 && groupedData.length === 0 && tvvTotalRows.length === 0) { toast({ title: 'Thông báo', description: 'Không có dữ liệu' }); return; }
     let headers: string[];
     let rows: (string | number)[][];
