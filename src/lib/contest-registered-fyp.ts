@@ -15,7 +15,7 @@ export function registeredFypBaseline(contracts: Contract[], rows: SaoVietPerson
   for (const c of contracts) {
     if (c.carryoverMonth) continue;
     const source = String(c.nguonDuLieu || '').match(/^NMC_(?:TAMTHU|DOANHSO):(\d{4}-\d{2})(?:\||$)/);
-    const date = c.issueDate || c.effectiveDate;
+    const date = c.issueDate && Number.isFinite(Date.parse(c.issueDate)) ? c.issueDate : c.effectiveDate;
     const month = source?.[1] || (date && Number.isFinite(Date.parse(date)) ? new Date(date).toISOString().slice(0,7) : '');
     if (month !== '2026-10') continue;
     const code = targetCode(c.agentCode);

@@ -2354,7 +2354,7 @@ function ThiDuaPageInner() {
 
   const handleCopyText = () => {
     if (registeredProgram && registeredSaoViet.loading) { toast({title:'Đang tải FYP Sao Việt',description:'Vui lòng đợi tải xong số liệu lũy kế.'}); return; }
-    if (registeredProgram) { void navigator.clipboard.writeText(registeredExportRows(computeRegisteredResults(registeredContracts,registeredConfig,registeredProgram,tvvStructList,leadersList,registeredSaoViet.rows),registeredProgram).map(r=>r.join('\t')).join('\n')); return; }
+    if (registeredProgram) { void navigator.clipboard.writeText(registeredExportRows(computeRegisteredResults(registeredContracts,registeredConfig,registeredProgram,tvvStructList,leadersList,registeredSaoViet.rows),registeredProgram).map(r=>r.map(value=>String(value).replace(/\n/g,' ')).join('\t')).join('\n')); return; }
     if (perContractDisplayContracts.length === 0 && nydData.length === 0 && recruitmentRows.length === 0 && tvvTotalRows.length === 0 && groupedData.length === 0) return;
     const sTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
     let text = `🏆 ${contestTitle}\n📅 Từ ${startDate ? formatDate(startDate) : '...'} đến ${(phase2EndDate || endDate) ? formatDate(phase2EndDate || endDate) : '...'}\n🎯 ${getTargetLabel(targetType)}\n━━━━━━━━━━━━━━━━━━━━\n📊 Mức thưởng:\n`;

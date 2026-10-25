@@ -15,8 +15,8 @@ test('baseline subtracts ordinary October IP from personal Sao Viet by normalize
  const r=registeredFypBaseline([c('1',20),c('2',10),c('3',999,{carryoverMonth:'2026-10'}),c('4',999,{nguonDuLieu:'NMC_DOANHSO:2026-09'})],[{agentCode:' a ',fyp:120}]);assert.equal(r.get('A'),90);
 });
 test('October source month wins over effective/issue dates, otherwise issue date wins',()=>{
- const rows=[c('1',20,{nguonDuLieu:'NMC_TAMTHU:2026-10',effectiveDate:'2026-09-01',issueDate:'2026-09-02'}),c('2',10,{issueDate:'2026-11-01'}),c('3',5,{effectiveDate:'2026-09-30',issueDate:'2026-10-01'}),c('4',7,{issueDate:''})];
- assert.equal(registeredFypBaseline(rows,[{agentCode:'A',fyp:100}]).get('A'),68);
+ const rows=[c('1',20,{nguonDuLieu:'NMC_TAMTHU:2026-10',effectiveDate:'2026-09-01',issueDate:'2026-09-02'}),c('2',10,{issueDate:'2026-11-01'}),c('3',5,{effectiveDate:'2026-09-30',issueDate:'2026-10-01'}),c('4',7,{issueDate:''}),c('5',3,{issueDate:'invalid'})];
+ assert.equal(registeredFypBaseline(rows,[{agentCode:'A',fyp:100}]).get('A'),65);
 });
 test('baseline is independent of contest threshold/date filtering and does not affect reward',()=>{
  const program={...p(),minIP:15};
