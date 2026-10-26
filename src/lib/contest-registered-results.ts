@@ -41,7 +41,7 @@ export const registeredHeaders = (program: RegisteredProgram) => [
   'STT','NHÓM',program.scope === 'nhom' ? 'MÃ TN' : 'MÃ SỐ',
   program.scope === 'nhom' ? 'HỌ TÊN TN' : 'HỌ TÊN',
   'FYP LŨY KẾ\n(01/12/2025 - 30/09/2026)',
-  'ĐIỀU KIỆN ĐẠT SAO VIỆT\nHOẶC NÂNG HẠNG',
+  'ĐK ĐẠT SV',
   'MỤC TIÊU ĐĂNG KÝ',`${program.metric.toUpperCase()} THÁNG 10`,
   'TIẾN ĐỘ HT\nT10','TIỀN THƯỞNG'
 ];
