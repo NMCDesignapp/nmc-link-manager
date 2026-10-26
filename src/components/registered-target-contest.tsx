@@ -9,7 +9,7 @@ const number = (v: number) => v.toLocaleString('vi-VN', {maximumFractionDigits: 
 export async function exportRegisteredTargets(rows: RegisteredResult[], program: RegisteredProgram, title: string) {
   const XLSX = await import('xlsx');
   const sheet = XLSX.utils.aoa_to_sheet(registeredExportRows(rows, program));
-  sheet['!cols'] = [6,18,16,26,27,29,23,23,17,28].map(wch => ({wch}));
+  sheet['!cols'] = [6,18,16,26,27,12,23,23,17,28].map(wch => ({wch}));
   for (let r = 1; r <= rows.length; r++) for (const c of [4,6,7,9]) { const cell = sheet[XLSX.utils.encode_cell({r,c})]; if (cell) cell.z = '#,##0" đ"'; }
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, sheet, 'Ket qua');
   XLSX.writeFile(wb, `${title.replace(/[\\/:*?"<>|]/g, '_') || 'Muc_tieu_dang_ky'}.xlsx`);
