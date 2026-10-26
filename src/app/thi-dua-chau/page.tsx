@@ -5051,7 +5051,7 @@ function ThiDuaPageInner() {
 
               {/* Result Table - slightly larger */}
               <div className={`${isEmbedMode ? 'overflow-x-auto' : 'contest-result-table-wrapper'} border border-emerald-600 shadow-sm mt-3`} id="result-table-container">
-                {registeredResultProps ? <RegisteredTargetResults {...registeredResultProps} /> : conditionType === 'pass_count_contracts' ? <TVVContractCountTable
+                {registeredResultProps ? <RegisteredTargetResults {...registeredResultProps} tableOnly /> : conditionType === 'pass_count_contracts' ? <TVVContractCountTable
                   groups={groupedData} contracts={displayContracts} staff={staffList} structure={tvvStructList}
                   config={{ secondaryIPMin: passCountIPMin, secondaryAFYPMin: passCountAFYPMin, tvvContractCountMin, includeTNInPassCount }}
                   hideNotAchieved={hideNotAchieved}
