@@ -75,13 +75,10 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
   const currentPage=Math.min(page,Math.max(0,Math.ceil(rows.length/100)-1));
   const visibleRows=rows.slice(currentPage*100,(currentPage+1)*100);
   const headers=registeredExportRows([],program)[0];
-  const rewarded=all.filter(r=>r.tier);
-  const grandBonus=all.reduce((total,r)=>total+r.bonus,0);
   const fmtPct=(v:number)=>v.toLocaleString('vi-VN',{maximumFractionDigits:2})+'%';
   return <section className="bg-white text-slate-800" data-registered-target-results data-saoviet-table={config.id ? `saved-${config.id}` : undefined} data-nmc-kpi-detail-shell="saved-contest">
     <div className="px-3 py-3 bg-emerald-950 text-white">
       <h2 className="font-bold text-lg">{title}</h2>
-      <p className="text-sm">{String(config.startDate||'').slice(0,10)} – {String(config.endDate||'').slice(0,10)} · Theo {program.scope==='nhom'?'mã nhóm':'mã TVV'} · {program.metric.toUpperCase()}</p>
     </div>
     {posterUrl&&<img src={posterUrl} alt={title} className="max-h-64 w-full object-contain"/>}
     <div className="p-2 flex gap-2 flex-wrap items-center">
@@ -98,7 +95,7 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
     <div className="overflow-auto">
       <table className="w-full text-xs border-collapse">
         <thead className="bg-emerald-900 text-yellow-100"><tr>
-          {headers.map((h,i)=><th key={i} className="p-2 border border-emerald-700 text-center font-bold align-middle min-w-[55px]">
+          {headers.map((h,i)=><th key={i} className={`border border-emerald-700 text-center font-bold align-middle ${i===5?'w-[86px] min-w-[86px] max-w-[86px] px-1 py-2 whitespace-nowrap':'p-2 min-w-[55px]'}`}>
             {String(h).split('\n').map((line,j)=><span key={j} className={j===0?'block uppercase':'block italic'} style={i===4&&j===1?{color:'#ff6666',fontWeight:800}:undefined}>{line}</span>)}
           </th>)}
         </tr></thead>
@@ -108,8 +105,10 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
             '',
             `${number(r.target)} đ`,`${number(r.actual)} đ`,fmtPct(r.percent),registeredRewardDisplay(r)];
           return <tr key={r.code} style={{backgroundColor:registeredClassColor(r.classification)}} className="border-b border-slate-300">
-            {values.map((v,i)=><td key={i} className={`p-2 border-x border-slate-200 align-middle ${i>=4?'text-center':''} ${i===6||i===7?'font-bold text-blue-800':''} ${i===8?`font-bold ${r.percent>=100?'text-green-800':'text-red-700'}`:''} ${i===9?(r.tier?'font-bold text-green-800':r.achievedTarget?'text-red-700 italic text-[10px]':'text-slate-600 italic'):''}`}>
-              {i===5 ? approval.admin && config.id ? <button type="button" title={r.approved?'Bỏ duyệt Sao Việt/nâng hạng':'Duyệt Sao Việt/nâng hạng'} aria-label={`${r.approved?'Bỏ duyệt':'Duyệt'} ${r.code}`} aria-pressed={r.approved} disabled={Boolean(approval.savingCode)||approval.loading} onClick={()=>void approval.setApproved(r.code,!r.approved)} className={`inline-flex h-5 w-5 items-center justify-center rounded border text-sm ${r.approved?'bg-green-700 text-white border-green-700':'bg-white border-slate-400 text-transparent hover:border-green-600'}`}>✓</button> : r.approved ? <span className="inline-block font-black text-green-700 text-lg" aria-label="Đã đạt điều kiện">✓</span> : null
+            {values.map((v,i)=><td key={i} className={`p-2 border-x border-slate-200 align-middle ${i>=4?'text-center':''} ${i===5?'w-[86px] min-w-[86px] max-w-[86px] px-1':''} ${i===6||i===7?'font-bold text-blue-800':''} ${i===8?`font-bold ${r.percent>=100?'text-green-800':'text-red-700'}`:''} ${i===9?(r.tier?'font-bold text-green-800':r.achievedTarget?'text-red-700 italic text-[10px]':'text-slate-600 italic'):''}`}>
+              {i===5 ? approval.admin && config.id
+                ? <button type="button" title={r.approved?'Bỏ duyệt Sao Việt/nâng hạng':'Duyệt Sao Việt/nâng hạng'} aria-label={`${r.approved?'Bỏ duyệt':'Duyệt'} ${r.code}`} aria-pressed={r.approved} disabled={Boolean(approval.savingCode)||approval.loading} onClick={()=>void approval.setApproved(r.code,!r.approved)} className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs font-bold leading-none ${r.approved?'bg-green-700 text-white border-green-700':'bg-white border-slate-400 text-transparent hover:border-green-600'}`}>✓</button>
+                : r.approved ? <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-700 text-xs font-bold leading-none text-white" role="img" aria-label="Đã đạt điều kiện">✓</span> : null
               :i===9&&r.tier?<span className="inline-flex items-center justify-center gap-1"><span className="text-[11px] leading-none" aria-hidden="true">{r.tier.type==='gift'?'🎁':'🏅'}</span><span>{typeof v==='number'?`${number(v)} đ`:r.tier.type==='gift'?v:`${number(r.bonus)} đ`}</span></span>
               :v}
             </td>)}
@@ -119,9 +118,5 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
     </div>
     {rows.length>100&&<div className="p-2 flex justify-center gap-3"><button type="button" disabled={currentPage===0} onClick={()=>setPage(currentPage-1)}>Trước</button><span>Trang {currentPage+1}/{Math.ceil(rows.length/100)} · {rows.length} đối tượng</span><button type="button" disabled={(currentPage+1)*100>=rows.length} onClick={()=>setPage(currentPage+1)}>Sau</button></div>}
     {!rows.length&&<p className="p-4 text-center">Chưa có đối tượng phù hợp.</p>}
-    <p className="p-3 font-semibold border-t bg-emerald-50">
-      Tổng đối tượng: {all.length} · Đủ mục tiêu tháng 10: {all.filter(r=>r.achievedTarget).length} · Đủ cả 2 điều kiện: {rewarded.length}
-      {' '}· Tổng mục tiêu: {number(all.reduce((sum,r)=>sum+r.target,0))} đ · Thực hiện: {number(all.reduce((sum,r)=>sum+r.actual,0))} đ · Tổng thưởng: {number(grandBonus)} đ
-    </p>
   </section>;
 }
