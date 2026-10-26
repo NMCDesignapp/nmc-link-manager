@@ -35,6 +35,7 @@ import {
   downloadBlob,
 } from '@/lib/clb-sao-viet-image-export';
 import { evaluateClbsvPersonalRank } from '@/lib/clb-sao-viet-personal-rank';
+import { SaoVietBreakthrough } from '@/components/sao-viet-breakthrough';
 import { CarryoverContractsTable } from '@/components/carryover-contracts-table';
 import { calculateRevenueTVVmAFYP } from '@/lib/revenue-tvvm';
 
@@ -12301,6 +12302,19 @@ export default function QuanLyPage() {
           )}
         </div>
       </div>
+      <button
+        type="button"
+        onClick={() => navigateTo({ sheet: 'clb-saoviet', clbsvOpen: 'bung-no-sao-viet' })}
+        className="mb-5 w-full flex flex-col sm:flex-row items-center gap-3 overflow-hidden rounded-lg border-2 border-amber-500 bg-gradient-to-r from-amber-950 to-slate-900 text-left shadow-lg hover:brightness-110"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/posters/sao-viet-breakthrough-2026.jpg" alt="Poster Đột phá số lượng – Bùng nổ Sao Việt 2026" width={1536} height={864} className="w-full sm:w-1/2 md:w-1/3 h-auto shrink-0 object-contain" />
+        <div className="flex-1 p-3">
+          <h3 className="text-sm font-extrabold text-amber-200">ĐỘT PHÁ SỐ LƯỢNG – BÙNG NỔ SAO VIỆT</h3>
+          <p className="mt-1 text-xs text-slate-200">Theo dõi người đạt và thưởng TN / TVV năm 2026</p>
+        </div>
+        <ChevronRight className="w-4 h-4 text-amber-300" />
+      </button>
       <div className="mb-5">
         <h3 className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.14em] text-amber-300">
           Sao Việt toàn chặng
@@ -12512,6 +12526,18 @@ export default function QuanLyPage() {
   };
 
   const renderCLBSaoViet = () => {
+    if (clbsvOpen === 'bung-no-sao-viet') return <SaoVietBreakthrough
+      sources={saovietManualData}
+      personalTiers={SV1_THRESHOLDS}
+      businessTiers={SV2_THRESHOLDS}
+      recruitmentTiers={SV3_RANKS}
+      leaders={leaders.filter(l => isTBorTNPosition(l.position)).map(l => ({
+        ...l,
+        ngayHieuLuc: [...tuyenNgangList, ...recruiters].find(person =>
+          person.agentCode.trim().toUpperCase() === l.agentCode.trim().toUpperCase() && person.ngayHieuLuc
+        )?.ngayHieuLuc || null,
+      }))}
+    />;
     if (clbsvOpen === 'toan-chang-ca-nhan') return renderSaoVietCaNhan();
     if (clbsvOpen === 'toan-chang-tn-td')   return renderSaoVietTNTD();
     if (clbsvOpen === 'toan-chang-tn-ktm')  return renderSaoVietTNKTM();
@@ -12815,7 +12841,7 @@ export default function QuanLyPage() {
         ) : (
           <BackButton onClick={handleAppBack} size={20} title="Trở về thao tác trước" />
         )}
-        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Chính Sách Đại Lý') : activeSheet === 'saoviet' && saovietOpen ? (saovietOpen.startsWith('saved-') ? (savedContestsList.find(c => c.id === saovietOpen.slice(6))?.title || 'Chương trình thi đua') : (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'Thi đua')) : activeSheet === 'saoviet' ? 'THI ĐUA' : activeSheet === 'clb-saoviet' && clbsvOpen ? (SAOVIET_ITEMS.find(i => i.clbKey === clbsvOpen)?.label || CLBSV_ITEMS.find(i => i.key === clbsvOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB SAO VIỆT' : activeSheet === 'vinh-danh' ? (VINH_DANH_SUBS.find(s => s.key === vinhdanhSub)?.label || 'TÔN VINH') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : activeSheet === 'report' ? 'CHÍNH SÁCH ĐẠI LÝ' : 'Quản Lý Dữ Liệu'}</h1>
+        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Chính Sách Đại Lý') : activeSheet === 'saoviet' && saovietOpen ? (saovietOpen.startsWith('saved-') ? (savedContestsList.find(c => c.id === saovietOpen.slice(6))?.title || 'Chương trình thi đua') : (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'Thi đua')) : activeSheet === 'saoviet' ? 'THI ĐUA' : activeSheet === 'clb-saoviet' && clbsvOpen ? (clbsvOpen === 'bung-no-sao-viet' ? 'ĐỘT PHÁ SỐ LƯỢNG – BÙNG NỔ SAO VIỆT' : SAOVIET_ITEMS.find(i => i.clbKey === clbsvOpen)?.label || CLBSV_ITEMS.find(i => i.key === clbsvOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB SAO VIỆT' : activeSheet === 'vinh-danh' ? (VINH_DANH_SUBS.find(s => s.key === vinhdanhSub)?.label || 'TÔN VINH') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : activeSheet === 'report' ? 'CHÍNH SÁCH ĐẠI LÝ' : 'Quản Lý Dữ Liệu'}</h1>
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Nút Cài đặt đã được chuyển vào menu mobile (PHẦN 1) và sidebar — bỏ ở header để tránh trùng */}
           {/* Nút Tải lại — HIỆN cho cả end-user (đến từ /kpi-standalone) và admin */}
