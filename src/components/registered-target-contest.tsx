@@ -51,17 +51,36 @@ export function RegisteredTargetSetup({value,onChange,leaders=[]}:{value: Regist
     <label className="flex gap-2"><input type="checkbox" checked={value.hideNotAchieved} onChange={e=>change({hideNotAchieved:e.target.checked})}/>Ẩn đối tượng chưa đạt</label>
   </section>;
 }
-export function RegisteredTargetResults({program,contracts,config,title,posterUrl='',structure=[],leaders=[]}:{program:RegisteredProgram;contracts:Contract[];config:ContestConfig;title:string;posterUrl?:string;structure?:{agentCode:string;maBanNhom?:string}[];leaders?:RegisteredLeader[]}) {
+export function RegisteredTargetResults({program,contracts,config,title,posterUrl='',structure=[],leaders=[],editableApprovals=false,draftApprovals={},onDraftApprovalChange}:{program:RegisteredProgram;contracts:Contract[];config:ContestConfig;title:string;posterUrl?:string;structure?:{agentCode:string;maBanNhom?:string}[];leaders?:RegisteredLeader[];editableApprovals?:boolean;draftApprovals?:Record<string,boolean>;onDraftApprovalChange?:(code:string,checked:boolean)=>void}) {
   const saoViet = useRegisteredFyp();
   const approval = useContestApprovals(config.id);
   const [page,setPage]=useState(0);
   const [query,setQuery]=useState('');
   const [descending,setDescending]=useState(true);
   const [error,setError]=useState('');
+  const [loginOpen,setLoginOpen]=useState(false);
+  const [loginPassword,setLoginPassword]=useState('');
+  const [loginBusy,setLoginBusy]=useState(false);
+  const [loginError,setLoginError]=useState('');
+  const effectiveApprovals = config.id ? approval.approvals : draftApprovals;
   const all=useMemo(
-    ()=>computeRegisteredResults(contracts,config,program,structure,leaders,saoViet.rows,approval.approvals),
-    [contracts,config,program,structure,leaders,saoViet.rows,approval.approvals]
+    ()=>computeRegisteredResults(contracts,config,program,structure,leaders,saoViet.rows,effectiveApprovals),
+    [contracts,config,program,structure,leaders,saoViet.rows,effectiveApprovals]
   );
+  const submitAdminLogin = async () => {
+    setLoginBusy(true); setLoginError('');
+    try {
+      const response = await fetch('/api/admin/session', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({password:loginPassword}),
+      });
+      if (!response.ok) throw Error('Không thể xác thực admin. Kiểm tra mật khẩu hoặc phiên đăng nhập.');
+      setLoginPassword(''); setLoginOpen(false);
+      await approval.refresh();
+    } catch (cause) { setLoginError(String((cause as Error).message)); }
+    finally { setLoginBusy(false); }
+  };
   const rows=useMemo(()=>all.filter(r=>
     (!program.hideNotAchieved||r.achievedTarget)&&
     `${r.group} ${program.scope==='nhom'?r.leaderCode:r.code} ${program.scope==='nhom'?r.leaderName:r.name}`.toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi'))
@@ -85,8 +104,20 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
       <input aria-label="Tìm đối tượng đăng ký" placeholder="Tìm nhóm, mã, họ tên" className="p-2 border rounded text-slate-900" value={query} onChange={e=>{setQuery(e.target.value);setPage(0);}}/>
       <button type="button" disabled={saoViet.loading||approval.loading||Boolean(approval.error)} className="border rounded px-3 py-2" onClick={()=>{void exportRegisteredTargets(rows,program,title).catch(e=>setError(String(e)));}}>Tải Excel kết quả</button>
       <button type="button" className="border rounded px-2 py-2 text-xs" onClick={()=>{setDescending(!descending);setPage(0);}} aria-label="Đổi thứ tự FYP lũy kế và tiến độ">{descending?'FYP ↓ · HT ↓':'FYP ↑ · HT ↑'}</button>
+      {editableApprovals && !approval.loading && !approval.admin && (
+        <button type="button" className="rounded border border-green-700 px-2 py-1.5 text-xs font-semibold text-green-800" onClick={()=>setLoginOpen(current=>!current)}>
+          Đăng nhập quản trị để duyệt
+        </button>
+      )}
       <span className="ml-auto text-xs font-semibold text-slate-600">Đơn vị tính: đồng</span>
     </div>
+    {editableApprovals && loginOpen && !approval.admin && (
+      <form className="flex items-center gap-2 px-2 py-1.5" onSubmit={event=>{event.preventDefault();void submitAdminLogin();}}>
+        <input type="password" autoComplete="current-password" aria-label="Mật khẩu admin" value={loginPassword} onChange={event=>setLoginPassword(event.target.value)} className="w-40 rounded border border-slate-300 p-1.5 text-xs" placeholder="Mật khẩu admin" />
+        <button type="submit" disabled={loginBusy || !loginPassword} className="rounded bg-green-800 px-3 py-1.5 text-xs font-semibold text-white">Đăng nhập</button>
+        {loginError && <span role="alert" className="text-xs text-red-700">{loginError}</span>}
+      </form>
+    )}
     {saoViet.loading&&<p role="status" className="px-3 py-1 text-xs">Đang tải FYP Sao Việt…</p>}
     {approval.loading&&<p role="status" className="px-3 py-1 text-xs">Đang tải điều kiện duyệt…</p>}
     {saoViet.error&&<p role="alert" className="px-3 py-1 text-red-700">{saoViet.error}</p>}
@@ -106,8 +137,11 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
             `${number(r.target)} đ`,`${number(r.actual)} đ`,fmtPct(r.percent),registeredRewardDisplay(r)];
           return <tr key={r.code} style={{backgroundColor:registeredClassColor(r.classification)}} className="border-b border-slate-300">
             {values.map((v,i)=><td key={i} className={`p-2 border-x border-slate-200 align-middle ${i>=4?'text-center':''} ${i===5?'w-[86px] min-w-[86px] max-w-[86px] px-1':''} ${i===6||i===7?'font-bold text-blue-800':''} ${i===8?`font-bold ${r.percent>=100?'text-green-800':'text-red-700'}`:''} ${i===9?(r.tier?'font-bold text-green-800':r.achievedTarget?'text-red-700 italic text-[10px]':'text-slate-600 italic'):''}`}>
-              {i===5 ? approval.admin && config.id
-                ? <button type="button" title={r.approved?'Bỏ duyệt Sao Việt/nâng hạng':'Duyệt Sao Việt/nâng hạng'} aria-label={`${r.approved?'Bỏ duyệt':'Duyệt'} ${r.code}`} aria-pressed={r.approved} disabled={Boolean(approval.savingCode)||approval.loading} onClick={()=>void approval.setApproved(r.code,!r.approved)} className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs font-bold leading-none ${r.approved?'bg-green-700 text-white border-green-700':'bg-white border-slate-400 text-transparent hover:border-green-600'}`}>✓</button>
+              {i===5 ? editableApprovals && approval.admin
+                ? <button type="button" title={r.approved?'Bỏ duyệt Sao Việt/nâng hạng':'Duyệt Sao Việt/nâng hạng'} aria-label={`${r.approved?'Bỏ duyệt':'Duyệt'} ${r.code}`} aria-pressed={r.approved} disabled={Boolean(approval.savingCode)||approval.loading} onClick={()=>{
+                    if (config.id) void approval.setApproved(r.code,!r.approved);
+                    else onDraftApprovalChange?.(r.code,!r.approved);
+                  }} className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs font-bold leading-none ${r.approved?'bg-green-700 text-white border-green-700':'bg-white border-slate-400 text-transparent hover:border-green-600'}`}>✓</button>
                 : r.approved ? <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-700 text-xs font-bold leading-none text-white" role="img" aria-label="Đã đạt điều kiện">✓</span> : null
               :i===9&&r.tier?<span className="inline-flex items-center justify-center gap-1"><span className="text-[11px] leading-none" aria-hidden="true">{r.tier.type==='gift'?'🎁':'🏅'}</span><span>{typeof v==='number'?`${number(v)} đ`:r.tier.type==='gift'?v:`${number(r.bonus)} đ`}</span></span>
               :v}
