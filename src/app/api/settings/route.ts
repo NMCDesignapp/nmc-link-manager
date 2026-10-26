@@ -52,6 +52,8 @@ export async function PUT(request: Request) {
     const data = await request.json()
     const entries = Object.entries(data)
     if (entries.some(([key]) => key.startsWith(CARRYOVER_SETTING_PREFIX))) return NextResponse.json({ error: 'HĐ tồn phải nhập qua nguồn riêng' }, { status: 400 })
+    // The public generic Settings writer must never bypass signed admin approval checks.
+    if (entries.some(([key]) => key.startsWith('contest-sv-approval-v1:'))) return NextResponse.json({ error: 'Chỉ admin mới được duyệt điều kiện Sao Việt/nâng hạng' }, { status: 403 })
 
     if (entries.length === 0) {
       return NextResponse.json({ success: true })
