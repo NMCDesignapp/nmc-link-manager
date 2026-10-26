@@ -30,7 +30,7 @@ import { VerticalAgenda } from '@/components/vertical-agenda'
 import { HomeContestShortcuts } from '@/components/home-contest-shortcuts'
 
 const MAINTENANCE_KEY = 'nmc-maintenance-mode'
-const ADMIN_PWD = '123456'
+// Admin password is verified only on the server.
 
 const fetcher = async (url: string) => {
   const response = await fetch(url, { cache: 'no-store' })
@@ -181,7 +181,19 @@ export default function HomeCommandCenter() {
   const [noticeSaving, setNoticeSaving] = useState(false)
 
   useEffect(() => {
-    try { setAdminAuthed(sessionStorage.getItem('kpi_admin_authed') === '1') } catch {}
+    let active = true
+    fetch('/api/admin/session', { cache: 'no-store', credentials: 'same-origin' })
+      .then(r => r.ok ? r.json() : { authenticated: false })
+      .then(data => {
+        if (!active) return
+        setAdminAuthed(data.authenticated === true)
+        try {
+          if (data.authenticated === true) sessionStorage.setItem('kpi_admin_authed', '1')
+          else sessionStorage.removeItem('kpi_admin_authed')
+        } catch {}
+      })
+      .catch(() => { if (active) setAdminAuthed(false) })
+    return () => { active = false }
   }, [])
 
   useEffect(() => {
@@ -236,22 +248,30 @@ export default function HomeCommandCenter() {
   }
 
   const submitAdminPwd = async () => {
-    if (adminPwdInput !== ADMIN_PWD) {
+    try {
+      const response = await fetch('/api/admin/session', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPwdInput }),
+      })
+      if (!response.ok) throw new Error('Authentication failed')
+      setAdminAuthed(true)
+      try { sessionStorage.setItem('kpi_admin_authed', '1') } catch {}
+      setAdminPwdOpen(false)
+      setAdminPwdInput('')
+      setAdminPwdError(false)
+      if (pendingMaintenanceToggle) {
+        setPendingMaintenanceToggle(false)
+        await saveMaintenance(!maintenanceEnabled)
+      }
+    } catch {
       setAdminPwdError(true)
-      return
-    }
-    setAdminAuthed(true)
-    try { sessionStorage.setItem('kpi_admin_authed', '1') } catch {}
-    setAdminPwdOpen(false)
-    setAdminPwdInput('')
-    setAdminPwdError(false)
-    if (pendingMaintenanceToggle) {
-      setPendingMaintenanceToggle(false)
-      await saveMaintenance(!maintenanceEnabled)
     }
   }
 
   const logoutAdmin = () => {
+    void fetch('/api/admin/session', { method: 'DELETE', credentials: 'same-origin' })
     setAdminAuthed(false)
     try { sessionStorage.removeItem('kpi_admin_authed') } catch {}
   }

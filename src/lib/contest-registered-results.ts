@@ -9,8 +9,8 @@ export function registeredGroupLeader(code: string, leaders: RegisteredLeader[])
   const unique = new Map((tn.length ? tn : matches).filter(l=>targetCode(l.agentCode)).map(l=>[targetCode(l.agentCode),l]));
   return unique.size === 1 ? [...unique.values()][0] : null;
 }
-export type RegisteredResult = RegisteredTarget & { cumulativeFyp: number | null; leaderCode: string; leaderName: string; leaderPosition: string; actual: number; ip: number; afyp: number; percent: number; tier: TargetReward | null; bonus: number };
-export function computeRegisteredResults(contracts: Contract[], config: ContestConfig, program: RegisteredProgram, structure: {agentCode:string;maBanNhom?:string}[] = [], leaders: RegisteredLeader[] = [], saoVietRows: SaoVietPersonalRow[] | null = null): RegisteredResult[] {
+export type RegisteredResult = RegisteredTarget & { cumulativeFyp: number | null; leaderCode: string; leaderName: string; leaderPosition: string; actual: number; ip: number; afyp: number; percent: number; tier: TargetReward | null; achievedTarget: boolean; approved: boolean; bonus: number };
+export function computeRegisteredResults(contracts: Contract[], config: ContestConfig, program: RegisteredProgram, structure: {agentCode:string;maBanNhom?:string}[] = [], leaders: RegisteredLeader[] = [], saoVietRows: SaoVietPersonalRow[] | null = null, approvals: Record<string, boolean> = {}): RegisteredResult[] {
   const baseline = registeredFypBaseline(contracts, saoVietRows);
   const eligible = filterContractsByContest(contracts, { ...config, usePhase2: false, useSecondaryCondition: false });
   const groups = new Map(structure.map(r => [targetCode(r.agentCode), targetCode(r.maBanNhom)]));
@@ -28,12 +28,34 @@ export function computeRegisteredResults(contracts: Contract[], config: ContestC
     const percent = actual / row.target * 100;
     // Compare unrounded values; a displayed rounded 100% must not create a reward.
     const tier = [...program.tiers].filter(t => (t.classification ?? 1) === (row.classification ?? 1)).sort((a,b) => b.minPercent - a.minPercent).find(t => actual * 100 >= row.target * t.minPercent) || null;
-    const bonus = !tier || tier.type === 'gift' ? 0 : tier.type === 'percent_ip' ? ip * tier.amount / 100 : tier.type === 'percent_afyp' ? afyp * tier.amount / 100 : tier.amount;
+    const achievedTarget = actual >= row.target;
+    const approved = approvals[targetCode(row.code)] === true;
+    // Progress and contract totals remain unchanged; all rewards (cash, gift and %) require both conditions.
+    const rewardTier = achievedTarget && approved ? tier : null;
+    const bonus = !rewardTier || rewardTier.type === 'gift' ? 0 : rewardTier.type === 'percent_ip' ? ip * rewardTier.amount / 100 : rewardTier.type === 'percent_afyp' ? afyp * rewardTier.amount / 100 : rewardTier.amount;
     const leader = program.scope === 'nhom' ? registeredGroupLeader(row.code, leaders) : null;
-    return {...row, cumulativeFyp: baseline.get(program.scope === 'nhom' ? targetCode(leader?.agentCode) : targetCode(row.code)) ?? null, leaderCode: targetCode(leader?.agentCode), leaderName: leader?.agentName || '', leaderPosition: leader?.chucVu || leader?.position || '', actual, ip, afyp, percent, tier, bonus};
+    return {...row, cumulativeFyp: baseline.get(program.scope === 'nhom' ? targetCode(leader?.agentCode) : targetCode(row.code)) ?? null, leaderCode: targetCode(leader?.agentCode), leaderName: leader?.agentName || '', leaderPosition: leader?.chucVu || leader?.position || '', actual, ip, afyp, percent, tier: rewardTier, achievedTarget, approved, bonus};
   });
 }
-export const registeredHeaders = (program: RegisteredProgram) => ['STT','NHÓM',program.scope === 'nhom' ? 'MÃ TN' : 'MÃ SỐ',program.scope === 'nhom' ? 'HỌ TÊN TN' : 'HỌ TÊN','FYP LŨY KẾ\n(TỪ 01/12/25 - 30/11/26)','MỤC TIÊU ĐĂNG KÝ\n(Đ)',`${program.metric.toUpperCase()} THÁNG 10\n(Đ)`,'TIẾN ĐỘ HT MỤC TIÊU\nT10','THƯỞNG'];
+export const registeredHeaders = (program: RegisteredProgram) => [
+  'STT','NHÓM',program.scope === 'nhom' ? 'MÃ TN' : 'MÃ SỐ',
+  program.scope === 'nhom' ? 'HỌ TÊN TN' : 'HỌ TÊN',
+  'FYP LŨY KẾ\n(01/12/2025 - 30/09/2026)',
+  'ĐIỀU KIỆN ĐẠT SAO VIỆT\nHOẶC NÂNG HẠNG',
+  'MỤC TIÊU ĐĂNG KÝ',`${program.metric.toUpperCase()} THÁNG 10`,
+  'TIẾN ĐỘ HT\nT10','TIỀN THƯỞNG'
+];
+export function registeredRewardDisplay(row: RegisteredResult): string | number {
+  if (!row.achievedTarget) return 'Chưa đạt';
+  if (!row.approved) return 'Chưa đạt SV/nâng hạng';
+  if (row.tier?.type === 'gift') return row.tier.text;
+  return row.tier ? row.bonus : 'Chưa đạt';
+}
 export function registeredExportRows(rows: RegisteredResult[], program: RegisteredProgram) {
-  return [registeredHeaders(program), ...rows.map(r => [r.stt,r.group,program.scope==='nhom'?(r.leaderCode||'—'):r.code,program.scope==='nhom'?(r.leaderName||'Chưa có TN trong Cấu trúc'):r.name,r.cumulativeFyp ?? 'Chưa có dữ liệu',r.target,r.actual,r.percent,r.tier?.type === 'gift' ? r.tier.text : r.tier ? r.bonus : 'Chưa đạt'])];
+  return [registeredHeaders(program), ...rows.map(r => [
+    r.stt,r.group,program.scope==='nhom'?(r.leaderCode||'—'):r.code,
+    program.scope==='nhom'?(r.leaderName||'Chưa có TN trong Cấu trúc'):r.name,
+    r.cumulativeFyp ?? 'Chưa có dữ liệu',r.approved?'✓':'',
+    r.target,r.actual,r.percent,registeredRewardDisplay(r)
+  ])];
 }

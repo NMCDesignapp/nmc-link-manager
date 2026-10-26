@@ -33,7 +33,7 @@ test('group cumulative FYP uses displayed TN personal code while contest actual 
  const rows=[c('1',30,{agentCode:'TN'}),c('2',70)];
  const r=computeRegisteredResults(rows,cfg(),program,[],[{agentCode:'TN',agentName:'TN mẫu',maNhom:'G',position:'Trưởng nhóm'}],[{agentCode:'TN',fyp:500}])[0];assert.equal(r.actual,100);assert.equal(r.cumulativeFyp,470);
 });
-test('nine result/export columns match app order and exclude position, classification, internal group code',()=>{
+test('ten result/export columns include approval, correct FYP dates and retain exact values',()=>{
  const r=computeRegisteredResults([c('1',20)],cfg(),p(),[],[],[{agentCode:'A',fyp:120}]);const rows=registeredExportRows(r,p());
- assert.equal(rows[0].length,9);assert.equal(rows[1][4],100);assert.equal(rows[1][5],100);assert.equal(rows[1][6],20);assert.match(String(rows[0][4]),/01\/12\/25 - 30\/11\/26/);assert.ok(!rows[0].join(' ').includes('CHỨC VỤ'));
+ assert.equal(rows[0].length,10);assert.equal(rows[1][4],100);assert.equal(rows[1][5],'');assert.equal(rows[1][6],100);assert.equal(rows[1][7],20);assert.match(String(rows[0][4]),/01\/12\/2025 - 30\/09\/2026/);assert.ok(!rows[0].join(' ').includes('CHỨC VỤ'));
 });

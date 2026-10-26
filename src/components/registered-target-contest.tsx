@@ -1,15 +1,16 @@
 'use client';
 import { useRegisteredFyp } from '@/hooks/use-registered-fyp';
+import { useContestApprovals } from '@/hooks/use-contest-approvals';
 import React, { useMemo, useState } from 'react';
 import { type RegisteredProgram, parseTargetSheet, registeredClassColor } from '@/lib/contest-registered-targets';
-import { computeRegisteredResults, registeredExportRows, registeredGroupLeader, type RegisteredLeader, type RegisteredResult } from '@/lib/contest-registered-results';
+import { computeRegisteredResults, registeredExportRows, registeredGroupLeader, registeredRewardDisplay, type RegisteredLeader, type RegisteredResult } from '@/lib/contest-registered-results';
 import { type ContestConfig, type Contract } from '@/lib/contest-calculator';
 const number = (v: number) => v.toLocaleString('vi-VN', {maximumFractionDigits: 0});
 export async function exportRegisteredTargets(rows: RegisteredResult[], program: RegisteredProgram, title: string) {
   const XLSX = await import('xlsx');
   const sheet = XLSX.utils.aoa_to_sheet(registeredExportRows(rows, program));
-  sheet['!cols'] = [6,22,18,28,28,25,25,24,28].map(wch => ({wch}));
-  for (let r = 1; r <= rows.length; r++) for (const c of [4,5,6,8]) { const cell = sheet[XLSX.utils.encode_cell({r,c})]; if (cell) cell.z = '#,##0" đ"'; }
+  sheet['!cols'] = [6,18,16,26,27,29,23,23,17,28].map(wch => ({wch}));
+  for (let r = 1; r <= rows.length; r++) for (const c of [4,6,7,9]) { const cell = sheet[XLSX.utils.encode_cell({r,c})]; if (cell) cell.z = '#,##0" đ"'; }
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, sheet, 'Ket qua');
   XLSX.writeFile(wb, `${title.replace(/[\\/:*?"<>|]/g, '_') || 'Muc_tieu_dang_ky'}.xlsx`);
 }
@@ -52,23 +53,75 @@ export function RegisteredTargetSetup({value,onChange,leaders=[]}:{value: Regist
 }
 export function RegisteredTargetResults({program,contracts,config,title,posterUrl='',structure=[],leaders=[]}:{program:RegisteredProgram;contracts:Contract[];config:ContestConfig;title:string;posterUrl?:string;structure?:{agentCode:string;maBanNhom?:string}[];leaders?:RegisteredLeader[]}) {
   const saoViet = useRegisteredFyp();
+  const approval = useContestApprovals(config.id);
   const [page,setPage]=useState(0);
-  const [query,setQuery]=useState(''); const [error,setError]=useState('');
-  const all=useMemo(()=>computeRegisteredResults(contracts,config,program,structure,leaders,saoViet.rows),[contracts,config,program,structure,leaders,saoViet.rows]);
-  const rows=all.filter(r=>(!program.hideNotAchieved||r.tier)&&`${r.group} ${program.scope==='nhom'?r.leaderCode:r.code} ${program.scope==='nhom'?r.leaderName:r.name}`.toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi')));
+  const [query,setQuery]=useState('');
+  const [descending,setDescending]=useState(true);
+  const [error,setError]=useState('');
+  const all=useMemo(
+    ()=>computeRegisteredResults(contracts,config,program,structure,leaders,saoViet.rows,approval.approvals),
+    [contracts,config,program,structure,leaders,saoViet.rows,approval.approvals]
+  );
+  const rows=useMemo(()=>all.filter(r=>
+    (!program.hideNotAchieved||r.achievedTarget)&&
+    `${r.group} ${program.scope==='nhom'?r.leaderCode:r.code} ${program.scope==='nhom'?r.leaderName:r.name}`.toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi'))
+  ).sort((a,b)=>{
+    const aFyp=a.cumulativeFyp??Number.NEGATIVE_INFINITY;
+    const bFyp=b.cumulativeFyp??Number.NEGATIVE_INFINITY;
+    if(aFyp!==bFyp) return descending ? bFyp-aFyp : aFyp-bFyp;
+    if(a.percent!==b.percent) return descending ? b.percent-a.percent : a.percent-b.percent;
+    return a.code.localeCompare(b.code,'vi');
+  }),[all,program.hideNotAchieved,program.scope,query,descending]);
   const currentPage=Math.min(page,Math.max(0,Math.ceil(rows.length/100)-1));
   const visibleRows=rows.slice(currentPage*100,(currentPage+1)*100);
+  const headers=registeredExportRows([],program)[0];
+  const rewarded=all.filter(r=>r.tier);
+  const grandBonus=all.reduce((total,r)=>total+r.bonus,0);
+  const fmtPct=(v:number)=>v.toLocaleString('vi-VN',{maximumFractionDigits:2})+'%';
   return <section className="bg-white text-slate-800" data-registered-target-results data-saoviet-table={config.id ? `saved-${config.id}` : undefined} data-nmc-kpi-detail-shell="saved-contest">
-    <div className="p-3 bg-emerald-950 text-white"><h2 className="font-bold text-lg">{title}</h2><p>{String(config.startDate||'').slice(0,10)} – {String(config.endDate||'').slice(0,10)} · Theo {program.scope==='nhom'?'mã nhóm':'mã TVV'} · {program.metric.toUpperCase()} (đ)</p></div>
+    <div className="px-3 py-3 bg-emerald-950 text-white">
+      <h2 className="font-bold text-lg">{title}</h2>
+      <p className="text-sm">{String(config.startDate||'').slice(0,10)} – {String(config.endDate||'').slice(0,10)} · Theo {program.scope==='nhom'?'mã nhóm':'mã TVV'} · {program.metric.toUpperCase()}</p>
+    </div>
     {posterUrl&&<img src={posterUrl} alt={title} className="max-h-64 w-full object-contain"/>}
-    <div className="p-2 flex gap-2 flex-wrap"><input aria-label="Tìm đối tượng đăng ký" placeholder="Tìm nhóm, mã, họ tên" className="p-2 border rounded text-slate-900" value={query} onChange={e=>{setQuery(e.target.value);setPage(0);}}/><button type="button" disabled={saoViet.loading} className="border rounded px-3" onClick={()=>{void exportRegisteredTargets(rows,program,title).catch(e=>setError(String(e)));}}>Tải Excel kết quả</button></div>
-    <p className="px-3 py-1 text-xs text-slate-600">FYP lũy kế đến 30/09/26 = FYP Sao Việt toàn chặng cá nhân − IP doanh số tháng 10/2026; đơn vị đồng.</p>
-    {saoViet.loading&&<p role="status" className="px-3 py-1">Đang tải FYP Sao Việt…</p>}
+    <div className="p-2 flex gap-2 flex-wrap items-center">
+      <input aria-label="Tìm đối tượng đăng ký" placeholder="Tìm nhóm, mã, họ tên" className="p-2 border rounded text-slate-900" value={query} onChange={e=>{setQuery(e.target.value);setPage(0);}}/>
+      <button type="button" disabled={saoViet.loading||approval.loading||Boolean(approval.error)} className="border rounded px-3 py-2" onClick={()=>{void exportRegisteredTargets(rows,program,title).catch(e=>setError(String(e)));}}>Tải Excel kết quả</button>
+      <button type="button" className="border rounded px-2 py-2 text-xs" onClick={()=>{setDescending(!descending);setPage(0);}} aria-label="Đổi thứ tự FYP lũy kế và tiến độ">{descending?'FYP ↓ · HT ↓':'FYP ↑ · HT ↑'}</button>
+      <span className="ml-auto text-xs font-semibold text-slate-600">Đơn vị tính: đồng</span>
+    </div>
+    {saoViet.loading&&<p role="status" className="px-3 py-1 text-xs">Đang tải FYP Sao Việt…</p>}
+    {approval.loading&&<p role="status" className="px-3 py-1 text-xs">Đang tải điều kiện duyệt…</p>}
     {saoViet.error&&<p role="alert" className="px-3 py-1 text-red-700">{saoViet.error}</p>}
-    {error&&<p role="alert">{error}</p>}
-    <div className="overflow-auto"><table className="w-full text-xs border-collapse"><thead className="bg-emerald-900 text-yellow-100"><tr>{registeredExportRows([],program)[0].map((h,i)=><th key={i} className="p-2 border border-emerald-700 whitespace-nowrap">{String(h).split('\n').map((line,j)=><span key={j} className={j===0?'block font-bold uppercase':'block italic font-bold text-amber-200'}>{line}</span>)}</th>)}</tr></thead><tbody>{visibleRows.map(r=><tr key={r.code} className="border-b-2 border-slate-300" style={{backgroundColor:registeredClassColor(r.classification)}}>{[r.stt,r.group,program.scope==='nhom'?(r.leaderCode||'—'):r.code,program.scope==='nhom'?(r.leaderName||'Chưa có TN trong Cấu trúc'):r.name,r.cumulativeFyp===null?(saoViet.loading?'Đang tải…':'Chưa có dữ liệu'):`${number(r.cumulativeFyp)} đ`,`${number(r.target)} đ`,`${number(r.actual)} đ`,`${r.percent.toLocaleString('vi-VN',{maximumFractionDigits:2})}%`,r.tier?.type==='gift'?r.tier.text:r.tier?`${number(r.bonus)} đ`:'Chưa đạt' ].map((v,i)=><td key={i} className={`p-2 whitespace-nowrap ${i>=4?'text-center':''} ${i===8?(r.tier?'font-bold text-emerald-700':'italic text-red-600'):''}`}>{v}</td>)}</tr>)}</tbody></table></div>
+    {approval.error&&<p role="alert" className="px-3 py-1 text-red-700">{approval.error}</p>}
+    {error&&<p role="alert" className="px-3 py-1 text-red-700">{error}</p>}
+    <div className="overflow-auto">
+      <table className="w-full text-xs border-collapse">
+        <thead className="bg-emerald-900 text-yellow-100"><tr>
+          {headers.map((h,i)=><th key={i} className="p-2 border border-emerald-700 text-center font-bold align-middle min-w-[55px]">
+            {String(h).split('\n').map((line,j)=><span key={j} className={j===0?'block uppercase':'block italic'} style={i===4&&j===1?{color:'#ff6666',fontWeight:800}:undefined}>{line}</span>)}
+          </th>)}
+        </tr></thead>
+        <tbody>{visibleRows.map(r=>{
+          const values=[r.stt,r.group,program.scope==='nhom'?(r.leaderCode||'—'):r.code,program.scope==='nhom'?(r.leaderName||'Chưa có TN trong Cấu trúc'):r.name,
+            r.cumulativeFyp===null?(saoViet.loading?'Đang tải…':'Chưa có dữ liệu'):`${number(r.cumulativeFyp)} đ`,
+            '',
+            `${number(r.target)} đ`,`${number(r.actual)} đ`,fmtPct(r.percent),registeredRewardDisplay(r)];
+          return <tr key={r.code} style={{backgroundColor:registeredClassColor(r.classification)}} className="border-b border-slate-300">
+            {values.map((v,i)=><td key={i} className={`p-2 border-x border-slate-200 align-middle ${i>=4?'text-center':''} ${i===6||i===7?'font-bold text-blue-800':''} ${i===8?`font-bold ${r.percent>=100?'text-green-800':'text-red-700'}`:''} ${i===9?(r.tier?'font-bold text-green-800':r.achievedTarget?'text-red-700 italic text-[10px]':'text-slate-600 italic'):''}`}>
+              {i===5 ? approval.admin && config.id ? <button type="button" title={r.approved?'Bỏ duyệt Sao Việt/nâng hạng':'Duyệt Sao Việt/nâng hạng'} aria-label={`${r.approved?'Bỏ duyệt':'Duyệt'} ${r.code}`} aria-pressed={r.approved} disabled={Boolean(approval.savingCode)||approval.loading} onClick={()=>void approval.setApproved(r.code,!r.approved)} className={`inline-flex h-5 w-5 items-center justify-center rounded border text-sm ${r.approved?'bg-green-700 text-white border-green-700':'bg-white border-slate-400 text-transparent hover:border-green-600'}`}>✓</button> : r.approved ? <span className="inline-block font-black text-green-700 text-lg" aria-label="Đã đạt điều kiện">✓</span> : null
+              :i===9&&r.tier?<span className="inline-flex items-center justify-center gap-1"><span className="text-[11px] leading-none" aria-hidden="true">{r.tier.type==='gift'?'🎁':'🏅'}</span><span>{typeof v==='number'?`${number(v)} đ`:r.tier.type==='gift'?v:`${number(r.bonus)} đ`}</span></span>
+              :v}
+            </td>)}
+          </tr>;
+        })}</tbody>
+      </table>
+    </div>
     {rows.length>100&&<div className="p-2 flex justify-center gap-3"><button type="button" disabled={currentPage===0} onClick={()=>setPage(currentPage-1)}>Trước</button><span>Trang {currentPage+1}/{Math.ceil(rows.length/100)} · {rows.length} đối tượng</span><button type="button" disabled={(currentPage+1)*100>=rows.length} onClick={()=>setPage(currentPage+1)}>Sau</button></div>}
     {!rows.length&&<p className="p-4 text-center">Chưa có đối tượng phù hợp.</p>}
-    <p className="p-3 font-semibold border-t bg-emerald-50">Tổng đối tượng: {all.length} · Đạt: {all.filter(r=>r.tier).length} · Tổng mục tiêu: {number(all.reduce((s,r)=>s+r.target,0))} đ · Thực hiện: {number(all.reduce((s,r)=>s+r.actual,0))} đ · Tổng thưởng: {number(all.reduce((s,r)=>s+r.bonus,0))} đ</p>
+    <p className="p-3 font-semibold border-t bg-emerald-50">
+      Tổng đối tượng: {all.length} · Đủ mục tiêu tháng 10: {all.filter(r=>r.achievedTarget).length} · Đủ cả 2 điều kiện: {rewarded.length}
+      {' '}· Tổng mục tiêu: {number(all.reduce((sum,r)=>sum+r.target,0))} đ · Thực hiện: {number(all.reduce((sum,r)=>sum+r.actual,0))} đ · Tổng thưởng: {number(grandBonus)} đ
+    </p>
   </section>;
 }
