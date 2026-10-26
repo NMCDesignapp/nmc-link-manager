@@ -426,6 +426,10 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   // Build list of unique nhom for filter dropdown
   const uniqueNhomList = useMemo(() => {
     const set = new Set<string>();
+    if (config.registeredProgram) {
+      for (const row of config.registeredProgram.rows) if (row.group) set.add(row.group);
+      return Array.from(set).sort((a,b)=>a.localeCompare(b,'vi'));
+    }
     if (config.targetType === 'nhom') {
       for (const g of groupedData) if (g.nhom) set.add(g.nhom);
     } else if (config.targetType === 'tvv') {
@@ -438,7 +442,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       for (const n of nydData) if (n.nhom) set.add(n.nhom);
     }
     return Array.from(set).sort();
-  }, [groupedData, displayContracts, tvvTotalRows, tvvPerContractRows, nydData, config.targetType]);
+  }, [groupedData, displayContracts, tvvTotalRows, tvvPerContractRows, nydData, config.targetType, config.registeredProgram]);
 
   // ===== Build table header + body based on targetType × conditionType =====
   // Hỗ trợ TẤT CẢ target: tvv (per-contract + total) / nhom (total/activity/pass-count) / nyd (NTD)
@@ -1183,7 +1187,9 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           font-weight: 700 !important;
         }
       `}} />
-      {renderTable()}
+      {config.registeredProgram
+        ? <RegisteredTargetResults program={config.registeredProgram} contracts={allContracts} config={config} title={config.title} structure={tvvStructList} leaders={leadersList} tableOnly groupFilter={nhomFilter} searchText={nameFilter} />
+        : renderTable()}
     </div>
   );
 
@@ -1203,8 +1209,6 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     </div>
   );
 
-  if (config.registeredProgram) return <RegisteredTargetResults program={config.registeredProgram} contracts={allContracts} config={config} title={config.title} posterUrl={posterUrl} structure={tvvStructList} leaders={leadersList} />;
-
   return (
     <div className="flex flex-col h-full gap-2" data-saoviet-table={`saved-${config.id}`} data-nmc-kpi-detail-shell="saved-contest">
       <div
@@ -1221,7 +1225,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             {renderFilterRow()}
           </div>
           {tableBlock}
-          {footerBlock}
+          {!config.registeredProgram && footerBlock}
         </div>
 
         {/* ====== DESKTOP LAYOUT ====== */}
@@ -1296,7 +1300,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           </div>
 
           {tableBlock}
-          {footerBlock}
+          {!config.registeredProgram && footerBlock}
         </div>
       </div>
     </div>
