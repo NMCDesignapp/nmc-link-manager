@@ -7934,6 +7934,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             <div style={{ fontSize: 11, color: '#8ab8e0', marginBottom: 12 }}>
               Chọn một ô để sửa ảnh/hồ sơ. Chọn vị trí đích và bấm “Đổi vị trí” để hoán đổi cả hai ô, kể cả giữa Bạch Kim và Vàng.
             </div>
+            <div style={{ color: "#e6f0fd", fontSize: 11, margin: "0 0 10px" }}>Bạch Kim: ô 01–08 (2 hàng) · Hạng Vàng: ô 01–25 (5 hàng). Ô trống vẫn có thể nhận ảnh khi hoán đổi.</div>
             <div className="banca-imgs-grid" style={{ minHeight: 200 }}>
               {honourOrder.map((imageIndex, position) => {
                 const idx = String(imageIndex + 1).padStart(2, '0');
@@ -7966,6 +7967,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     ) : (
                       <span className="banca-img-placeholder">+{idx}</span>
                     )}
+                    <span style={{ position: 'absolute', bottom: 2, left: '50%', transform: 'translateX(-50%)', zIndex: 5, fontSize: 8, fontWeight: 800, borderRadius: 4, whiteSpace: 'nowrap', padding: '1px 3px', color: position < HONOUR_PLATINUM_COUNT ? '#092a40' : '#452b00', background: position < HONOUR_PLATINUM_COUNT ? '#d3efff' : '#ffdd7a' }}>
+                      {position < HONOUR_PLATINUM_COUNT ? 'BK' : 'V'}{String(position < HONOUR_PLATINUM_COUNT ? position + 1 : position + 1 - HONOUR_PLATINUM_COUNT).padStart(2, '0')}
+                    </span>
                   </div>
                 );
               })}
