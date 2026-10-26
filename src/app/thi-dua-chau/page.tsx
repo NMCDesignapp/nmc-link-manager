@@ -9,6 +9,7 @@
 // nmc-contest-combined-top-ranking-v1
 
 import { useRegisteredFyp } from '@/hooks/use-registered-fyp';
+import { fetchContestApprovals } from '@/hooks/use-contest-approvals';
 import { RegisteredTargetSetup, RegisteredTargetResults, exportRegisteredTargets } from '@/components/registered-target-contest';
 import { defaultRegisteredProgram, decodeRegisteredProgram, type RegisteredProgram } from '@/lib/contest-registered-targets';
 import { computeRegisteredResults, registeredExportRows } from '@/lib/contest-registered-results';
@@ -868,7 +869,7 @@ function ThiDuaPageInner() {
 
   const [registeredProgram, setRegisteredProgram] = useState<RegisteredProgram | null>(null);
   const registeredSaoViet = useRegisteredFyp(Boolean(registeredProgram));
-  const registeredConfig = useMemo(() => parseContestConfig({ startDate, endDate, issueDate: issueStartDate, issueEndDate }), [startDate, endDate, issueStartDate, issueEndDate]);
+  const registeredConfig = useMemo(() => ({ ...parseContestConfig({ startDate, endDate, issueDate: issueStartDate, issueEndDate }), id: selectedContestId }), [startDate, endDate, issueStartDate, issueEndDate, selectedContestId]);
 
 
   const contestKind = useMemo<ContestKind>(() => {
@@ -890,6 +891,7 @@ function ThiDuaPageInner() {
 
   const chooseContestKind = useCallback((kind: ContestKind) => {
     setShowConfig(true);
+    setSelectedContestId('');
     setRegisteredProgram(null);
     if (kind !== contestKind) {
       setSelectedSubjectTypes(new Set());
@@ -2140,6 +2142,7 @@ function ThiDuaPageInner() {
       }) });
       if (res.ok) {
         const data = await res.json();
+        if (registeredProgram && data?.contest?.id) setSelectedContestId(data.contest.id);
         toast({ title: 'Thành công', description: data.message });
         await Promise.all([
           fetchSavedContests(),
@@ -2352,9 +2355,9 @@ function ThiDuaPageInner() {
     printWindow.document.close(); setTimeout(() => { printWindow.print(); }, 500);
   };
 
-  const handleCopyText = () => {
+  const handleCopyText = async () => {
     if (registeredProgram && registeredSaoViet.loading) { toast({title:'Đang tải FYP Sao Việt',description:'Vui lòng đợi tải xong số liệu lũy kế.'}); return; }
-    if (registeredProgram) { void navigator.clipboard.writeText(registeredExportRows(computeRegisteredResults(registeredContracts,registeredConfig,registeredProgram,tvvStructList,leadersList,registeredSaoViet.rows),registeredProgram).map(r=>r.map(value=>String(value).replace(/\n/g,' ')).join('\t')).join('\n')); return; }
+    if (registeredProgram) { try { const approvals = await fetchContestApprovals(selectedContestId); await navigator.clipboard.writeText(registeredExportRows(computeRegisteredResults(registeredContracts,registeredConfig,registeredProgram,tvvStructList,leadersList,registeredSaoViet.rows,approvals),registeredProgram).map(r=>r.map(value=>String(value).replace(/\n/g,' ')).join('\t')).join('\n')); } catch(e) { toast({title:'Không thể sao chép',description:String(e),variant:'destructive'}); } return; }
     if (perContractDisplayContracts.length === 0 && nydData.length === 0 && recruitmentRows.length === 0 && tvvTotalRows.length === 0 && groupedData.length === 0) return;
     const sTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
     let text = `🏆 ${contestTitle}\n📅 Từ ${startDate ? formatDate(startDate) : '...'} đến ${(phase2EndDate || endDate) ? formatDate(phase2EndDate || endDate) : '...'}\n🎯 ${getTargetLabel(targetType)}\n━━━━━━━━━━━━━━━━━━━━\n📊 Mức thưởng:\n`;
@@ -2447,7 +2450,7 @@ function ThiDuaPageInner() {
   const handleExport = async () => {
     try {
     if (registeredProgram && registeredSaoViet.loading) { toast({title:'Đang tải FYP Sao Việt',description:'Vui lòng đợi tải xong số liệu lũy kế.'}); return; }
-    if (registeredProgram) { await exportRegisteredTargets(computeRegisteredResults(registeredContracts, registeredConfig, registeredProgram, tvvStructList, leadersList, registeredSaoViet.rows), registeredProgram, contestTitle); return; }
+    if (registeredProgram) { const approvals = await fetchContestApprovals(selectedContestId); await exportRegisteredTargets(computeRegisteredResults(registeredContracts, registeredConfig, registeredProgram, tvvStructList, leadersList, registeredSaoViet.rows, approvals), registeredProgram, contestTitle); return; }
     if (perContractDisplayContracts.length === 0 && nydData.length === 0 && recruitmentRows.length === 0 && groupedData.length === 0 && tvvTotalRows.length === 0) { toast({ title: 'Thông báo', description: 'Không có dữ liệu' }); return; }
     let headers: string[];
     let rows: (string | number)[][];
@@ -4147,7 +4150,7 @@ function ThiDuaPageInner() {
                     </button>
                   );
                 })}
-                <button type="button" aria-pressed={!!registeredProgram} onClick={() => { setRegisteredProgram(current => current || defaultRegisteredProgram()); setShowConfig(true); }} className={`rounded-lg border px-2 py-2 text-xs font-bold ${registeredProgram ? 'bg-amber-600 text-white border-amber-300' : 'border-amber-500/40 text-amber-100'}`}>Mục tiêu đăng ký (Excel)</button>
+                <button type="button" aria-pressed={!!registeredProgram} onClick={() => { if (!registeredProgram) setSelectedContestId(''); setRegisteredProgram(current => current || defaultRegisteredProgram()); setShowConfig(true); }} className={`rounded-lg border px-2 py-2 text-xs font-bold ${registeredProgram ? 'bg-amber-600 text-white border-amber-300' : 'border-amber-500/40 text-amber-100'}`}>Mục tiêu đăng ký (Excel)</button>
               </div>
             </div>
           </CardContent>
