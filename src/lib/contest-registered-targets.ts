@@ -20,7 +20,7 @@ export function parseTargetSheet(data: unknown[][]): RegisteredTarget[] {
     if (!code || !String(cell('hoten') ?? '').trim() || !String(cell('nhom') ?? '').trim()) throw new Error(`Dòng ${i + 1}: thiếu mã số, nhóm hoặc họ tên.`);
     if (seen.has(code)) throw new Error(`Dòng ${i + 1}: mã số ${code} bị trùng.`);
     if (!(value > 0) || !Number.isSafeInteger(value) || (typeof raw === 'string' && !/^[\d\s.,đĐ₫VNDvnd]+$/.test(raw.trim()))) throw new Error(`Dòng ${i + 1}: mục tiêu phải là số tiền nguyên dương theo đồng.`);
-    seen.add(code); rows.push({ stt: String(cell('stt') || rows.length + 1), group: String(cell('nhom')).trim(), code, name: String(cell('hoten')).trim(), position: String(cell('chucvu') ?? '').trim(), target: value, classification: classification as 1 | 2 | 3 });
+    seen.add(code); rows.push({ stt: String(rows.length + 1), group: String(cell('nhom')).trim(), code, name: String(cell('hoten')).trim(), position: String(cell('chucvu') ?? '').trim(), target: value, classification: classification as 1 | 2 | 3 });
   }
   if (!rows.length) throw new Error('File chưa có đối tượng thi đua.');
   if (rows.length > 5000) throw new Error('Tối đa 5.000 đối tượng mỗi chương trình.');
@@ -42,7 +42,7 @@ export function decodeRegisteredProgram(raw: unknown): RegisteredProgram | null 
     if (new Set(p.tiers.map((t: TargetReward) => `${t.classification ?? 1}:${t.minPercent}`)).size !== p.tiers.length || p.tiers.some((t: TargetReward) => t.type === 'gift' && !t.text.trim())) throw Error('Mốc tỷ lệ bị trùng hoặc chưa nhập tên quà.');
     if (p.rows.some((r: RegisteredTarget) => !p.tiers.some((t: TargetReward) => (t.classification ?? 1) === (r.classification ?? 1)))) throw Error('Chưa cài mức thưởng cho một phân loại trong file.');
     if (![p.minIP,p.minAFYP].every(v => Number.isFinite(v) && v >= 0)) throw Error('Ngưỡng IP/AFYP không hợp lệ.');
-    return { ...p, rows: p.rows.map((r: RegisteredTarget) => ({...r, code: targetCode(r.code), classification: r.classification ?? 1})) };
+    return { ...p, rows: p.rows.map((r: RegisteredTarget, index: number) => ({...r, stt: String(index + 1), code: targetCode(r.code), classification: r.classification ?? 1})) };
   } catch (e) { if (typeof raw === 'string' && !raw.includes('registered-target-v1')) return null; throw e; }
 }
 export const defaultRegisteredProgram = (): RegisteredProgram => ({ kind: 'registered-target-v1', scope: 'tvv', metric: 'ip', rows: [], minIP: 0, minAFYP: 0, hideNotAchieved: false, tiers: ([1,2,3] as const).map(classification => ({ id: `target-${classification}-100`, classification, minPercent: 100, type: 'money' as const, amount: 0, text: '' })) });

@@ -20,7 +20,6 @@ export function useContestApprovals(contestId?: string) {
   const [error, setError] = useState('');
 
   const refresh = useCallback(async () => {
-    if (!contestId) { setApprovals({}); setLoading(false); return; }
     setLoading(true);
     try {
       const [next, auth] = await Promise.all([

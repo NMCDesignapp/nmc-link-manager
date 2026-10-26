@@ -123,3 +123,14 @@ test('approval is required even after achieving 100%, including gifts and percen
    assert.equal(registeredExportRows([r],p)[1][9],'Chưa đạt SV/nâng hạng');
  }
 });
+
+test('app ignores source STT and renumbers imports, legacy settings and filtered Excel exports',()=>{
+  const customHeads=['STT','Nhóm','Mã số','Họ tên','Mục tiêu đăng ký'];
+  const imported=parseTargetSheet([customHeads,['98','A','AA','Người A',100],['1','B','BB','Người B',200]]);
+  assert.deepEqual(imported.map(r=>r.stt),['1','2']);
+  const restored=decodeRegisteredProgram({...program(),rows:imported.map((r,i)=>({...r,stt:String(i*90+42)}))})!;
+  assert.deepEqual(restored.rows.map(r=>r.stt),['1','2']);
+  const configured={...program(),rows:restored.rows};
+  const evaluated=computeRegisteredResults([],cfg(),configured);
+  assert.deepEqual(registeredExportRows(evaluated.slice(1),configured).slice(1).map(r=>r[0]),[1]);
+});
