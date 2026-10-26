@@ -81,6 +81,7 @@ replaceRequired(
   `  }, [groupedData, displayContracts, tvvTotalRows, nydData, config.targetType]);`,
   `  }, [groupedData, displayContracts, tvvTotalRows, tvvPerContractRows, nydData, config.targetType]);`,
   'dependency danh sách nhóm',
+  '[groupedData, displayContracts, tvvTotalRows, tvvPerContractRows, nydData, config.targetType, config.registeredProgram]',
 );
 
 const output = sourceEol === '\r\n' ? source.replace(/\n/g, '\r\n') : source;
