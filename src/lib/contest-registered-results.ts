@@ -52,8 +52,8 @@ export function registeredRewardDisplay(row: RegisteredResult): string | number 
   return row.tier ? row.bonus : 'Chưa đạt';
 }
 export function registeredExportRows(rows: RegisteredResult[], program: RegisteredProgram) {
-  return [registeredHeaders(program), ...rows.map(r => [
-    r.stt,r.group,program.scope==='nhom'?(r.leaderCode||'—'):r.code,
+  return [registeredHeaders(program), ...rows.map((r,index) => [
+    index+1,r.group,program.scope==='nhom'?(r.leaderCode||'—'):r.code,
     program.scope==='nhom'?(r.leaderName||'Chưa có TN trong Cấu trúc'):r.name,
     r.cumulativeFyp ?? 'Chưa có dữ liệu',r.approved?'✓':'',
     r.target,r.actual,r.percent,registeredRewardDisplay(r)
