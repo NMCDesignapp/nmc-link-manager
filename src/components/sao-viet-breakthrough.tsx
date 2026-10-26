@@ -48,6 +48,6 @@ export function SaoVietBreakthrough(props: Props) {
     </div>
     <div className="flex flex-wrap justify-between gap-2 text-xs font-bold text-amber-200"><span>{groups.length} nhóm · {totalPeople} người đạt</span><span>Tổng thưởng dự kiến: {money(totalReward)}</span></div>
     <p className="text-[11px] text-slate-300">Mỗi mã số tính 1 người, kể cả đạt nhiều vai trò hoặc nhiều vé. Tổng thưởng tối đa 30 triệu đồng/cá nhân.</p>
-    <style>{`.sv-breakthrough-table th,.sv-breakthrough-table td{border:1px solid #cbd5e1;padding:8px 6px;vertical-align:middle;font-size:12px;line-height:1.45}.sv-breakthrough-table th{font-weight:800;text-align:center;background:#FFA07A}.sv-breakthrough-table .sv-group-start>td{border-top:2px solid #94a3b8}.sv-breakthrough-table th:first-child{padding-left:3px;padding-right:3px}@media(max-width:767px){.sv-breakthrough-table th,.sv-breakthrough-table td{padding:6px 4px;font-size:11px}}`}</style>
+    <style>{`.sv-breakthrough-table th,.sv-breakthrough-table td{border:1px solid #cbd5e1;padding:8px 6px;vertical-align:middle;font-size:12px;line-height:1.45}.sv-breakthrough-table td:not(.text-blue-800):not(.text-red-700){color:#1e293b!important}.sv-breakthrough-table th{font-weight:800;text-align:center;background:#FFA07A}.sv-breakthrough-table .sv-group-start>td{border-top:2px solid #94a3b8}.sv-breakthrough-table th:first-child{padding-left:3px;padding-right:3px}@media(max-width:767px){.sv-breakthrough-table th,.sv-breakthrough-table td{padding:6px 4px;font-size:11px}}`}</style>
   </section>;
 }
