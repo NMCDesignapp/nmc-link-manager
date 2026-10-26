@@ -36,7 +36,7 @@ export function RegisteredTargetSetup({value,onChange,leaders=[]}:{value: Regist
       <span>{value.rows.length} đối tượng</span>
     </div>
     {message&&<p role="status" className="text-amber-200">{message}</p>}
-    {value.rows.length>0&&<div className="max-h-48 overflow-auto rounded border border-emerald-500/30"><table className="w-full text-xs"><thead><tr>{['STT','Nhóm',value.scope==='nhom'?'Mã TN':'Mã TVV',value.scope==='nhom'?'Họ tên TN':'Họ tên TVV','Mục tiêu (đ)'].map(h=><th key={h} className="p-2 text-left">{String(h).split('\n').map((line,j)=><span key={j} className={j===0?'block font-bold uppercase':'block italic font-bold text-amber-200'}>{line}</span>)}</th>)}</tr></thead><tbody>{value.rows.slice(0,50).map(r=>{const leader=value.scope==='nhom'?registeredGroupLeader(r.code,leaders):null;return <tr key={r.code} style={{backgroundColor:registeredClassColor(r.classification)}}><td className="p-2">{r.stt}</td><td>{r.group}</td><td>{value.scope==='nhom'?(leader?.agentCode||'—'):r.code}</td><td>{value.scope==='nhom'?(leader?.agentName||'Chưa có TN trong Cấu trúc'):r.name}</td><td className="text-right pr-2">{number(r.target)} đ</td></tr>})}</tbody></table></div>}
+    {value.rows.length>0&&<div className="max-h-48 overflow-auto rounded border border-emerald-500/30"><table className="w-full text-xs"><thead><tr>{['STT','Nhóm',value.scope==='nhom'?'Mã TN':'Mã TVV',value.scope==='nhom'?'Họ tên TN':'Họ tên TVV','Mục tiêu (đ)'].map(h=><th key={h} className="p-2 text-left">{String(h).split('\n').map((line,j)=><span key={j} className={j===0?'block font-bold uppercase':'block italic font-bold text-amber-200'}>{line}</span>)}</th>)}</tr></thead><tbody>{value.rows.slice(0,50).map((r,index)=>{const leader=value.scope==='nhom'?registeredGroupLeader(r.code,leaders):null;return <tr key={r.code} style={{backgroundColor:registeredClassColor(r.classification)}}><td className="p-2">{index+1}</td><td>{r.group}</td><td>{value.scope==='nhom'?(leader?.agentCode||'—'):r.code}</td><td>{value.scope==='nhom'?(leader?.agentName||'Chưa có TN trong Cấu trúc'):r.name}</td><td className="text-right pr-2">{number(r.target)} đ</td></tr>})}</tbody></table></div>}
     <div className="grid sm:grid-cols-2 gap-3"><label>Chỉ tính HĐ có IP từ (đ)<input aria-label="IP mỗi HĐ từ (đ)" className={input} type="number" min="0" value={value.minIP} onChange={e=>change({minIP:numeric(e.target.value)})}/></label><label>Chỉ tính HĐ có AFYP từ (đ)<input aria-label="AFYP mỗi HĐ từ (đ)" className={input} type="number" min="0" value={value.minAFYP} onChange={e=>change({minAFYP:numeric(e.target.value)})}/></label></div>
     <p className="text-xs">Cột Phân loại nhập 1, 2 hoặc 3 để chọn bộ thưởng riêng; không hiển thị trong bảng hoặc Excel kết quả.</p>
     <div className="flex gap-2 flex-wrap" aria-label="Chọn nhóm thưởng">{([1,2,3] as const).map(g=><button type="button" key={g} aria-pressed={rewardGroup===g} onClick={()=>setRewardGroup(g)} className={`rounded border px-3 py-2 ${rewardGroup===g?'bg-amber-600 border-amber-300 text-white':'border-emerald-500/40'}`}>Nhóm thưởng {g} ({value.rows.filter(r=>(r.classification??1)===g).length})</button>)}</div>
@@ -51,7 +51,7 @@ export function RegisteredTargetSetup({value,onChange,leaders=[]}:{value: Regist
     <label className="flex gap-2"><input type="checkbox" checked={value.hideNotAchieved} onChange={e=>change({hideNotAchieved:e.target.checked})}/>Ẩn đối tượng chưa đạt</label>
   </section>;
 }
-export function RegisteredTargetResults({program,contracts,config,title,posterUrl='',structure=[],leaders=[],editableApprovals=false,draftApprovals={},onDraftApprovalChange}:{program:RegisteredProgram;contracts:Contract[];config:ContestConfig;title:string;posterUrl?:string;structure?:{agentCode:string;maBanNhom?:string}[];leaders?:RegisteredLeader[];editableApprovals?:boolean;draftApprovals?:Record<string,boolean>;onDraftApprovalChange?:(code:string,checked:boolean)=>void}) {
+export function RegisteredTargetResults({program,contracts,config,title,posterUrl='',structure=[],leaders=[],editableApprovals=false,draftApprovals={},onDraftApprovalChange,tableOnly=false,groupFilter=[],searchText=''}:{program:RegisteredProgram;contracts:Contract[];config:ContestConfig;title:string;posterUrl?:string;structure?:{agentCode:string;maBanNhom?:string}[];leaders?:RegisteredLeader[];editableApprovals?:boolean;draftApprovals?:Record<string,boolean>;onDraftApprovalChange?:(code:string,checked:boolean)=>void;tableOnly?:boolean;groupFilter?:string[];searchText?:string}) {
   const saoViet = useRegisteredFyp();
   const approval = useContestApprovals(config.id);
   const [page,setPage]=useState(0);
@@ -83,24 +83,27 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
   };
   const rows=useMemo(()=>all.filter(r=>
     (!program.hideNotAchieved||r.achievedTarget)&&
-    `${r.group} ${program.scope==='nhom'?r.leaderCode:r.code} ${program.scope==='nhom'?r.leaderName:r.name}`.toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi'))
+    (groupFilter.length===0||groupFilter.includes(r.group))&&
+    `${r.group} ${program.scope==='nhom'?r.leaderCode:r.code} ${program.scope==='nhom'?r.leaderName:r.name}`.toLocaleLowerCase('vi').includes((tableOnly?searchText:query).toLocaleLowerCase('vi'))
   ).sort((a,b)=>{
     const aFyp=a.cumulativeFyp??Number.NEGATIVE_INFINITY;
     const bFyp=b.cumulativeFyp??Number.NEGATIVE_INFINITY;
     if(aFyp!==bFyp) return descending ? bFyp-aFyp : aFyp-bFyp;
     if(a.percent!==b.percent) return descending ? b.percent-a.percent : a.percent-b.percent;
     return a.code.localeCompare(b.code,'vi');
-  }),[all,program.hideNotAchieved,program.scope,query,descending]);
+  }),[all,program.hideNotAchieved,program.scope,query,descending,groupFilter,searchText,tableOnly]);
   const currentPage=Math.min(page,Math.max(0,Math.ceil(rows.length/100)-1));
   const visibleRows=rows.slice(currentPage*100,(currentPage+1)*100);
   const headers=registeredExportRows([],program)[0];
   const fmtPct=(v:number)=>v.toLocaleString('vi-VN',{maximumFractionDigits:2})+'%';
-  return <section className="bg-white text-slate-800" data-registered-target-results data-saoviet-table={config.id ? `saved-${config.id}` : undefined} data-nmc-kpi-detail-shell="saved-contest">
-    <div className="px-3 py-3 bg-emerald-950 text-white">
-      <h2 className="font-bold text-lg">{title}</h2>
-    </div>
-    {posterUrl&&<img src={posterUrl} alt={title} className="max-h-64 w-full object-contain"/>}
-    <div className="p-2 flex gap-2 flex-wrap items-center">
+  return <section className="bg-white text-slate-800" data-registered-target-results data-saoviet-table={config.id ? `saved-${config.id}` : undefined}>
+    {!tableOnly && <>
+      <div className="px-3 py-3 bg-emerald-950 text-white">
+        <h2 className="font-bold text-lg">{title}</h2>
+      </div>
+      {posterUrl&&<img src={posterUrl} alt={title} className="max-h-64 w-full object-contain"/>}
+    </>}
+    {!tableOnly && <div className="p-2 flex gap-2 flex-wrap items-center">
       <input aria-label="Tìm đối tượng đăng ký" placeholder="Tìm nhóm, mã, họ tên" className="p-2 border rounded text-slate-900" value={query} onChange={e=>{setQuery(e.target.value);setPage(0);}}/>
       <button type="button" disabled={saoViet.loading||approval.loading||Boolean(approval.error)} className="border rounded px-3 py-2" onClick={()=>{void exportRegisteredTargets(rows,program,title).catch(e=>setError(String(e)));}}>Tải Excel kết quả</button>
       <button type="button" className="border rounded px-2 py-2 text-xs" onClick={()=>{setDescending(!descending);setPage(0);}} aria-label="Đổi thứ tự FYP lũy kế và tiến độ">{descending?'FYP ↓ · HT ↓':'FYP ↑ · HT ↑'}</button>
@@ -109,8 +112,11 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
           Đăng nhập quản trị để duyệt
         </button>
       )}
-      <span className="ml-auto text-xs font-semibold text-slate-600">Đơn vị tính: đồng</span>
-    </div>
+      <span className="ml-auto text-xs font-semibold text-slate-600"></span>
+    </div>}
+    {tableOnly && editableApprovals && !approval.loading && !approval.admin && <div className="flex justify-end px-2 py-1">
+      <button type="button" onClick={()=>setLoginOpen(v=>!v)} className="rounded border border-emerald-700 px-2 py-1 text-[11px] font-semibold text-emerald-800">Quyền duyệt</button>
+    </div>}
     {editableApprovals && loginOpen && !approval.admin && (
       <form className="flex items-center gap-2 px-2 py-1.5" onSubmit={event=>{event.preventDefault();void submitAdminLogin();}}>
         <input type="password" autoComplete="current-password" aria-label="Mật khẩu admin" value={loginPassword} onChange={event=>setLoginPassword(event.target.value)} className="w-40 rounded border border-slate-300 p-1.5 text-xs" placeholder="Mật khẩu admin" />
@@ -123,20 +129,26 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
     {saoViet.error&&<p role="alert" className="px-3 py-1 text-red-700">{saoViet.error}</p>}
     {approval.error&&<p role="alert" className="px-3 py-1 text-red-700">{approval.error}</p>}
     {error&&<p role="alert" className="px-3 py-1 text-red-700">{error}</p>}
-    <div className="overflow-auto">
-      <table className="w-full text-xs border-collapse">
-        <thead className="bg-emerald-900 text-yellow-100"><tr>
-          {headers.map((h,i)=><th key={i} className={`border border-emerald-700 text-center font-bold align-middle ${i===5?'w-[86px] min-w-[86px] max-w-[86px] px-1 py-2 whitespace-nowrap':'p-2 min-w-[55px]'}`}>
+    <div className={tableOnly ? 'w-full overflow-x-auto bg-white' : 'overflow-auto'}>
+      <div className="flex justify-end px-2 py-1 text-[10px] font-semibold text-slate-600">Đơn vị tính: đồng</div>
+      <table className="w-full min-w-[960px] border-collapse text-[11px] leading-[1.25]" style={{tableLayout:'auto'}}>
+        <thead className="sticky top-0 z-10 text-[#fef3c7]" style={{backgroundColor:'#113453'}}><tr>
+          {headers.map((h,i)=><th key={i} className={`border border-[#3c607d] text-center font-bold align-middle leading-tight ${i===0?'w-[36px] min-w-[36px] px-1 py-2':i===5?'w-[78px] min-w-[78px] max-w-[78px] px-1 py-2 whitespace-nowrap':'px-2 py-2 min-w-[72px]'}`}>
             {String(h).split('\n').map((line,j)=><span key={j} className={j===0?'block uppercase':'block italic'} style={i===4&&j===1?{color:'#ff6666',fontWeight:800}:undefined}>{line}</span>)}
           </th>)}
         </tr></thead>
-        <tbody>{visibleRows.map(r=>{
-          const values=[r.stt,r.group,program.scope==='nhom'?(r.leaderCode||'—'):r.code,program.scope==='nhom'?(r.leaderName||'Chưa có TN trong Cấu trúc'):r.name,
+        <tbody>{visibleRows.map((r,rowIndex)=>{
+          const values=[currentPage*100+rowIndex+1,r.group,program.scope==='nhom'?(r.leaderCode||'—'):r.code,program.scope==='nhom'?(r.leaderName||'Chưa có TN trong Cấu trúc'):r.name,
             r.cumulativeFyp===null?(saoViet.loading?'Đang tải…':'Chưa có dữ liệu'):`${number(r.cumulativeFyp)} đ`,
             '',
             `${number(r.target)} đ`,`${number(r.actual)} đ`,fmtPct(r.percent),registeredRewardDisplay(r)];
-          return <tr key={r.code} style={{backgroundColor:registeredClassColor(r.classification)}} className="border-b border-slate-300">
-            {values.map((v,i)=><td key={i} className={`p-2 border-x border-slate-200 align-middle ${i>=4?'text-center':''} ${i===5?'w-[86px] min-w-[86px] max-w-[86px] px-1':''} ${i===6||i===7?'font-bold text-blue-800':''} ${i===8?`font-bold ${r.percent>=100?'text-green-800':'text-red-700'}`:''} ${i===9?(r.tier?'font-bold text-green-800':r.achievedTarget?'text-red-700 italic text-[10px]':'text-slate-600 italic'):''}`}>
+          return <tr key={r.code} style={{backgroundColor:registeredClassColor(r.classification)}} className="h-[29px] border-b border-slate-200 hover:bg-emerald-50">
+            {values.map((v,i)=><td key={i} className={`h-[29px] border-x border-slate-200 px-2 py-[4px] align-middle text-[11px] leading-tight ${i===0||i>=4?'text-center':''} ${i===5?'w-[78px] min-w-[78px] max-w-[78px] px-1':''} ${i===1?'font-semibold':''} ${i===2?'font-mono':''} ${i>=4?'whitespace-nowrap':''}`} style={{
+                color:i===6||i===7?'#1e40af':i===8?(r.percent>=100?'#166534':'#b91c1c'):i===9?(r.tier?'#166534':r.achievedTarget?'#b91c1c':'#475569'):i===1?'#047857':'#334155',
+                fontWeight:i===6||i===7||i===8||(i===9&&Boolean(r.tier))?800:undefined,
+                fontStyle:i===9&&!r.tier&&r.achievedTarget?'italic':undefined,
+                fontSize:i===9&&!r.tier&&r.achievedTarget?'10px':undefined
+              }}>
               {i===5 ? editableApprovals && approval.admin
                 ? <button type="button" title={r.approved?'Bỏ duyệt Sao Việt/nâng hạng':'Duyệt Sao Việt/nâng hạng'} aria-label={`${r.approved?'Bỏ duyệt':'Duyệt'} ${r.code}`} aria-pressed={r.approved} disabled={Boolean(approval.savingCode)||approval.loading} onClick={()=>{
                     if (config.id) void approval.setApproved(r.code,!r.approved);
