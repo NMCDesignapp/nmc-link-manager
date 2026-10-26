@@ -1297,3 +1297,15 @@ Import now accepts Nhóm/Mã số/Họ tên/Mục tiêu đăng ký without STT o
 Cumulative FYP is the authoritative DB-backed Sao Viet ca-nhan value minus ordinary October 2026 IP for the same normalized agent code, matching revenue source-month precedence. It is independent of contest date/contract-threshold filters and excludes contest-only carryovers. Group views use the resolved displayed TN personal identity, while target attainment continues to aggregate the group. Missing/duplicate source identities are explicit unknowns, not zero; negative differences remain exact. The FYP title retains the requested full-cycle label, with a nearby September-baseline formula explanation.
 
 Added a shared read-only, cached, periodically refreshed source hook for Main and saved results; Excel/copy use the same FYP calculation. No schema changes or production business-record writes. Validation: 210 source/calculation/export regressions pass with TZ=UTC; Main build and standalone source synchronization check pass. Existing unrelated typecheck errors remain.
+
+## 2026-10-26 — Đột phá số lượng – Bùng nổ Sao Việt
+
+- Thêm một chương trình theo dõi chung ngay phía trên ba chương trình Sao Việt toàn chặng trong CLB Sao Việt. Bảng nhóm gồm STT, Nhóm, Mã TN, Họ tên TN, người đạt SV, thưởng TN/TVV và ghi chú nhiều dòng theo vai trò.
+- Đọc nguyên dữ liệu ca-nhan / tn-ktm / tn-td và truyền ngưỡng của ba bảng nguồn vào cùng bộ tính. Chọn hạng cao nhất mỗi vai trò; mỗi mã chuẩn hóa chỉ tính một người, không cộng vé hoặc cộng trùng vai trò.
+- Nhóm 1–2 người: TVV 3 triệu/người, TN 1 triệu/người. Từ 3 người: TVV 10 triệu/người, TN 2 triệu/người. Trần tổng cá nhân và quản lý 30 triệu/mã; tính trước lọc giao diện.
+- Loại đối tượng thưởng TN có ngày hiệu lực chức vụ năm 2026, đối chiếu bằng mã với ngayHieuLuc trong DS tuyển ngang/NTD. Không thay bằng ngày bắt đầu làm việc. Vẫn giữ người đạt, số đếm và thưởng cá nhân; không tự chuyển sang TN/nhóm gốc khác khi người dùng chưa chỉ định.
+- Nhóm có người đạt nhưng chưa xác định duy nhất TN không được gán tiền TN phỏng đoán. Hiện trạng thái chờ đối chiếu. Không ghi/sửa dữ liệu production hoặc ba chương trình nguồn.
+- Bổ sung lọc nhóm, tìm tên/mã (giữ nguyên nhóm đầy đủ), xuất Excel giữ ô gộp. Main/KPI tách cùng dùng trang Quản lý nhúng hiện hành; không thêm quyền quản trị trên KPI tách.
+- Kiểm tra: 8 test nghiệp vụ đạt; lint ba file mới đạt; Main build đạt, sync KPI --check đạt. Lint toàn repo còn lỗi có sẵn. Đối chiếu dữ liệu chỉ đọc: mọi nhóm đang có người đạt đều khớp TN duy nhất. Không lưu dữ liệu thật vào repo.
+
+- Bổ sung poster do người dùng cung cấp cho ô tổng quan và đầu bảng chi tiết; giữ nguyên ảnh, hiển thị toàn bộ không cắt. Asset public/posters/sao-viet-breakthrough-2026.jpg.
