@@ -4034,10 +4034,16 @@ const BANCA_IMG_POSITIONS: Array<{ left: number; top: number; size: number; z: n
   { left: 67, top: 66, size: 52, z: 2 }, { left: 84, top: 74, size: 64, z: 3 }, { left: 7, top: 72, size: 54, z: 2 }, { left: 24, top: 84, size: 60, z: 3 }, { left: 43, top: 70, size: 54, z: 2 }, { left: 58, top: 84, size: 64, z: 4 }, { left: 88, top: 88, size: 54, z: 3 },
 ];
 
+// Thêm 5 ô Bạch Kim (24-28), 5 ô Vàng (29-33); giữ nguyên mã ảnh 01-23.
+const HONOUR_PLATINUM_SLOTS = [0, 1, 22, 23, 24, 25, 26, 27];
+const HONOUR_GOLD_SLOTS = [...Array.from({ length: 20 }, (_, i) => i + 2), ...Array.from({ length: 5 }, (_, i) => i + 28)];
+const HONOUR_DEFAULT_ORDER = [...HONOUR_PLATINUM_SLOTS, ...HONOUR_GOLD_SLOTS];
+const HONOUR_PLATINUM_COUNT = HONOUR_PLATINUM_SLOTS.length;
+const HONOUR_ORDER_SETTING_KEY = 'kpi-banca-order-v1';
 function getGoldHonourRows(indices: number[]): number[][] {
-  // Hạng Vàng giữ cố định theo số ô: 03-07, 08-12, 13-17, 18-22.
-  return [indices.slice(0, 5), indices.slice(5, 10), indices.slice(10, 15), indices.slice(15, 20)]
-    .filter((row) => row.length > 0);
+  const rows: number[][] = [];
+  for (let i = 0; i < indices.length; i += 5) rows.push(indices.slice(i, i + 5));
+  return rows;
 }
 
 function getVisibleHonourRows(
@@ -4046,7 +4052,7 @@ function getVisibleHonourRows(
   adminAuthed: boolean,
   bancaImages: Record<string, string>,
 ): number[][] {
-  const fixedRows = tier === 'gold' ? getGoldHonourRows(indices) : [indices];
+  const fixedRows = getGoldHonourRows(indices);
 
   // Lọc ô trống sau khi đã chia dòng để ảnh không bị dồn sang dòng khác.
   // Mỗi dòng còn ảnh sẽ tự căn giữa; dòng không có ảnh được ẩn hoàn toàn.
@@ -4236,9 +4242,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     setRegionLockError(true);
   }, [regionLockCode]);
 
-  // ===== VINH DANH (3 Bạch Kim + 20 Hạng Vàng) =====
-  // Giữ nguyên key 01-22; ô Bạch Kim mới dùng key 23 để không xáo trộn dữ liệu cũ.
-  const BANCA_IMG_COUNT = 23;
+  // ===== VINH DANH (8 Bạch Kim + 25 Hạng Vàng) =====
+  // Thứ tự vị trí tách khỏi mã ảnh, không di chuyển binary/hồ sơ.
+  const BANCA_IMG_COUNT = HONOUR_DEFAULT_ORDER.length;
+  const [honourOrder, setHonourOrder] = useState<number[]>(HONOUR_DEFAULT_ORDER);
+  const [honourOrderSaving, setHonourOrderSaving] = useState(false);
+  const [bancaMoveTargetPosition, setBancaMoveTargetPosition] = useState('');
   const [bancaImages, setBancaImages] = useState<Record<string, string>>({}); // key -> cacheable image URL
   const [bancaImgUploading, setBancaImgUploading] = useState<string | null>(null);
   const [bancaImgAdminOpen, setBancaImgAdminOpen] = useState(false);
@@ -4760,6 +4769,47 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       ...prev,
       [key]: { name: prev[key]?.name || '', title: prev[key]?.title || '', note: prev[key]?.note || '', ...patch },
     }));
+  };
+
+  // Lưu thứ tự chung cho KPI Main và KPI tách, không thay đổi mã ảnh.
+  useEffect(() => {
+    const raw = onlineSettings[HONOUR_ORDER_SETTING_KEY];
+    if (!raw) return;
+    try {
+      const order: unknown = JSON.parse(raw);
+      if (Array.isArray(order) &&
+          order.length === HONOUR_DEFAULT_ORDER.length &&
+          order.every(value => Number.isInteger(value) && HONOUR_DEFAULT_ORDER.includes(value)) &&
+          new Set(order).size === HONOUR_DEFAULT_ORDER.length) {
+        setHonourOrder(order as number[]);
+      }
+    } catch { /* Bỏ qua thứ tự hỏng; sử dụng mặc định. */ }
+  }, [onlineSettings[HONOUR_ORDER_SETTING_KEY]]);
+
+  const moveHonourSlot = async (from: number, to: number) => {
+    if (!adminAuthed || honourOrderSaving || from === to ||
+        from < 0 || to < 0 || from >= BANCA_IMG_COUNT || to >= BANCA_IMG_COUNT) return;
+    const previous = honourOrder;
+    const next = [...previous];
+    [next[from], next[to]] = [next[to], next[from]];
+    setHonourOrderSaving(true);
+    setHonourOrder(next);
+    try {
+      const result = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [HONOUR_ORDER_SETTING_KEY]: JSON.stringify(next) }),
+      });
+      const body = await result.json().catch(() => null);
+      if (!result.ok || !body?.success) throw new Error('Không thể lưu');
+      setOnlineSettings(prev => ({ ...prev, [HONOUR_ORDER_SETTING_KEY]: JSON.stringify(next) }));
+      setBancaMoveTargetPosition('');
+    } catch {
+      setHonourOrder(previous);
+      alert('Không thể lưu thứ tự vinh danh. Đã khôi phục vị trí cũ.');
+    } finally {
+      setHonourOrderSaving(false);
+    }
   };
 
   const saveBancaProfile = async (key: string) => {
@@ -6394,11 +6444,11 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       ⚙ Cài đặt ảnh
                     </button>
                   </div>
-                  {/* Wall of fame: 3 Bạch Kim, 20 Hạng Vàng chia 4 dòng x 5 ảnh. */}
+                  {/* Vinh danh: Bạch Kim 2 dòng, Vàng 5 dòng; người xem không thấy ô trống. */}
                   <div className="banca-imgs-wall">
                     {[
-  { id: 'platinum', label: 'Sao Việt Bạch Kim', indices: [0, 1, 22] },
-  { id: 'gold', label: 'Sao Việt Hạng Vàng', indices: Array.from({ length: 20 }, (_, i) => i + 2) },
+  { id: 'platinum', label: 'Sao Việt Bạch Kim', indices: honourOrder.slice(0, HONOUR_PLATINUM_COUNT) },
+  { id: 'gold', label: 'Sao Việt Hạng Vàng', indices: honourOrder.slice(HONOUR_PLATINUM_COUNT) },
 ].map(({ id, label, indices }) => {
   const rows = getVisibleHonourRows(indices, id as 'platinum' | 'gold', adminAuthed, bancaImages);
   if (rows.length === 0) return null;
@@ -6553,8 +6603,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         </div>
                         <div className="banca-imgs-wall">
                           {[
-  { id: 'platinum', label: 'Sao Việt Bạch Kim', indices: [0, 1, 22] },
-  { id: 'gold', label: 'Sao Việt Hạng Vàng', indices: Array.from({ length: 20 }, (_, i) => i + 2) },
+  { id: 'platinum', label: 'Sao Việt Bạch Kim', indices: honourOrder.slice(0, HONOUR_PLATINUM_COUNT) },
+  { id: 'gold', label: 'Sao Việt Hạng Vàng', indices: honourOrder.slice(HONOUR_PLATINUM_COUNT) },
 ].map(({ id, label, indices }) => {
   const rows = getVisibleHonourRows(indices, id as 'platinum' | 'gold', adminAuthed, bancaImages);
   if (rows.length === 0) return null;
@@ -7870,23 +7920,23 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         </div>
       )}
 
-      {/* ===== BANCA ADMIN MODAL (upload 22 ảnh) ===== */}
-      {bancaImgAdminOpen && (
+      {/* ===== QUẢN LÝ 33 Ô VINH DANH VÀ SẮP XẾP ===== */}
+      {bancaImgAdminOpen && adminAuthed && (
         <div className="banca-admin-modal" onClick={() => setBancaImgAdminOpen(false)}>
           <div className="banca-admin-modal-inner" onClick={(e) => e.stopPropagation()}>
             <div className="banca-admin-modal-title">
-              <span>★ Cài đặt {BANCA_IMG_COUNT} ảnh đặc biệt</span>
+              <span>★ Cài đặt {BANCA_IMG_COUNT} ô vinh danh</span>
               <button
                 onClick={() => setBancaImgAdminOpen(false)}
                 style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 18 }}
               >×</button>
             </div>
             <div style={{ fontSize: 11, color: '#8ab8e0', marginBottom: 12 }}>
-              Bấm vào ô tròn để upload ảnh. Bấm dấu × trên ảnh để xóa. Ảnh được lưu trên server.
+              Chọn một ô để sửa ảnh/hồ sơ. Chọn vị trí đích và bấm “Đổi vị trí” để hoán đổi cả hai ô, kể cả giữa Bạch Kim và Vàng.
             </div>
             <div className="banca-imgs-grid" style={{ minHeight: 200 }}>
-              {Array.from({ length: BANCA_IMG_COUNT }, (_, i) => {
-                const idx = String(i + 1).padStart(2, '0');
+              {honourOrder.map((imageIndex, position) => {
+                const idx = String(imageIndex + 1).padStart(2, '0');
                 const key = `kpi-banca-img-${idx}`;
                 const url = bancaImages[key];
                 const isUploading = bancaImgUploading === key;
@@ -7894,11 +7944,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   <div
                     key={key}
                     className={`banca-img-cell${isUploading ? ' is-uploading' : ''}`}
-                    style={{ maxWidth: 90 }}
+                    style={{ maxWidth: 90, outline: bancaAdminSelectedKey === key ? '2px solid #ffd76b' : undefined }}
                     onClick={() => {
-                      if (!isUploading) setBancaAdminSelectedKey(key);
+                      if (!isUploading) {
+                        setBancaAdminSelectedKey(key);
+                        setBancaMoveTargetPosition('');
+                      }
                     }}
-                    title={url ? 'Chọn để chỉnh thông tin / thay ảnh' : 'Chọn để upload ảnh'}
+                    title={`${position < HONOUR_PLATINUM_COUNT ? 'Bạch Kim' : 'Vàng'} · ô ${position < HONOUR_PLATINUM_COUNT ? position + 1 : position + 1 - HONOUR_PLATINUM_COUNT}`}
                   >
                     {url ? (
                       <>
@@ -7920,6 +7973,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             {bancaAdminSelectedKey && (() => {
               const selectedUrl = bancaImages[bancaAdminSelectedKey];
               const selectedIdx = bancaAdminSelectedKey.replace('kpi-banca-img-', '');
+              const currentPosition = honourOrder.indexOf(Number(selectedIdx) - 1);
+              const currentTier = currentPosition < HONOUR_PLATINUM_COUNT ? 'Bạch Kim' : 'Vàng';
+              const currentTierPosition = currentPosition < HONOUR_PLATINUM_COUNT ? currentPosition + 1 : currentPosition + 1 - HONOUR_PLATINUM_COUNT;
               const profile = bancaProfiles[bancaAdminSelectedKey] || { name: '', title: '', note: '' };
               const chooseImage = () => {
                 const input = document.createElement('input');
@@ -7934,7 +7990,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               return (
                 <div className="banca-profile-editor">
                   <div className="banca-profile-editor-head">
-                    <span>{(Number(selectedIdx) <= 2 || Number(selectedIdx) === 23) ? 'Bạch Kim' : 'Vàng'} · vị trí #{selectedIdx} — thông tin hiển thị cho người xem</span>
+                    <span>{currentTier} · ô {currentTierPosition} — mã ảnh #{selectedIdx}</span>
                     <button onClick={() => setBancaAdminSelectedKey(null)} aria-label="Đóng">×</button>
                   </div>
                   <div className="banca-profile-editor-grid">
@@ -7945,6 +8001,23 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       <input value={profile.name} onChange={(e) => updateBancaProfile(bancaAdminSelectedKey, { name: e.target.value })} placeholder="Họ và tên" />
                       <input value={profile.title} onChange={(e) => updateBancaProfile(bancaAdminSelectedKey, { title: e.target.value })} placeholder="Danh hiệu / chức danh" />
                       <textarea value={profile.note} onChange={(e) => updateBancaProfile(bancaAdminSelectedKey, { note: e.target.value })} placeholder="Thông tin thêm (tùy chọn)" rows={3} />
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '12px 0' }}>
+                        <select aria-label="Chọn ô đích" value={bancaMoveTargetPosition}
+                          onChange={(e) => setBancaMoveTargetPosition(e.target.value)}
+                          style={{ flex: '1 1 175px', minWidth: 0, padding: 8, borderRadius: 6, background: '#142f4b', color: '#fff', border: '1px solid #61819c' }}>
+                          <option value="">Chuyển đến ô / hạng...</option>
+                          {honourOrder.map((_, position) => (
+                            <option key={position} value={position} disabled={position === currentPosition}>
+                              {position < HONOUR_PLATINUM_COUNT ? 'Bạch Kim' : 'Hạng Vàng'} — ô {position < HONOUR_PLATINUM_COUNT ? position + 1 : position + 1 - HONOUR_PLATINUM_COUNT}
+                            </option>
+                          ))}
+                        </select>
+                        <button type="button" className="banca-profile-action save"
+                          disabled={honourOrderSaving || bancaMoveTargetPosition === '' || Number(bancaMoveTargetPosition) === currentPosition}
+                          onClick={() => void moveHonourSlot(currentPosition, Number(bancaMoveTargetPosition))}>
+                          {honourOrderSaving ? 'Đang lưu...' : 'Đổi vị trí'}
+                        </button>
+                      </div>
                       <div className="banca-profile-actions">
                         <button className="banca-profile-action save" onClick={() => saveBancaProfile(bancaAdminSelectedKey)} disabled={bancaProfileSaving}>{bancaProfileSaving ? 'Đang lưu...' : bancaProfileSavedKey === bancaAdminSelectedKey ? 'Đã lưu ✓' : 'Lưu thông tin'}</button>
                         <button className="banca-profile-action" onClick={chooseImage}>{selectedUrl ? 'Thay ảnh' : 'Tải ảnh lên'}</button>
