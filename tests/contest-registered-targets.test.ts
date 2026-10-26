@@ -19,23 +19,23 @@ test('reject duplicate normalized IDs, missing headers, blanks, zero/negative/in
  for(const rows of [[heads,...sample,[3,'Demo',' 001 ','X','TVV',1]],[['Mã số'],['x']],[heads,[1,'D','','A','TVV',1]],[heads,[1,'D','A','A','TVV',0]],[heads,[1,'D','A','A','TVV',-1]],[heads,[1,'D','A','A','TVV','abc100']]]) assert.throws(()=>parseTargetSheet(rows));
 });
 test('TVV uses normalized code, includes zero-sales entrants and excludes outsiders',()=>{
- const p=program();const results=computeRegisteredResults([contract('1',' 001 ',4_000_000),contract('2','001',8_000_000),contract('3','OUT',99_000_000)],cfg(),p);
+ const p=program();const results=computeRegisteredResults([contract('1',' 001 ',4_000_000),contract('2','001',8_000_000),contract('3','OUT',99_000_000)],cfg(),p,[],[],null,{'001':true});
  assert.equal(results.length,2);assert.equal(results[0].actual,12_000_000);assert.equal(results[0].bonus,200_000);assert.equal(results[0].name,'Người A');assert.equal(results[1].actual,0);assert.equal(results[1].tier,null);
 });
 test('group uses only group code, sums multiple agents, never groups by names',()=>{
  const p={...program(),scope:'nhom' as const,rows:[{...program().rows[0],code:'G01'}]};
- const rows=computeRegisteredResults([contract('1','001',4_000_000),contract('2','002',6_000_000),contract('3','G01',99_000_000,{maNhom:'OTHER',nhom:'Demo'})],cfg(),p);
+ const rows=computeRegisteredResults([contract('1','001',4_000_000),contract('2','002',6_000_000),contract('3','G01',99_000_000,{maNhom:'OTHER',nhom:'Demo'})],cfg(),p,[],[],null,{'G01':true});
  assert.equal(rows[0].actual,10_000_000);assert.equal(rows[0].bonus,100_000);
  const fallback=computeRegisteredResults([contract('4','003',2_000_000,{maNhom:''})],cfg(),p,[{agentCode:'003',maBanNhom:'G01'}]);assert.equal(fallback[0].actual,2_000_000);
 });
 test('near threshold never rewards because displayed percentage rounded up; exact boundary does',()=>{
  const p=program();const r=computeRegisteredResults([contract('1','001',9_999_999)],cfg(),p)[0];assert.equal(r.tier,null);
- assert.equal(computeRegisteredResults([contract('1','001',10_000_000)],cfg(),p)[0].bonus,100_000);
+ assert.equal(computeRegisteredResults([contract('1','001',10_000_000)],cfg(),p,[],[],null,{'001':true})[0].bonus,100_000);
 });
 test('AFYP actual, per-HĐ filters, highest tier and percentage reward base',()=>{
  const p={...program(),metric:'afyp' as const,minIP:1_000_000,minAFYP:3_000_000,tiers:[{id:'a',minPercent:100,type:'percent_ip' as const,amount:10,text:''}]};
- const r=computeRegisteredResults([contract('a','001',6_000_000),contract('b','001',500_000)],cfg(),p)[0];assert.equal(r.actual,12_000_000);assert.equal(r.bonus,600_000);
- p.tiers=[{...p.tiers[0],type:'percent_afyp'} as any];assert.equal(computeRegisteredResults([contract('a','001',6_000_000)],cfg(),p)[0].bonus,1_200_000);
+ const r=computeRegisteredResults([contract('a','001',6_000_000),contract('b','001',500_000)],cfg(),p,[],[],null,{'001':true})[0];assert.equal(r.actual,12_000_000);assert.equal(r.bonus,600_000);
+ p.tiers=[{...p.tiers[0],type:'percent_afyp'} as any];assert.equal(computeRegisteredResults([contract('a','001',6_000_000)],cfg(),p,[],[],null,{'001':true})[0].bonus,1_200_000);
 });
 test('carryover only with issue condition, intersects date ranges and deduplicates contracts',()=>{
  const rows=[contract('a','001',5_000_000),contract('a','001',5_000_000,{carryoverMonth:'2026-10'}),contract('b','001',6_000_000,{carryoverMonth:'2026-10'}),contract('c','001',9_000_000,{issueDate:'2026-11-01'}),contract('d','001',9_000_000,{effectiveDate:'2026-09-30'})];
@@ -49,8 +49,8 @@ test('saved payload roundtrip and legacy participant arrays remain compatible',(
 });
 test('Excel columns retain exact numbers in đồng and gift rewards',()=>{
  const p=program();p.tiers=[{id:'g',minPercent:100,type:'gift',amount:0,text:'Demo Gift'} as any];
- const rows=computeRegisteredResults([contract('a','001',10_000_000)],cfg(),p);const data=registeredExportRows(rows,p);
- assert.equal(data[1][5],10_000_000);assert.equal(data[1][6],10_000_000);assert.equal(data[1][8],'Demo Gift');assert.equal(rows[0].bonus,0);
+ const rows=computeRegisteredResults([contract('a','001',10_000_000)],cfg(),p,[],[],null,{'001':true});const data=registeredExportRows(rows,p);
+ assert.equal(data[1][5],'✓');assert.equal(data[1][6],10_000_000);assert.equal(data[1][7],10_000_000);assert.equal(data[1][9],'Demo Gift');assert.equal(rows[0].bonus,0);
 });
 test('group exports show TN identity and never expose the internal group code',()=>{
  const p={...program(),scope:'nhom' as const,rows:[{...program().rows[0],code:'GROUP-INTERNAL'}]};
@@ -78,9 +78,9 @@ test('each classification has independent money, gift and percentage rewards at 
  const p=program();p.rows=[1,2,3].map(n=>({...p.rows[0],code:`A${n}`,classification:n as 1|2|3}));
  p.tiers=[{id:'a',classification:1,minPercent:100,type:'money',amount:123,text:''},{id:'b',classification:2,minPercent:100,type:'gift',amount:0,text:'Quà nhóm 2'},{id:'c',classification:3,minPercent:100,type:'percent_ip',amount:10,text:''}];
  const saved=decodeRegisteredProgram(JSON.stringify(p))!;
- const rows=computeRegisteredResults([1,2,3].map(n=>contract(String(n),`A${n}`,10_000_000)),cfg(),saved);
+ const rows=computeRegisteredResults([1,2,3].map(n=>contract(String(n),`A${n}`,10_000_000)),cfg(),saved,[],[],null,{'A1':true,'A2':true,'A3':true});
  assert.equal(rows[0].bonus,123);assert.equal(rows[1].bonus,0);assert.equal(rows[1].tier?.text,'Quà nhóm 2');assert.equal(rows[2].bonus,1_000_000);
- const exp=registeredExportRows(rows,p);assert.ok(!exp[0].includes('Phân loại'));assert.equal(exp[0].length,9);
+ const exp=registeredExportRows(rows,p);assert.ok(!exp[0].includes('Phân loại'));assert.equal(exp[0].length,10);
 });
 test('missing classification rewards fail validation instead of borrowing another group tier',()=>{
  const p=program();p.rows=[{...p.rows[0],classification:2}];
@@ -90,10 +90,36 @@ test('missing classification rewards fail validation instead of borrowing anothe
 test('classification 2 can have a different threshold without changing classification 1',()=>{
  const p=program();p.rows=[{...p.rows[0],code:'A',classification:1},{...p.rows[0],code:'B',classification:2}];
  p.tiers=[{id:'a',classification:1,minPercent:100,type:'money',amount:100,text:''},{id:'b',classification:2,minPercent:120,type:'money',amount:999,text:''}];
- const rows=computeRegisteredResults([contract('a','A',10_000_000),contract('b','B',10_000_000)],cfg(),p);
+ const rows=computeRegisteredResults([contract('a','A',10_000_000),contract('b','B',10_000_000)],cfg(),p,[],[],null,{'A':true,'B':true});
  assert.equal(rows[0].bonus,100);assert.equal(rows[1].tier,null);
 });
 test('legacy saved registration data without classification remains group 1',()=>{
  const p=program();delete p.rows[0].classification;delete p.rows[1].classification;
  assert.equal(decodeRegisteredProgram(p)!.rows[0].classification,1);
+});
+
+test('approval is required even after achieving 100%, including gifts and percentage rewards',()=>{
+ const p=program();
+ const contracts=[contract('a','001',12_000_000)];
+ const unapproved=computeRegisteredResults(contracts,cfg(),p)[0];
+ assert.equal(unapproved.actual,12_000_000);
+ assert.equal(unapproved.achievedTarget,true);
+ assert.equal(unapproved.approved,false);
+ assert.equal(unapproved.bonus,0);
+ assert.equal(unapproved.tier,null);
+ assert.equal(registeredExportRows([unapproved],p)[1][9],'Chưa đạt SV/nâng hạng');
+ const paid=computeRegisteredResults(contracts,cfg(),p,[],[],null,{'001':true})[0];
+ assert.equal(paid.bonus,200_000);
+ assert.equal(paid.approved,true);
+ assert.equal(registeredExportRows([paid],p)[1][5],'✓');
+ const below=computeRegisteredResults([contract('b','001',9_999_999)],cfg(),p,[],[],null,{'001':true})[0];
+ assert.equal(below.bonus,0);
+ assert.equal(registeredExportRows([below],p)[1][9],'Chưa đạt');
+ for (const type of ['gift','percent_ip','percent_afyp'] as const) {
+   p.tiers=[{id:type,minPercent:100,type,amount:10,text:'Quà thử nghiệm'}];
+   const r=computeRegisteredResults(contracts,cfg(),p)[0];
+   assert.equal(r.tier,null);
+   assert.equal(r.bonus,0);
+   assert.equal(registeredExportRows([r],p)[1][9],'Chưa đạt SV/nâng hạng');
+ }
 });
