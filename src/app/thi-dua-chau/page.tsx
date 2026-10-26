@@ -868,6 +868,8 @@ function ThiDuaPageInner() {
   const resultContentRef = useRef<HTMLDivElement>(null);
 
   const [registeredProgram, setRegisteredProgram] = useState<RegisteredProgram | null>(null);
+  // Approval ticks for a new, unsaved contest are staged until the contest receives an ID.
+  const [draftRegisteredApprovals, setDraftRegisteredApprovals] = useState<Record<string,boolean>>({});
   const registeredSaoViet = useRegisteredFyp(Boolean(registeredProgram));
   const registeredConfig = useMemo(() => ({ ...parseContestConfig({ startDate, endDate, issueDate: issueStartDate, issueEndDate }), id: selectedContestId }), [startDate, endDate, issueStartDate, issueEndDate, selectedContestId]);
 
@@ -892,6 +894,7 @@ function ThiDuaPageInner() {
   const chooseContestKind = useCallback((kind: ContestKind) => {
     setShowConfig(true);
     setSelectedContestId('');
+    setDraftRegisteredApprovals({});
     setRegisteredProgram(null);
     if (kind !== contestKind) {
       setSelectedSubjectTypes(new Set());
@@ -1035,7 +1038,7 @@ function ThiDuaPageInner() {
   // ===== AppDataContext: đọc dữ liệu đã preload khi app mở =====
   const { data: appData, dataVersion, reload: reloadAppData } = useAppData();
   const registeredContracts = useMemo(() => [...contracts, ...(appData.carryoverContracts || [])], [contracts, appData.carryoverContracts]);
-  const registeredResultProps = registeredProgram ? { program: registeredProgram, contracts: registeredContracts, config: registeredConfig, title: contestTitle, structure: tvvStructList, leaders: leadersList } : null;
+  const registeredResultProps = registeredProgram ? { program: registeredProgram, contracts: registeredContracts, config: registeredConfig, title: contestTitle, structure: tvvStructList, leaders: leadersList, editableApprovals: !isEmbedMode, draftApprovals: draftRegisteredApprovals, onDraftApprovalChange: (code:string,checked:boolean) => setDraftRegisteredApprovals(current=>({...current,[code]:checked})) } : null;
 
   // Sync từ context → local state. Chỉ chạy khi dataVersion đổi (tức là context vừa load xong).
   // QUAN TRỌNG: tvvStructList + leadersList cũng sync từ context → tự động cập nhật khi
@@ -2142,7 +2145,22 @@ function ThiDuaPageInner() {
       }) });
       if (res.ok) {
         const data = await res.json();
-        if (registeredProgram && data?.contest?.id) setSelectedContestId(data.contest.id);
+        if (registeredProgram && data?.contest?.id) {
+          // Persist pending ticks only after the registered contest has a real server ID.
+          if (Object.keys(draftRegisteredApprovals).length) {
+            const approvalRes = await fetch('/api/contest-approvals', {
+              method: 'PUT', credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contestId: data.contest.id, approvals: draftRegisteredApprovals }),
+            });
+            if (!approvalRes.ok) {
+              toast({ title: 'Chương trình đã lưu, điều kiện duyệt chưa lưu', description: 'Đăng nhập admin trong bảng kết quả rồi bấm Lưu chương trình để lưu lại dấu tích.', variant: 'destructive' });
+              return;
+            }
+            setDraftRegisteredApprovals({});
+          }
+          setSelectedContestId(data.contest.id);
+        }
         toast({ title: 'Thành công', description: data.message });
         await Promise.all([
           fetchSavedContests(),
@@ -2236,7 +2254,7 @@ function ThiDuaPageInner() {
   // Load contest with all new fields
   const handleLoadContest = (contestId: string) => {
     setResultPage(0);
-    setSelectedContestId(contestId); const contest = savedContests.find(c => c.id === contestId); if (!contest) return;
+    setSelectedContestId(contestId); setDraftRegisteredApprovals({}); const contest = savedContests.find(c => c.id === contestId); if (!contest) return;
     setContestTitle(contest.title); setStartDate(new Date(contest.startDate).toISOString().slice(0, 10)); setEndDate(new Date(contest.endDate).toISOString().slice(0, 10));
     setRegisteredProgram(decodeRegisteredProgram(contest.participants || '[]'));
     setConditionType(contest.conditionType as ConditionType);
@@ -4150,7 +4168,7 @@ function ThiDuaPageInner() {
                     </button>
                   );
                 })}
-                <button type="button" aria-pressed={!!registeredProgram} onClick={() => { if (!registeredProgram) setSelectedContestId(''); setRegisteredProgram(current => current || defaultRegisteredProgram()); setShowConfig(true); }} className={`rounded-lg border px-2 py-2 text-xs font-bold ${registeredProgram ? 'bg-amber-600 text-white border-amber-300' : 'border-amber-500/40 text-amber-100'}`}>Mục tiêu đăng ký (Excel)</button>
+                <button type="button" aria-pressed={!!registeredProgram} onClick={() => { if (!registeredProgram) { setSelectedContestId(''); setDraftRegisteredApprovals({}); } setRegisteredProgram(current => current || defaultRegisteredProgram()); setShowConfig(true); }} className={`rounded-lg border px-2 py-2 text-xs font-bold ${registeredProgram ? 'bg-amber-600 text-white border-amber-300' : 'border-amber-500/40 text-amber-100'}`}>Mục tiêu đăng ký (Excel)</button>
               </div>
             </div>
           </CardContent>
