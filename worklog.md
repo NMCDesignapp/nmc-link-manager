@@ -1324,3 +1324,8 @@ Added a shared read-only, cached, periodically refreshed source hook for Main an
 - Chuyển riêng chương trình VỀ ĐÍCH THÀNH CÔNG (nhận diện bằng ID đã đối chiếu trên API) khỏi danh sách Thi đua, đặt ngay trên Tiến độ gia nhập CLB trong CLB Sao Việt.
 - Dùng lại card poster và SavedContestInline hiện hành; giữ nguyên chương trình, dữ liệu, công thức, thao tác quản lý tại Trang Thi Đua. Không ghi/xóa bản ghi production.
 - Cho phép tải lại danh sách chương trình khi vào CLB, bổ sung điều hướng chi tiết và tiêu đề đúng chương trình. Hai KPI tiếp tục dùng cùng trang Quản lý nhúng.
+
+## 2026-10-27 — Ghi số còn thiếu mục tiêu Về Đích Thành Công
+
+- Riêng chương trình VỀ ĐÍCH THÀNH CÔNG: ô trạng thái chưa hoàn thành mục tiêu tháng 10 hiện actual - target theo đồng, ví dụ -50.000.000; chữ 9px, nghiêng, xám nhạt.
+- Không đổi điều kiện, số tiền thưởng hoặc trạng thái chưa đạt SV/nâng hạng khi đã hoàn thành mục tiêu. Các chương trình khác giữ nguyên cách hiển thị. Xuất Excel trực tiếp của component dùng cùng nội dung thiếu hụt.

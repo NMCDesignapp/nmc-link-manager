@@ -134,3 +134,14 @@ test('app ignores source STT and renumbers imports, legacy settings and filtered
   const evaluated=computeRegisteredResults([],cfg(),configured);
   assert.deepEqual(registeredExportRows(evaluated.slice(1),configured).slice(1).map(r=>r[0]),[1]);
 });
+
+test('opt-in shortfall display keeps reward and SV eligibility logic intact',()=>{
+ const p=program();
+ const below=computeRegisteredResults([],cfg(),p)[0];
+ const example={...below,target:200_000_000,actual:150_000_000};
+ assert.equal(registeredExportRows([example],p,true)[1][9],'-50.000.000');
+ assert.equal(registeredExportRows([example],p)[1][9],'Chưa đạt');
+ const met={...example,actual:200_000_000,achievedTarget:true,approved:false};
+ assert.equal(registeredExportRows([met],p,true)[1][9],'Chưa đạt SV/nâng hạng');
+ assert.equal(registeredExportRows([{...met,approved:true,tier:p.tiers[0],bonus:123}],p,true)[1][9],123);
+});
