@@ -145,7 +145,7 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
             '',
             `${number(r.target)} đ`,`${number(r.actual)} đ`,fmtPct(r.percent),registeredRewardDisplay(r,showShortfall)];
           return <tr key={r.code} style={{backgroundColor:registeredClassColor(r.classification)}} className="h-[29px] border-b border-slate-200 hover:bg-emerald-50">
-            {values.map((v,i)=><td key={i} className={`h-[29px] border-x border-slate-200 px-2 py-[4px] align-middle text-[11px] leading-tight ${i===0||i>=4?'text-center':''} ${i===5?'w-[78px] min-w-[78px] max-w-[78px] px-1':''} ${i===1?'font-semibold':''} ${i===2?'font-mono':''} ${i>=4?'whitespace-nowrap':''}`} style={{
+            {values.map((v,i)=><td key={i} className={`h-[29px] border-x border-slate-200 px-2 py-[4px] align-middle text-[11px] leading-tight ${i===0||i>=4?'text-center':''} ${i===5?'w-[78px] min-w-[78px] max-w-[78px] px-1':''} ${i===1?'font-semibold':''} ${i===2?'font-mono':''} ${i>=4?'whitespace-nowrap':''} ${i===9&&shortfallNote?'ve-dich-shortfall-cell':''}`} style={{
                 color:i===6||i===7?'#1e40af':i===8?(r.percent>=100?'#166534':'#b91c1c'):i===9?(shortfallNote?'#94a3b8':r.tier?'#166534':r.achievedTarget?'#b91c1c':'#475569'):i===1?'#047857':'#334155',
                 fontWeight:i===6||i===7||i===8||(i===9&&Boolean(r.tier))?800:undefined,
                 fontStyle:i===9&&(shortfallNote||(!r.tier&&r.achievedTarget))?'italic':undefined,
@@ -166,6 +166,6 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
     </div>
     {rows.length>100&&<div className="p-2 flex justify-center gap-3"><button type="button" disabled={currentPage===0} onClick={()=>setPage(currentPage-1)}>Trước</button><span>Trang {currentPage+1}/{Math.ceil(rows.length/100)} · {rows.length} đối tượng</span><button type="button" disabled={(currentPage+1)*100>=rows.length} onClick={()=>setPage(currentPage+1)}>Sau</button></div>}
     {!rows.length&&<p className="p-4 text-center">Chưa có đối tượng phù hợp.</p>}
-    {showShortfall&&<style>{`[data-registered-target-results] td[data-nmc-negative] .ve-dich-shortfall-note,[data-registered-target-results] .ve-dich-shortfall-note{color:#94a3b8!important;font-size:9px!important;font-weight:400!important;font-style:italic!important}[data-registered-target-results] .ve-dich-reward-amount{font-size:14px!important;font-weight:900!important;color:#047857!important;line-height:1.2!important}`}</style>}
+    {showShortfall&&<style>{`[data-registered-target-results] td.ve-dich-shortfall-cell[data-nmc-target][data-nmc-negative],[data-registered-target-results] .ve-dich-shortfall-note{color:#94a3b8!important;font-size:9px!important;font-weight:400!important;font-style:italic!important}[data-registered-target-results] .ve-dich-reward-amount{font-size:14px!important;font-weight:900!important;color:#047857!important;line-height:1.2!important}`}</style>}
   </section>;
 }
