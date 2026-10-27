@@ -1329,3 +1329,5 @@ Added a shared read-only, cached, periodically refreshed source hook for Main an
 
 - Riêng chương trình VỀ ĐÍCH THÀNH CÔNG: ô trạng thái chưa hoàn thành mục tiêu tháng 10 hiện actual - target theo đồng, ví dụ -50.000.000; chữ 9px, nghiêng, xám nhạt.
 - Không đổi điều kiện, số tiền thưởng hoặc trạng thái chưa đạt SV/nâng hạng khi đã hoàn thành mục tiêu. Các chương trình khác giữ nguyên cách hiển thị. Xuất Excel trực tiếp của component dùng cùng nội dung thiếu hụt.
+
+- Làm nổi bật thưởng đã đạt của VỀ ĐÍCH THÀNH CÔNG: số tiền 14px, đậm 900, xanh ngọc đậm, nền xanh nhạt và viền nhẹ. Trạng thái thiếu hụt giữ 9px nghiêng xám nhạt.
