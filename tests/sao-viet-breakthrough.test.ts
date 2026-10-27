@@ -55,3 +55,32 @@ test('pre-2026 role date remains eligible; employment start does not replace rol
     assert.equal(g.leaderReward, 1_000_000);
   }
 });
+
+test('promoted groups count all achievers, including the TN, toward the original group before rewards', () => {
+  for (const [child, root] of [['Thành Công', 'An Khang'], ['Niềm Tin', 'Sao Chợ Mới']]) {
+    const rootLeader = { ...leader, nhom: root };
+    const promotedLeader = { ...leader, agentCode: 'NEW-TN', nhom: child, ngayHieuLuc: '2026-04-01' };
+    const person = (code: string, group: string) => ({ ...row(code), nhomKD: group });
+    const [g] = calculateSVBreakthrough({
+      'ca-nhan': [person('ROOT-TVV', root), person('CHILD-TVV', child), person('NEW-TN', child)],
+      'tn-ktm': [person('NEW-TN', child)],
+      'tn-td': [{ ...person('NEW-TN', child), fypTVVm: 500, slTvvmHDC: 8 }],
+    }, tiers, tiers, recruit, [rootLeader, promotedLeader]);
+    assert.equal(g.name, root);
+    assert.equal(g.members.length, 3);
+    assert.equal(g.leaderCode, rootLeader.agentCode);
+    assert.equal(g.leaderReward, 6_000_000);
+    assert.ok(g.members.every(m => m.group === root && m.reward === 10_000_000));
+    assert.equal(g.members.find(m => m.code === 'NEW-TN')!.notes.length, 3);
+    assert.equal(g.issue, '');
+  }
+});
+test('mapping does not mutate sources or unrelated groups', () => {
+  const sources = { 'ca-nhan': [{ ...row('A'), nhomKD: 'Thành Công' }, row('B')] };
+  const before = JSON.stringify(sources);
+  const groups = calculateSVBreakthrough(sources, tiers, tiers, recruit, [leader, { ...leader, agentCode: 'ROOT', nhom: 'An Khang' }]);
+  assert.equal(JSON.stringify(sources), before);
+  assert.equal(groups.length, 2);
+  assert.equal(groups.find(g => g.name === 'Group A')!.members.length, 1);
+  assert.equal(groups.find(g => g.name === 'An Khang')!.members.length, 1);
+});

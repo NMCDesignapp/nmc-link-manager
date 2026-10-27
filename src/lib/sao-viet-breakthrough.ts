@@ -5,7 +5,16 @@ export type SVRecruitTier = { label: string; minFyp: number; minHdc: number };
 export type SVLeader = { agentCode: string; agentName: string; nhom: string; maNhom: string; position: string; ngayHieuLuc?: string | null };
 export type SVAchiever = { code: string; name: string; group: string; notes: string[]; reward: number };
 export type SVGroup = { key: string; name: string; leaderCode: string; leaderName: string; members: SVAchiever[]; leaderReward: number; issue: string };
-const normalize = (value: string | undefined) => String(value || '').trim().toLocaleUpperCase('vi-VN');
+const normalize = (value: string | undefined) => String(value || '').normalize('NFC').trim().toLocaleUpperCase('vi-VN');
+// Only this contest uses the original groups. Never remap source programs or
+// leaders themselves: the promoted TN is an achiever, not the root group's payee.
+const originalGroup = (value: string | undefined): string => {
+  const name = String(value || '').normalize('NFC').trim();
+  const key = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').toUpperCase();
+  if (key === 'THANH CONG' || key === 'AN KHANG') return 'An Khang';
+  if (key === 'NIEM TIN' || key === 'SAO CHO MOI') return 'Sao Chợ Mới';
+  return name;
+};
 export function calculateSVBreakthrough(
   sources: Record<string, SVSourceRow[]>,
   personalTiers: SVTier[], businessTiers: SVTier[], recruitmentTiers: SVRecruitTier[],
@@ -17,11 +26,11 @@ export function calculateSVBreakthrough(
     if (!code || !note) return;
     let person = people.get(code);
     if (!person) {
-      person = { code, name: String(row.agentName || '').trim(), group: String(row.nhomKD || '').trim(), notes: [], reward: 0 };
+      person = { code, name: String(row.agentName || '').trim(), group: originalGroup(row.nhomKD), notes: [], reward: 0 };
       people.set(code, person);
     }
     if (!person.name) person.name = String(row.agentName || '').trim();
-    if (!person.group) person.group = String(row.nhomKD || '').trim();
+    if (!person.group) person.group = originalGroup(row.nhomKD);
     if (!person.notes.includes(note)) person.notes.push(note);
   };
   for (const [program, tiers, role] of [

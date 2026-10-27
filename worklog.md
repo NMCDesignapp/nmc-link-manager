@@ -1309,3 +1309,10 @@ Added a shared read-only, cached, periodically refreshed source hook for Main an
 - Kiểm tra: 8 test nghiệp vụ đạt; lint ba file mới đạt; Main build đạt, sync KPI --check đạt. Lint toàn repo còn lỗi có sẵn. Đối chiếu dữ liệu chỉ đọc: mọi nhóm đang có người đạt đều khớp TN duy nhất. Không lưu dữ liệu thật vào repo.
 
 - Bổ sung poster do người dùng cung cấp cho ô tổng quan và đầu bảng chi tiết; giữ nguyên ảnh, hiển thị toàn bộ không cắt. Asset public/posters/sao-viet-breakthrough-2026.jpg.
+
+## 2026-10-27 — Quy số lượng Sao Việt về nhóm gốc
+
+- Riêng chương trình Đột phá số lượng – Bùng nổ Sao Việt: toàn bộ người đạt của Thành Công (kể cả cá nhân TN và các vai trò TN) tính về An Khang; Niềm Tin tính về Sao Chợ Mới.
+- Gộp trước đếm người và xét mốc thưởng. Mỗi mã vẫn chỉ một người; giữ ghi chú hạng/vai trò, TN nhóm gốc nhận thưởng quản lý. Chuẩn hóa Unicode cho tên Niềm Tin có dấu tổ hợp.
+- Không sửa dữ liệu/nhóm của ba chương trình Sao Việt nguồn hoặc các thi đua khác.
+- Bổ sung kiểm tra gộp nhóm, TN đạt cả ba vai trò, tăng mốc 3 người và không biến đổi dữ liệu đầu vào.
