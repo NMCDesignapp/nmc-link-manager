@@ -6,6 +6,12 @@ import { calculateSVBreakthrough, type SVSourceRow, type SVTier, type SVRecruitT
 import { downloadTableExcel } from '@/app/quan-ly/policy-excel-export';
 
 type Props = { sources: Record<string, SVSourceRow[]>; personalTiers: SVTier[]; businessTiers: SVTier[]; recruitmentTiers: SVRecruitTier[]; leaders: SVLeader[] };
+const shortRankNote = (note: string) => note
+  .replace(/Cá nhân:/gi, 'CN:')
+  .replace(/TN tuyển dụng:/gi, 'TN TD:')
+  .replace(/Hạng bạch kim/gi, 'BK')
+  .replace(/Hạng kim cương/gi, 'KC')
+  .replace(/Hạng vàng/gi, 'V');
 const money = (value: number) => value.toLocaleString('vi-VN') + ' đ';
 export function SaoVietBreakthrough(props: Props) {
   const [query, setQuery] = useState('');
@@ -42,12 +48,12 @@ export function SaoVietBreakthrough(props: Props) {
           <td className="font-semibold whitespace-nowrap">{m.name || m.code}</td>
           {index === 0 && <td rowSpan={g.members.length} className="text-center font-bold text-blue-800 whitespace-nowrap">{g.issue ? <span className="text-red-700 whitespace-normal">{g.issue}</span> : money(g.leaderReward)}</td>}
           <td className="text-center font-bold text-red-700 whitespace-nowrap">{money(m.reward)}</td>
-          <td className="text-right">{m.notes.map(note => <div key={note} className="whitespace-nowrap">{note}</div>)}</td>
+          <td className="text-right">{m.notes.map(note => <div key={note} className="sv-rank-note whitespace-nowrap">{shortRankNote(note)}</div>)}</td>
         </tr>))}</tbody>
       </table>
     </div>
     <div className="flex flex-wrap justify-between gap-2 text-xs font-bold text-amber-200"><span>{groups.length} nhóm · {totalPeople} người đạt</span><span>Tổng thưởng dự kiến: {money(totalReward)}</span></div>
     <p className="text-[11px] text-slate-300">Mỗi mã số tính 1 người, kể cả đạt nhiều vai trò hoặc nhiều vé. Tổng thưởng tối đa 30 triệu đồng/cá nhân.</p>
-    <style>{`.sv-breakthrough-table th,.sv-breakthrough-table td{border:1px solid #cbd5e1;padding:8px 6px;vertical-align:middle;font-size:12px;line-height:1.45}.sv-breakthrough-table td:not(.text-blue-800):not(.text-red-700){color:#1e293b!important}.sv-breakthrough-table th{font-weight:800;text-align:center;background:#FFA07A}.sv-breakthrough-table .sv-group-start>td{border-top:2px solid #94a3b8}.sv-breakthrough-table th:first-child{padding-left:3px;padding-right:3px}@media(max-width:767px){.sv-breakthrough-table th,.sv-breakthrough-table td{padding:6px 4px;font-size:11px}}`}</style>
+    <style>{`.sv-breakthrough-table th,.sv-breakthrough-table td{border:1px solid #cbd5e1;padding:8px 6px;vertical-align:middle;font-size:12px;line-height:1.45}.sv-breakthrough-table td:not(.text-blue-800):not(.text-red-700){color:#1e293b!important}.sv-breakthrough-table td .sv-rank-note{font-size:8px!important;line-height:1.25}.sv-breakthrough-table th{font-weight:800;text-align:center;background:#FFA07A}.sv-breakthrough-table .sv-group-start>td{border-top:2px solid #94a3b8}.sv-breakthrough-table th:first-child{padding-left:3px;padding-right:3px}@media(max-width:767px){.sv-breakthrough-table th,.sv-breakthrough-table td{padding:6px 4px;font-size:11px}}`}</style>
   </section>;
 }

@@ -1316,3 +1316,5 @@ Added a shared read-only, cached, periodically refreshed source hook for Main an
 - Gộp trước đếm người và xét mốc thưởng. Mỗi mã vẫn chỉ một người; giữ ghi chú hạng/vai trò, TN nhóm gốc nhận thưởng quản lý. Chuẩn hóa Unicode cho tên Niềm Tin có dấu tổ hợp.
 - Không sửa dữ liệu/nhóm của ba chương trình Sao Việt nguồn hoặc các thi đua khác.
 - Bổ sung kiểm tra gộp nhóm, TN đạt cả ba vai trò, tăng mốc 3 người và không biến đổi dữ liệu đầu vào.
+
+- Ghi chú hạng hiển thị ngắn: CN / TN KTM / TN TD và V / BK / KC, chữ riêng 8px. Không đổi hạng hoặc số vé nguồn; Excel lấy đúng ghi chú ngắn hiển thị.
