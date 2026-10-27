@@ -6,9 +6,9 @@ import { type RegisteredProgram, parseTargetSheet, registeredClassColor } from '
 import { computeRegisteredResults, registeredExportRows, registeredGroupLeader, registeredRewardDisplay, type RegisteredLeader, type RegisteredResult } from '@/lib/contest-registered-results';
 import { type ContestConfig, type Contract } from '@/lib/contest-calculator';
 const number = (v: number) => v.toLocaleString('vi-VN', {maximumFractionDigits: 0});
-export async function exportRegisteredTargets(rows: RegisteredResult[], program: RegisteredProgram, title: string) {
+export async function exportRegisteredTargets(rows: RegisteredResult[], program: RegisteredProgram, title: string, showShortfall = false) {
   const XLSX = await import('xlsx');
-  const sheet = XLSX.utils.aoa_to_sheet(registeredExportRows(rows, program));
+  const sheet = XLSX.utils.aoa_to_sheet(registeredExportRows(rows, program, showShortfall));
   sheet['!cols'] = [6,18,16,26,27,12,23,23,17,28].map(wch => ({wch}));
   for (let r = 1; r <= rows.length; r++) for (const c of [4,6,7,9]) { const cell = sheet[XLSX.utils.encode_cell({r,c})]; if (cell) cell.z = '#,##0" đ"'; }
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, sheet, 'Ket qua');
@@ -94,6 +94,7 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
   }),[all,program.hideNotAchieved,program.scope,query,descending,groupFilter,searchText,tableOnly]);
   const currentPage=Math.min(page,Math.max(0,Math.ceil(rows.length/100)-1));
   const visibleRows=rows.slice(currentPage*100,(currentPage+1)*100);
+  const showShortfall = config.id === 'fda994a2-6433-4ff5-8281-c862d30e8f9b';
   const headers=registeredExportRows([],program)[0];
   const fmtPct=(v:number)=>v.toLocaleString('vi-VN',{maximumFractionDigits:2})+'%';
   return <section className="bg-white text-slate-800" data-registered-target-results data-saoviet-table={config.id ? `saved-${config.id}` : undefined}>
@@ -105,7 +106,7 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
     </>}
     {!tableOnly && <div className="p-2 flex gap-2 flex-wrap items-center">
       <input aria-label="Tìm đối tượng đăng ký" placeholder="Tìm nhóm, mã, họ tên" className="p-2 border rounded text-slate-900" value={query} onChange={e=>{setQuery(e.target.value);setPage(0);}}/>
-      <button type="button" disabled={saoViet.loading||approval.loading||Boolean(approval.error)} className="border rounded px-3 py-2" onClick={()=>{void exportRegisteredTargets(rows,program,title).catch(e=>setError(String(e)));}}>Tải Excel kết quả</button>
+      <button type="button" disabled={saoViet.loading||approval.loading||Boolean(approval.error)} className="border rounded px-3 py-2" onClick={()=>{void exportRegisteredTargets(rows,program,title,showShortfall).catch(e=>setError(String(e)));}}>Tải Excel kết quả</button>
       <button type="button" className="border rounded px-2 py-2 text-xs" onClick={()=>{setDescending(!descending);setPage(0);}} aria-label="Đổi thứ tự FYP lũy kế và tiến độ">{descending?'FYP ↓ · HT ↓':'FYP ↑ · HT ↑'}</button>
       {editableApprovals && !approval.loading && !approval.admin && (
         <button type="button" className="rounded border border-green-700 px-2 py-1.5 text-xs font-semibold text-green-800" onClick={()=>setLoginOpen(current=>!current)}>
@@ -138,16 +139,17 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
           </th>)}
         </tr></thead>
         <tbody>{visibleRows.map((r,rowIndex)=>{
+          const shortfallNote = showShortfall && !r.achievedTarget;
           const values=[currentPage*100+rowIndex+1,r.group,program.scope==='nhom'?(r.leaderCode||'—'):r.code,program.scope==='nhom'?(r.leaderName||'Chưa có TN trong Cấu trúc'):r.name,
             r.cumulativeFyp===null?(saoViet.loading?'Đang tải…':'Chưa có dữ liệu'):`${number(r.cumulativeFyp)} đ`,
             '',
-            `${number(r.target)} đ`,`${number(r.actual)} đ`,fmtPct(r.percent),registeredRewardDisplay(r)];
+            `${number(r.target)} đ`,`${number(r.actual)} đ`,fmtPct(r.percent),registeredRewardDisplay(r,showShortfall)];
           return <tr key={r.code} style={{backgroundColor:registeredClassColor(r.classification)}} className="h-[29px] border-b border-slate-200 hover:bg-emerald-50">
             {values.map((v,i)=><td key={i} className={`h-[29px] border-x border-slate-200 px-2 py-[4px] align-middle text-[11px] leading-tight ${i===0||i>=4?'text-center':''} ${i===5?'w-[78px] min-w-[78px] max-w-[78px] px-1':''} ${i===1?'font-semibold':''} ${i===2?'font-mono':''} ${i>=4?'whitespace-nowrap':''}`} style={{
-                color:i===6||i===7?'#1e40af':i===8?(r.percent>=100?'#166534':'#b91c1c'):i===9?(r.tier?'#166534':r.achievedTarget?'#b91c1c':'#475569'):i===1?'#047857':'#334155',
+                color:i===6||i===7?'#1e40af':i===8?(r.percent>=100?'#166534':'#b91c1c'):i===9?(shortfallNote?'#94a3b8':r.tier?'#166534':r.achievedTarget?'#b91c1c':'#475569'):i===1?'#047857':'#334155',
                 fontWeight:i===6||i===7||i===8||(i===9&&Boolean(r.tier))?800:undefined,
-                fontStyle:i===9&&!r.tier&&r.achievedTarget?'italic':undefined,
-                fontSize:i===9&&!r.tier&&r.achievedTarget?'10px':undefined
+                fontStyle:i===9&&(shortfallNote||(!r.tier&&r.achievedTarget))?'italic':undefined,
+                fontSize:i===9&&shortfallNote?'9px':i===9&&!r.tier&&r.achievedTarget?'10px':undefined
               }}>
               {i===5 ? editableApprovals && approval.admin
                 ? <button type="button" title={r.approved?'Bỏ duyệt Sao Việt/nâng hạng':'Duyệt Sao Việt/nâng hạng'} aria-label={`${r.approved?'Bỏ duyệt':'Duyệt'} ${r.code}`} aria-pressed={r.approved} disabled={Boolean(approval.savingCode)||approval.loading} onClick={()=>{
@@ -156,7 +158,7 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
                   }} className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs font-bold leading-none ${r.approved?'bg-green-700 text-white border-green-700':'bg-white border-slate-400 text-transparent hover:border-green-600'}`}>✓</button>
                 : r.approved ? <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-700 text-xs font-bold leading-none text-white" role="img" aria-label="Đã đạt điều kiện">✓</span> : null
               :i===9&&r.tier?<span className="inline-flex items-center justify-center gap-1"><span className="text-[11px] leading-none" aria-hidden="true">{r.tier.type==='gift'?'🎁':'🏅'}</span><span>{typeof v==='number'?`${number(v)} đ`:r.tier.type==='gift'?v:`${number(r.bonus)} đ`}</span></span>
-              :v}
+              :i===9&&shortfallNote?<span style={{fontSize:'9px',fontStyle:'italic',fontWeight:400,color:'#94a3b8'}}>{v}</span>:v}
             </td>)}
           </tr>;
         })}</tbody>

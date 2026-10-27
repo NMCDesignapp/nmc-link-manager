@@ -45,17 +45,17 @@ export const registeredHeaders = (program: RegisteredProgram) => [
   'MỤC TIÊU ĐĂNG KÝ',`${program.metric.toUpperCase()} THÁNG 10`,
   'TIẾN ĐỘ HT\nT10','TIỀN THƯỞNG'
 ];
-export function registeredRewardDisplay(row: RegisteredResult): string | number {
-  if (!row.achievedTarget) return 'Chưa đạt';
+export function registeredRewardDisplay(row: RegisteredResult, showShortfall = false): string | number {
+  if (!row.achievedTarget) return showShortfall ? (row.actual - row.target).toLocaleString('vi-VN', {maximumFractionDigits: 0}) : 'Chưa đạt';
   if (!row.approved) return 'Chưa đạt SV/nâng hạng';
   if (row.tier?.type === 'gift') return row.tier.text;
   return row.tier ? row.bonus : 'Chưa đạt';
 }
-export function registeredExportRows(rows: RegisteredResult[], program: RegisteredProgram) {
+export function registeredExportRows(rows: RegisteredResult[], program: RegisteredProgram, showShortfall = false) {
   return [registeredHeaders(program), ...rows.map((r,index) => [
     index+1,r.group,program.scope==='nhom'?(r.leaderCode||'—'):r.code,
     program.scope==='nhom'?(r.leaderName||'Chưa có TN trong Cấu trúc'):r.name,
     r.cumulativeFyp ?? 'Chưa có dữ liệu',r.approved?'✓':'',
-    r.target,r.actual,r.percent,registeredRewardDisplay(r)
+    r.target,r.actual,r.percent,registeredRewardDisplay(r, showShortfall)
   ])];
 }
