@@ -158,7 +158,7 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
                   }} className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs font-bold leading-none ${r.approved?'bg-green-700 text-white border-green-700':'bg-white border-slate-400 text-transparent hover:border-green-600'}`}>✓</button>
                 : r.approved ? <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-700 text-xs font-bold leading-none text-white" role="img" aria-label="Đã đạt điều kiện">✓</span> : null
               :i===9&&r.tier?<span className="inline-flex items-center justify-center gap-1" style={showShortfall?{backgroundColor:'#ecfdf5',border:'1px solid #a7f3d0',borderRadius:'4px',padding:'2px 6px'}:undefined}><span className="text-[11px] leading-none" aria-hidden="true">{r.tier.type==='gift'?'🎁':'🏅'}</span><span className={showShortfall?'ve-dich-reward-amount':undefined}>{typeof v==='number'?`${number(v)} đ`:r.tier.type==='gift'?v:`${number(r.bonus)} đ`}</span></span>
-              :i===9&&shortfallNote?<span style={{fontSize:'9px',fontStyle:'italic',fontWeight:400,color:'#94a3b8'}}>{v}</span>:v}
+              :i===9&&shortfallNote?<span className="ve-dich-shortfall-note" style={{fontSize:'9px',fontStyle:'italic',fontWeight:400,color:'#94a3b8'}}>{v}</span>:v}
             </td>)}
           </tr>;
         })}</tbody>
@@ -166,6 +166,6 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
     </div>
     {rows.length>100&&<div className="p-2 flex justify-center gap-3"><button type="button" disabled={currentPage===0} onClick={()=>setPage(currentPage-1)}>Trước</button><span>Trang {currentPage+1}/{Math.ceil(rows.length/100)} · {rows.length} đối tượng</span><button type="button" disabled={(currentPage+1)*100>=rows.length} onClick={()=>setPage(currentPage+1)}>Sau</button></div>}
     {!rows.length&&<p className="p-4 text-center">Chưa có đối tượng phù hợp.</p>}
-    {showShortfall&&<style>{`[data-registered-target-results] .ve-dich-reward-amount{font-size:14px!important;font-weight:900!important;color:#047857!important;line-height:1.2!important}`}</style>}
+    {showShortfall&&<style>{`[data-registered-target-results] td[data-nmc-negative] .ve-dich-shortfall-note,[data-registered-target-results] .ve-dich-shortfall-note{color:#94a3b8!important;font-size:9px!important;font-weight:400!important;font-style:italic!important}[data-registered-target-results] .ve-dich-reward-amount{font-size:14px!important;font-weight:900!important;color:#047857!important;line-height:1.2!important}`}</style>}
   </section>;
 }
