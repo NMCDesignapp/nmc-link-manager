@@ -230,7 +230,8 @@ const extractSummaryMetrics = (table: HTMLTableElement): SummaryMetrics => {
     identities.add(identity);
 
     const rewardCell = findCellByRange(row, rewardRange);
-    const rewardText = rewardCell?.textContent || '';
+    // A target deficit is a progress note, never a paid reward.
+    const rewardText = rewardCell?.querySelector('.ve-dich-shortfall-note') ? '' : (rewardCell?.textContent || '');
     const rowText = normalizeText(row.textContent);
     const achieved = rewardRange ? hasReward(rewardText) : /DAT THUONG|\bDAT\b/.test(rowText) && !/CHUA DAT|KHONG DAT/.test(rowText);
     if (achieved) achievedIdentities.add(identity);

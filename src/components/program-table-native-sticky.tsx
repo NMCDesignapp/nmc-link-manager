@@ -187,7 +187,8 @@ const extractSummary = (table: HTMLTableElement) => {
     else return;
     identities.add(id);
     const rewardCell = findCellByRange(row, rewardRange);
-    const rewardText = rewardCell?.textContent || '';
+    // A target deficit is a progress note, never a paid reward.
+    const rewardText = rewardCell?.querySelector('.ve-dich-shortfall-note') ? '' : (rewardCell?.textContent || '');
     if (rewardRange ? hasReward(rewardText) : /DAT THUONG|\bDAT\b/.test(normalizeText(row.textContent))) achieved.add(id);
     if (rewardCell && !seenRewards.has(rewardCell)) { seenRewards.add(rewardCell); totalMoney += parseMoney(rewardText); }
   });
