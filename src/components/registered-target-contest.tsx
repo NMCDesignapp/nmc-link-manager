@@ -166,6 +166,6 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
     </div>
     {rows.length>100&&<div className="p-2 flex justify-center gap-3"><button type="button" disabled={currentPage===0} onClick={()=>setPage(currentPage-1)}>Trước</button><span>Trang {currentPage+1}/{Math.ceil(rows.length/100)} · {rows.length} đối tượng</span><button type="button" disabled={(currentPage+1)*100>=rows.length} onClick={()=>setPage(currentPage+1)}>Sau</button></div>}
     {!rows.length&&<p className="p-4 text-center">Chưa có đối tượng phù hợp.</p>}
-    {showShortfall&&<style>{`[data-registered-target-results] td.ve-dich-shortfall-cell[data-nmc-target][data-nmc-negative],[data-registered-target-results] .ve-dich-shortfall-note{color:#94a3b8!important;font-size:9px!important;font-weight:400!important;font-style:italic!important}[data-registered-target-results] .ve-dich-reward-amount{font-size:14px!important;font-weight:900!important;color:#047857!important;line-height:1.2!important}`}</style>}
+    {showShortfall&&<style>{`[data-registered-target-results] td.ve-dich-shortfall-cell[data-nmc-target][data-nmc-negative],[data-registered-target-results] .ve-dich-shortfall-note{color:#94a3b8!important;font-size:9px!important;font-weight:400!important;font-style:italic!important}[data-registered-target-results] td[data-nmc-target][data-nmc-negative] .ve-dich-reward-amount,[data-registered-target-results] .ve-dich-reward-amount{font-size:14px!important;font-weight:900!important;color:#047857!important;line-height:1.2!important}`}</style>}
   </section>;
 }
