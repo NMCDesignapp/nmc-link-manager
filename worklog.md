@@ -1318,3 +1318,9 @@ Added a shared read-only, cached, periodically refreshed source hook for Main an
 - Bổ sung kiểm tra gộp nhóm, TN đạt cả ba vai trò, tăng mốc 3 người và không biến đổi dữ liệu đầu vào.
 
 - Ghi chú hạng hiển thị ngắn: CN / TN KTM / TN TD và V / BK / KC, chữ riêng 8px. Không đổi hạng hoặc số vé nguồn; Excel lấy đúng ghi chú ngắn hiển thị.
+
+## 2026-10-27 — Chuyển Về Đích Thành Công sang CLB Sao Việt
+
+- Chuyển riêng chương trình VỀ ĐÍCH THÀNH CÔNG (nhận diện bằng ID đã đối chiếu trên API) khỏi danh sách Thi đua, đặt ngay trên Tiến độ gia nhập CLB trong CLB Sao Việt.
+- Dùng lại card poster và SavedContestInline hiện hành; giữ nguyên chương trình, dữ liệu, công thức, thao tác quản lý tại Trang Thi Đua. Không ghi/xóa bản ghi production.
+- Cho phép tải lại danh sách chương trình khi vào CLB, bổ sung điều hướng chi tiết và tiêu đề đúng chương trình. Hai KPI tiếp tục dùng cùng trang Quản lý nhúng.

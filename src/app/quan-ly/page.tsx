@@ -50,6 +50,9 @@ const isSaoVietTrackingContest = (contest: any) => {
   return !normalizedTitle.startsWith('chot');
 };
 
+// Move only the identified program; retain its placement if its title is edited.
+const isClbTransferredContest = (contest: { id?: string }) => contest.id === 'fda994a2-6433-4ff5-8281-c862d30e8f9b';
+
 // nmc-multi-group-filter-v1
 // ==================== TYPES ====================
 interface LeaderInfo {
@@ -5579,7 +5582,7 @@ export default function QuanLyPage() {
   // Fetch its small summary directly when opened (and after a contest mutation),
   // so a card cannot survive merely because an in-memory app snapshot is old.
   useEffect(() => {
-    if (activeSheet !== 'saoviet') return;
+    if (activeSheet !== 'saoviet' && activeSheet !== 'clb-saoviet') return;
     let cancelled = false;
     const refreshSavedContests = async () => {
       try {
@@ -10419,22 +10422,7 @@ export default function QuanLyPage() {
     );
   };
 
-  const renderSaoVietList = () => (
-    <div>
-      {/* Top bar: title + Settings button (mở modal chứa all sync/upload + poster management) */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm sm:text-base font-extrabold text-amber-300 flex items-center gap-2">
-          <Flag className="w-4 h-4" /> THI ĐUA
-        </h2>
-      </div>
-
-      {/* Chỉ các chương trình tạo từ Trang Thi Đua. Ba chương trình toàn chặng đã chuyển sang CLB Sao Việt. */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* ===== Saved contests từ Trang Thi Đua — tự động hiện thành card thứ 4, 5... =====
-            Mỗi contest đã lưu (qua /api/contests POST trên Trang Thi Đua) sẽ xuất hiện ở đây.
-            Click → mở sub-page 'saved-<id>' render kết quả chi tiết inline.
-            KHÔNG có nút X — người dùng chỉ xem, không có quyền xóa/sửa (xóa/sửa thực hiện trên Trang Thi Đua). */}
-        {savedContestsList.length > 0 && savedContestsList.map(contest => {
+  const renderSavedProgramCard = (contest: any, destination: 'saoviet' | 'clb-saoviet' = 'saoviet') => {
           const contestId = contest.id;
           const posterUrl = contest.posterUrl || '';
           const startDateStr = contest.startDate ? new Date(contest.startDate).toLocaleDateString('vi-VN') : '';
@@ -10442,7 +10430,7 @@ export default function QuanLyPage() {
           return (
             <button
               key={`saved-${contestId}`}
-              onClick={() => navigateTo({ sheet: 'saoviet', saovietOpen: `saved-${contestId}` })}
+              onClick={() => navigateTo(destination === 'clb-saoviet' ? { sheet: 'clb-saoviet', clbsvOpen: `saved-${contestId}` } : { sheet: 'saoviet', saovietOpen: `saved-${contestId}` })}
               className="kpi-linked-program-card group relative rounded-lg overflow-hidden border-2 shadow-lg flex flex-col w-full transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl active:scale-95 active:translate-y-0"
               style={{
                 borderColor: '#10B981AA',
@@ -10494,8 +10482,26 @@ export default function QuanLyPage() {
                 </div>
             </button>
           );
-        })}
-        {savedContestsList.length === 0 && (
+
+  };
+
+  const renderSaoVietList = () => (
+    <div>
+      {/* Top bar: title + Settings button (mở modal chứa all sync/upload + poster management) */}
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm sm:text-base font-extrabold text-amber-300 flex items-center gap-2">
+          <Flag className="w-4 h-4" /> THI ĐUA
+        </h2>
+      </div>
+
+      {/* Chỉ các chương trình tạo từ Trang Thi Đua. Ba chương trình toàn chặng đã chuyển sang CLB Sao Việt. */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* ===== Saved contests từ Trang Thi Đua — tự động hiện thành card thứ 4, 5... =====
+            Mỗi contest đã lưu (qua /api/contests POST trên Trang Thi Đua) sẽ xuất hiện ở đây.
+            Click → mở sub-page 'saved-<id>' render kết quả chi tiết inline.
+            KHÔNG có nút X — người dùng chỉ xem, không có quyền xóa/sửa (xóa/sửa thực hiện trên Trang Thi Đua). */}
+        {savedContestsList.filter(contest => !isClbTransferredContest(contest)).map(contest => renderSavedProgramCard(contest))}
+        {!savedContestsList.some(contest => !isClbTransferredContest(contest)) && (
           <div className="sm:col-span-3 rounded-lg border border-dashed border-emerald-500/30 bg-emerald-500/5 px-4 py-8 text-center text-sm text-emerald-100/60">
             Chưa có chương trình thi đua đang theo dõi.
           </div>
@@ -12373,6 +12379,12 @@ export default function QuanLyPage() {
           const IIcon = item.icon;
           const posterUrl = clbsvPosters[item.key] || '';
           return (
+            <React.Fragment key={item.key}>
+              {item.key === 'tien-do' && savedContestsList.some(isClbTransferredContest) && (
+                <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {savedContestsList.filter(isClbTransferredContest).map(contest => renderSavedProgramCard(contest, 'clb-saoviet'))}
+                </div>
+              )}
             <button
               key={item.key}
               onClick={() => navigateTo({ sheet: 'clb-saoviet', clbsvOpen: item.key })}
@@ -12414,6 +12426,7 @@ export default function QuanLyPage() {
                 </div>
               </div>
             </button>
+            </React.Fragment>
           );
         })}
       </div>
@@ -12526,6 +12539,7 @@ export default function QuanLyPage() {
   };
 
   const renderCLBSaoViet = () => {
+    if (clbsvOpen?.startsWith('saved-')) return renderSavedContest(clbsvOpen.slice(6));
     if (clbsvOpen === 'bung-no-sao-viet') return <SaoVietBreakthrough
       sources={saovietManualData}
       personalTiers={SV1_THRESHOLDS}
@@ -12841,7 +12855,7 @@ export default function QuanLyPage() {
         ) : (
           <BackButton onClick={handleAppBack} size={20} title="Trở về thao tác trước" />
         )}
-        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Chính Sách Đại Lý') : activeSheet === 'saoviet' && saovietOpen ? (saovietOpen.startsWith('saved-') ? (savedContestsList.find(c => c.id === saovietOpen.slice(6))?.title || 'Chương trình thi đua') : (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'Thi đua')) : activeSheet === 'saoviet' ? 'THI ĐUA' : activeSheet === 'clb-saoviet' && clbsvOpen ? (clbsvOpen === 'bung-no-sao-viet' ? 'ĐỘT PHÁ SỐ LƯỢNG – BÙNG NỔ SAO VIỆT' : SAOVIET_ITEMS.find(i => i.clbKey === clbsvOpen)?.label || CLBSV_ITEMS.find(i => i.key === clbsvOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB SAO VIỆT' : activeSheet === 'vinh-danh' ? (VINH_DANH_SUBS.find(s => s.key === vinhdanhSub)?.label || 'TÔN VINH') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : activeSheet === 'report' ? 'CHÍNH SÁCH ĐẠI LÝ' : 'Quản Lý Dữ Liệu'}</h1>
+        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Chính Sách Đại Lý') : activeSheet === 'saoviet' && saovietOpen ? (saovietOpen.startsWith('saved-') ? (savedContestsList.find(c => c.id === saovietOpen.slice(6))?.title || 'Chương trình thi đua') : (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'Thi đua')) : activeSheet === 'saoviet' ? 'THI ĐUA' : activeSheet === 'clb-saoviet' && clbsvOpen ? (clbsvOpen.startsWith('saved-') ? (savedContestsList.find(c => c.id === clbsvOpen.slice(6))?.title || 'Chương trình CLB Sao Việt') : clbsvOpen === 'bung-no-sao-viet' ? 'ĐỘT PHÁ SỐ LƯỢNG – BÙNG NỔ SAO VIỆT' : SAOVIET_ITEMS.find(i => i.clbKey === clbsvOpen)?.label || CLBSV_ITEMS.find(i => i.key === clbsvOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB SAO VIỆT' : activeSheet === 'vinh-danh' ? (VINH_DANH_SUBS.find(s => s.key === vinhdanhSub)?.label || 'TÔN VINH') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : activeSheet === 'report' ? 'CHÍNH SÁCH ĐẠI LÝ' : 'Quản Lý Dữ Liệu'}</h1>
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Nút Cài đặt đã được chuyển vào menu mobile (PHẦN 1) và sidebar — bỏ ở header để tránh trùng */}
           {/* Nút Tải lại — HIỆN cho cả end-user (đến từ /kpi-standalone) và admin */}
