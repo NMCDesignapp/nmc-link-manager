@@ -3248,7 +3248,7 @@ function ThiDuaPageInner() {
   // html-to-image walk every row, which can freeze the tab for large contests.
   const createCommunication = () => buildContestCommunication({
     ...phaseConfig,
-    title: contestTitle, startDate, endDate, issueDate: issueStartDate, issueEndDate,
+    title: contestTitle, startDate, endDate, issueDate: issueStartDate, issueEndDate, participants: subjectCodes,
     registeredProgram,
     targetType: registeredProgram?.scope || ((conditionType === 'tvv_pass_count' || conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts') ? 'nhom' : targetType),
     secondaryIPMin: conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts' ? passCountIPMin : secondaryIPMin,

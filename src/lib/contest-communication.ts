@@ -45,15 +45,17 @@ function reward(t: BonusTier): string {
 export function buildContestCommunication(c: ContestConfig, settings: Record<string, string>, now = new Date(), recruitment?: RecruitmentContestConfig): ContestCommunication {
   const registered = c.registeredProgram;
   const scope = registered?.scope || c.targetType;
-  const audience = scope === 'nhom' ? 'Nhóm' : scope === 'nyd' ? 'Nhà tuyển dụng' : 'Tư vấn viên';
+  const audience = scope === 'nhom' ? 'Nhóm' : scope === 'nyd' ? 'Nhà tuyển dụng' : c.conditionType.includes('tvvm') ? 'Tư vấn viên mới' : c.conditionType === 'activity_round_tvv90' ? `Tư vấn viên có thâm niên tối đa ${c.tvv90MaxMonths} tháng` : 'Tư vấn viên';
+  const periodStart = c.startDate || c.issueDate || '';
+  const periodEnd = c.endDate || c.issueEndDate || '';
   const lines: CommunicationLine[] = [
     { text: '📣 CẬP NHẬT TIẾN ĐỘ THI ĐUA', emphasis: true, tone: 'title' },
-    { text: `🏆 “${c.title || 'Chương trình thi đua'}” — ${audience}`, emphasis: true, tone: 'title' },
-    { text: `📅 Thời gian thi đua: ${date(c.startDate)} – ${date(c.endDate)}.` },
-    closingNotice(c.endDate, now),
+    { text: `🏆 “${c.title || 'Chương trình thi đua'}” — ${audience}${registered || c.participants.length ? ' trong danh sách tham gia' : ''}`, emphasis: true, tone: 'title' },
+    { text: `📅 Thời gian thi đua: ${date(periodStart)} – ${date(periodEnd)}.` },
+    closingNotice(periodEnd, now),
     { text: '🎁 NỘI DUNG VÀ CƠ CHẾ THƯỞNG', emphasis: true },
   ];
-  const add = (text: string) => lines.push({ text });
+  const add = (text: string) => lines.push({ text, emphasis: text.includes('→') || text.startsWith('• Hạng') || text.startsWith('• TOP') });
   if (registered) {
     add(`Xét tỷ lệ hoàn thành mục tiêu ${registered.metric.toUpperCase()} đăng ký theo từng phân loại.`);
     for (const t of [...registered.tiers].sort((a,b) => (a.classification || 1) - (b.classification || 1) || a.minPercent - b.minPercent)) {
@@ -92,7 +94,7 @@ export function buildContestCommunication(c: ContestConfig, settings: Record<str
     if (c.conditionType === 'tvv_pass_count') add('• Đếm TVV đạt chương trình điều kiện đã liên kết.');
     if (c.conditionType === 'pass_count_contracts') add(`• Mỗi TVV phải đạt tối thiểu ${c.tvvContractCountMin || 0} HĐ đủ điều kiện.`);
     if (c.conditionType === 'pass_count_contracts' || c.conditionType === 'pass_count_ip_afyp') {
-      add(`• Ngưỡng xét: IP ${money(c.secondaryIPMin || 0)}, AFYP ${money(c.secondaryAFYPMin || 0)} theo cấu hình chương trình.`);
+      add(`• ${c.conditionType === 'pass_count_contracts' ? 'Mỗi HĐ' : 'Tổng doanh số mỗi TVV'} phải đồng thời đạt IP ≥ ${money(c.secondaryIPMin || 0)} và AFYP ≥ ${money(c.secondaryAFYPMin || 0)}.`);
     }
     if (c.useSecondaryCondition) {
       const fields = [['secondaryIPMin','IP/HĐ'],['secondaryAFYPMin','AFYP/HĐ'],['secondaryTotalIPMin','Tổng IP'],['secondaryTotalAFYPMin','Tổng AFYP'],['secondaryContractCountMin','Số HĐ'],['secondaryContractIPMin','IP tối thiểu của HĐ xét đếm'],['secondaryLuotHDMin','Lượt HĐ'],['secondaryLuotHDCMin','Lượt HĐ chuẩn']] as const;

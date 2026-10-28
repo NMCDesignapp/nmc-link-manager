@@ -54,7 +54,7 @@ export function ContestCommunicationDialog({ message, onClose }: { message: Cont
     <DialogContent className="w-[calc(100vw-24px)] sm:max-w-2xl max-h-[90dvh] overflow-y-auto bg-white text-slate-900">
       <DialogHeader>
         <DialogTitle>Tin truyền thông thi đua</DialogTitle>
-        <DialogDescription>Sao chép lời dẫn để đăng cùng poster, hoặc tải ảnh để giữ màu sắc và chữ đậm.</DialogDescription>
+        <DialogDescription style={{ color: '#475569' }}>Sao chép lời dẫn để đăng cùng poster, hoặc tải ảnh để giữ màu sắc và chữ đậm.</DialogDescription>
       </DialogHeader>
       <div className="flex flex-wrap gap-2">
         <Button onClick={copy}>📋 Sao chép tin</Button>
