@@ -1,5 +1,17 @@
 # Bàn giao toàn bộ ngữ cảnh cho Codex — NMC Link Manager
 
+## Tin truyền thông thi đua
+
+Trang `thi-dua-chau` mở tin truyền thông sau khi tải ảnh kết quả thành công;
+nút `Tin` trong thanh kết quả mở lại nội dung. `contest-communication.ts`
+diễn giải cấu hình hiện tại, còn `contest-communication-dialog.tsx` cung cấp
+sao chép plain text + HTML và xuất PNG giữ màu/chữ đậm. Không gửi bài tự động.
+Mốc dữ liệu dùng `nmc-data-hub-last-sync-at` từ settings đã tải cùng dữ liệu,
+chỉ khi nguồn là Data Hub; không thay bằng heartbeat hoặc giờ bấm tải.
+Thiếu mốc hợp lệ phải báo chưa xác định. Đếm ngược tính theo ngày Bangkok
+tại thời điểm tạo tin; cấu hình ngày không có giờ thì không tự thêm giờ chốt.
+Không thay đổi phép tính thưởng, dữ liệu production hoặc nguồn đồng bộ.
+
 Cập nhật nền: 2026-08-03.
 
 Tài liệu này chuyển giao kiến thức tích lũy về ứng dụng, kiến trúc, luồng dữ liệu, yêu cầu nghiệp vụ và cách vận hành. Mã nguồn hiện tại vẫn là nguồn chuẩn cuối cùng. Khi tài liệu và code khác nhau, phải kiểm tra code/runtime trước khi kết luận.

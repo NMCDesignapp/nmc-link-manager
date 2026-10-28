@@ -1,4 +1,6 @@
 'use client';
+import { ContestCommunicationDialog } from '@/components/contest-communication-dialog';
+import { buildContestCommunication, type ContestCommunication } from '@/lib/contest-communication';
 
 // nmc-contest-top-eligibility-v1
 
@@ -851,6 +853,7 @@ function ThiDuaPageInner() {
   // thể cộng thêm vào bộ đang chọn.
   const [selectedSubjectTypes, setSelectedSubjectTypes] = useState<Set<string>>(new Set());
   const [isDownloadingImage, setIsDownloadingImage] = useState(false);
+  const [communication, setCommunication] = useState<ContestCommunication | null>(null);
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [recruiterList, setRecruiterList] = useState<RecruiterMember[]>([]);
   // NGUỒN ĐÚNG cho DS đối tượng thi đua (theo yêu cầu user):
@@ -3243,7 +3246,20 @@ function ThiDuaPageInner() {
   // Download at most two lightweight snapshots. Removing unused rows from a
   // detached clone is important: hiding them in the live table still makes
   // html-to-image walk every row, which can freeze the tab for large contests.
+  const createCommunication = () => buildContestCommunication({
+    ...phaseConfig,
+    title: contestTitle, startDate, endDate, issueDate: issueStartDate, issueEndDate,
+    registeredProgram,
+    targetType: registeredProgram?.scope || ((conditionType === 'tvv_pass_count' || conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts') ? 'nhom' : targetType),
+    secondaryIPMin: conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts' ? passCountIPMin : secondaryIPMin,
+    secondaryAFYPMin: conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts' ? passCountAFYPMin : secondaryAFYPMin,
+    tvvContractCountMin, referenceContestId, includeTNInPassCount,
+    topN, topNMinIP, topNValueType, topRewardAmounts, topEligibilityType, topEligibilityMin,
+    useTopRanking: supportsCombinedTopRanking(conditionType) && useTopRanking,
+  }, appData.settings || {}, new Date(), recruitmentConfig);
+
   const handleDownloadImage = async () => {
+    const communicationSnapshot = createCommunication();
     setIsDownloadingImage(true);
     try {
       const { getFontEmbedCSS, toBlob } = await import('html-to-image');
@@ -3646,6 +3662,7 @@ function ThiDuaPageInner() {
       }
 
       const capturedRows = Math.min(tableRows.length, maxRowsThisDownload);
+      setCommunication(communicationSnapshot);
       toast({
         title: 'Thành công',
         description: tableRows.length > capturedRows
@@ -4893,6 +4910,7 @@ function ThiDuaPageInner() {
 
       {!isEmbedMode && <MainAppBottomNav active="contest" />}
 
+      <ContestCommunicationDialog message={communication} onClose={() => setCommunication(null)} />
       {/* Result Dialog Popup - White theme, only poster + detail table
           In embed mode: always open + CSS .embed-mode biến Dialog thành full-page (KHÔNG còn là popup) */}
       <Dialog open={isEmbedMode || isResultDialogOpen} onOpenChange={(open) => { if (!isEmbedMode) { setIsResultDialogOpen(open); if (!open) setIsResultExpanded(false); } }}>
@@ -5024,6 +5042,7 @@ function ThiDuaPageInner() {
                   {isDownloadingImage ? <Loader2 className="w-3 h-3 sm:mr-1 animate-spin" /> : <Camera className="w-3 h-3 sm:mr-1" />}<span className="hidden sm:inline">Tải ảnh</span>
                 </Button>
               )}
+              {(!isEmbedMode || showEmbedActions) && <Button variant="outline" size="sm" onClick={() => setCommunication(createCommunication())} title="Tin truyền thông" aria-label="Tin truyền thông" className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100"><FileText className="w-3 h-3 sm:mr-1" /><span className="hidden sm:inline">Tin</span></Button>}
               <Button variant="outline" size="sm" onClick={handleExport} className="border-gray-300 text-gray-700 h-7 text-xs hover:bg-gray-100"><Download className="w-3 h-3 mr-1" />XLSX</Button>
               {!isEmbedMode && (
                 <Button
