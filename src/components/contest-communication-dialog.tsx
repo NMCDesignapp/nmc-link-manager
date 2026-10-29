@@ -60,8 +60,8 @@ export function ContestCommunicationDialog({ message, onClose }: { message: Cont
         <Button onClick={copy}>📋 Sao chép tin</Button>
         <Button variant="outline" onClick={download} disabled={busy}>{busy ? 'Đang tạo ảnh…' : '🖼️ Tải ảnh tin'}</Button>
       </div>
-      <div ref={card} data-testid="contest-communication" style={{ boxSizing: 'border-box', padding: 24, borderRadius: 16, border: '1px solid #cbd5e1', background: '#ffffff', color: '#1e293b', fontFamily: 'Arial, "Segoe UI Emoji", sans-serif', fontSize: 16, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
-        {message?.lines.map((line, i) => <p key={i} style={{ margin: '0 0 12px', fontWeight: line.emphasis ? 700 : 400, fontSize: line.tone === 'title' ? 20 : 16, color: line.tone === 'urgent' ? '#b91c1c' : line.tone === 'title' ? '#047857' : '#1e293b', background: line.tone === 'urgent' ? '#fff7ed' : 'transparent', padding: line.tone === 'urgent' ? 12 : 0, borderRadius: 8 }}>{line.emphasis ? <strong>{line.text}</strong> : line.text}</p>)}
+      <div ref={card} data-testid="contest-communication" style={{ boxSizing: 'border-box', padding: 24, borderRadius: 16, border: '1px solid #cbd5e1', background: '#ffffff', color: '#1e293b', fontFamily: '"Segoe UI", Roboto, "Helvetica Neue", sans-serif, "Segoe UI Emoji"', fontSize: 16, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
+        {message?.lines.map((line, i) => <p key={i} style={{ margin: '0 0 12px', fontWeight: line.emphasis ? 700 : 400, fontSize: line.tone === 'title' ? 20 : 16, color: line.tone === 'urgent' ? '#b91c1c' : line.tone === 'title' ? '#047857' : '#1e293b', background: line.tone === 'urgent' ? '#fff7ed' : 'transparent', padding: line.tone === 'urgent' ? 12 : 0, borderRadius: 8 }}>{line.emphasis ? <strong style={{ fontFamily: 'inherit', fontWeight: 700 }}>{line.text}</strong> : line.text}</p>)}
       </div>
     </DialogContent>
   </Dialog>;
