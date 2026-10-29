@@ -1,0 +1,53 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'vn.nclink.webwrapper'
+    compileSdk 35
+
+    defaultConfig {
+        minSdk 26
+        targetSdk 35
+        versionCode 107
+        versionName '1.0.7'
+    }
+
+    flavorDimensions += 'app'
+    productFlavors {
+        nclink {
+            dimension 'app'
+            applicationId 'vn.nclink.manager'
+            resValue 'string', 'app_name', 'NC-Link'
+            buildConfigField 'String', 'START_URL', '"https://nc-link.vercel.app"'
+        }
+        kpi {
+            dimension 'app'
+            applicationId 'vn.nclink.angiangkpi'
+            resValue 'string', 'app_name', 'An Giang KPI'
+            buildConfigField 'String', 'START_URL', '"https://angiang2026.vercel.app"'
+        }
+        event {
+            dimension 'app'
+            applicationId 'vn.nclink.hotroevent'
+            resValue 'string', 'app_name', 'Hỗ Trợ Sự Kiện'
+            buildConfigField 'String', 'START_URL', '"https://nc-hn.vercel.app"'
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
