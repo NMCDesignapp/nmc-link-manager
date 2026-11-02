@@ -129,7 +129,7 @@ for(const targetType of ['tvv','nhom','nyd'] as const) test(`${targetType}: actu
 });
 test('actual Main date-search callback delegates same bounds and thresholds as saved contest',()=>{
  const cfg=config();let captured:Contract[]=[];
- const scope={...calc,...cfg,contracts:rows,appData:{carryoverContracts:[]},issueStartDate:'',issueEndDate:'',secondaryIPMin:0,secondaryAFYPMin:0,passCountIPMin:0,passCountAFYPMin:0,setFilteredContracts:(r:Contract[])=>{captured=r;},toast:()=>{}};
+ const scope={...calc,...cfg,contracts:rows,effectiveCarryoverContracts:[],issueStartDate:'',issueEndDate:'',secondaryIPMin:0,secondaryAFYPMin:0,passCountIPMin:0,passCountAFYPMin:0,setFilteredContracts:(r:Contract[])=>{captured=r;},toast:()=>{}};
  new Function(...Object.keys(scope),callback('handleSearch'))(...Object.values(scope))();
  assert.deepEqual(captured,calc.filterContractsByContest(rows,cfg));
 });

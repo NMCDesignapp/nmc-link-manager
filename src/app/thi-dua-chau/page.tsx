@@ -1,6 +1,7 @@
 'use client';
 import { ContestCommunicationDialog } from '@/components/contest-communication-dialog';
 import { buildContestCommunication, type ContestCommunication } from '@/lib/contest-communication';
+import { useContestApprovals } from '@/hooks/use-contest-approvals';
 
 // nmc-contest-top-eligibility-v1
 
@@ -15,6 +16,7 @@ import { fetchContestApprovals } from '@/hooks/use-contest-approvals';
 import { RegisteredTargetSetup, RegisteredTargetResults, exportRegisteredTargets } from '@/components/registered-target-contest';
 import { defaultRegisteredProgram, decodeRegisteredProgram, type RegisteredProgram } from '@/lib/contest-registered-targets';
 import { computeRegisteredResults, registeredExportRows } from '@/lib/contest-registered-results';
+import { findContestDataWarnings, type ContestDataWarning } from '@/lib/contest-data-warnings';
 import React, { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 // useSettings removed — no CSV sync, data from Quản lý page
@@ -41,6 +43,7 @@ import {
   UserCheck, Percent, Image as ImageIcon, ChevronDown, ChevronUp, ArrowLeft,
   Camera, UserPlus, EyeOff, Filter, Layers, Settings2, Maximize2, Minimize2,
   RefreshCw, CheckCircle2, CalendarClock, Crown, Medal, FolderArchive,
+  AlertTriangle, Pencil, LockKeyhole, ShieldCheck,
 } from 'lucide-react';
 import { NeonDatePicker } from '@/components/neon-date-picker';
 import { TVVContractCountTable } from '@/components/tvv-contract-count-table';
@@ -168,7 +171,7 @@ interface TVVStructItem {
 interface SavedContest {
   id: string; title: string; startDate: string; endDate: string;
   issueDate: string | null; issueEndDate?: string | null; conditionType: string; targetType: string;
-  bonusTiers: string; posterUrl?: string; participants?: string;
+  bonusTiers: string; posterUrl?: string; participants?: string; selectedSubjectTypes?: string;
   usePhase2?: boolean; phase2StartDate?: string | null; phase2EndDate?: string | null; bonusTiers2?: string;
   useSecondaryCondition?: boolean; secondaryAFYPMin?: number; secondaryIPMin?: number;
   secondaryLuotHDMin?: number; secondaryLuotHDCMin?: number;
@@ -189,7 +192,24 @@ interface SavedContest {
   recruitedAgentScope?: 'all' | 'tvvm';
   recruitmentConfig?: RecruitmentContestConfig | null;
   csvContractUrl?: string; csvStaffUrl?: string; csvRecruiterUrl?: string;
+  lockedAt?: string | null; lockedSnapshot?: string;
   createdAt: string; updatedAt: string;
+}
+
+interface LockedContestSnapshot {
+  version: 1;
+  capturedAt: string;
+  contracts: Contract[];
+  carryoverContracts: Contract[];
+  staff: StaffMember[];
+  recruiters: RecruiterMember[];
+  structureTvv: TVVStructItem[];
+  leaders: any[];
+  structurePhong: any[];
+  structureAd: any[];
+  structureBanNhom: any[];
+  saoVietRows: any[];
+  approvedCodes: string[];
 }
 
 type ConditionType = 'per_contract_ip' | 'per_contract_afyp' | 'total_ip' | 'total_afyp' | 'activity_round' | 'activity_round_tvvm' | 'activity_round_standard' | 'activity_round_standard_tvvm' | 'activity_round_tvv90' | 'tvv_pass_count' | 'top_n_ip' | 'pass_count_contracts' | 'pass_count_ip_afyp' | 'recruitment_count';
@@ -842,6 +862,11 @@ function ThiDuaPageInner() {
   const [selectedArchiveYear, setSelectedArchiveYear] = useState<number | null>(null);
   const [expandedArchiveMonth, setExpandedArchiveMonth] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [saveChoiceOpen, setSaveChoiceOpen] = useState(false);
+  const [warningDialogOpen, setWarningDialogOpen] = useState(false);
+  const [contestWarnings, setContestWarnings] = useState<ContestDataWarning[]>([]);
+  const [lockedSnapshot, setLockedSnapshot] = useState<LockedContestSnapshot | null>(null);
+  const [lockingContestId, setLockingContestId] = useState<string | null>(null);
   const [showSourceData, setShowSourceData] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
@@ -875,6 +900,7 @@ function ThiDuaPageInner() {
   const [draftRegisteredApprovals, setDraftRegisteredApprovals] = useState<Record<string,boolean>>({});
   const registeredSaoViet = useRegisteredFyp(Boolean(registeredProgram));
   const registeredConfig = useMemo(() => ({ ...parseContestConfig({ startDate, endDate, issueDate: issueStartDate, issueEndDate }), id: selectedContestId }), [startDate, endDate, issueStartDate, issueEndDate, selectedContestId]);
+  const registeredApprovals = useContestApprovals(selectedContestId);
 
 
   const contestKind = useMemo<ContestKind>(() => {
@@ -1040,13 +1066,19 @@ function ThiDuaPageInner() {
 
   // ===== AppDataContext: đọc dữ liệu đã preload khi app mở =====
   const { data: appData, dataVersion, reload: reloadAppData } = useAppData();
-  const registeredContracts = useMemo(() => [...contracts, ...(appData.carryoverContracts || [])], [contracts, appData.carryoverContracts]);
-  const registeredResultProps = registeredProgram ? { program: registeredProgram, contracts: registeredContracts, config: registeredConfig, title: contestTitle, structure: tvvStructList, leaders: leadersList, editableApprovals: !isEmbedMode, draftApprovals: draftRegisteredApprovals, onDraftApprovalChange: (code:string,checked:boolean) => setDraftRegisteredApprovals(current=>({...current,[code]:checked})) } : null;
+  const effectiveCarryoverContracts = lockedSnapshot?.carryoverContracts || appData.carryoverContracts || [];
+  const effectiveSaoVietRows = lockedSnapshot?.saoVietRows || registeredSaoViet.rows;
+  const effectiveApprovals = lockedSnapshot
+    ? Object.fromEntries((lockedSnapshot.approvedCodes || []).map(code => [code, true]))
+    : registeredApprovals.approvals;
+  const registeredContracts = useMemo(() => [...contracts, ...effectiveCarryoverContracts], [contracts, effectiveCarryoverContracts]);
+  const registeredResultProps = registeredProgram ? { program: registeredProgram, contracts: registeredContracts, config: registeredConfig, title: contestTitle, structure: tvvStructList, leaders: leadersList, editableApprovals: !isEmbedMode && !lockedSnapshot, draftApprovals: draftRegisteredApprovals, onDraftApprovalChange: (code:string,checked:boolean) => setDraftRegisteredApprovals(current=>({...current,[code]:checked})), frozenSaoVietRows: lockedSnapshot ? effectiveSaoVietRows : undefined, frozenApprovals: lockedSnapshot ? effectiveApprovals : undefined, readOnly: Boolean(lockedSnapshot) } : null;
 
   // Sync từ context → local state. Chỉ chạy khi dataVersion đổi (tức là context vừa load xong).
   // QUAN TRỌNG: tvvStructList + leadersList cũng sync từ context → tự động cập nhật khi
   // user sửa DS TVV / DS TB/TN ở trang Quản lý (Cấu trúc) → reload context → dataVersion bump.
   useEffect(() => {
+    if (lockedSnapshot) return;
     if (appData.contracts && appData.contracts.length > 0) setContracts(appData.contracts);
     if (appData.contests) {
       setSavedContests(previous => [
@@ -1061,7 +1093,7 @@ function ThiDuaPageInner() {
     if (appData.structurePhong) setPhongStructList(appData.structurePhong);
     if (appData.structureAd) setAdStructList(appData.structureAd);
     if (appData.structureBanNhom) setBanNhomStructList(appData.structureBanNhom);
-  }, [appData.contracts, appData.contests, appData.staff, appData.recruiters, appData.structureTvv, appData.leaders, appData.structurePhong, appData.structureAd, appData.structureBanNhom, dataVersion]);
+  }, [appData.contracts, appData.contests, appData.staff, appData.recruiters, appData.structureTvv, appData.leaders, appData.structurePhong, appData.structureAd, appData.structureBanNhom, dataVersion, lockedSnapshot]);
 
   // fetchRevenue removed — all data now sourced from Contracts table only
 
@@ -1088,7 +1120,7 @@ function ThiDuaPageInner() {
 
   const handleSearch = useCallback(() => {
     if (!startDate && !endDate && !issueStartDate && !issueEndDate) { setFilteredContracts([]); toast({ title: 'Thông báo', description: 'Vui lòng nhập ít nhất một khoảng thời gian' }); return; }
-    const results = filterContractsByContest([...contracts, ...(appData.carryoverContracts || [])], parseContestConfig({
+    const results = filterContractsByContest([...contracts, ...effectiveCarryoverContracts], parseContestConfig({
       startDate, endDate, issueDate: issueStartDate, issueEndDate, usePhase2, phase2StartDate, phase2EndDate,
       conditionType, useSecondaryCondition,
       secondaryAFYPMin: (conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts') ? passCountAFYPMin : secondaryAFYPMin,
@@ -1096,7 +1128,7 @@ function ThiDuaPageInner() {
     }));
     setFilteredContracts(results);
     return results;
-  }, [startDate, endDate, issueStartDate, issueEndDate, contracts, appData.carryoverContracts, useSecondaryCondition, secondaryAFYPMin, secondaryIPMin, usePhase2, phase2StartDate, phase2EndDate, conditionType, passCountAFYPMin, passCountIPMin]);
+  }, [startDate, endDate, issueStartDate, issueEndDate, contracts, effectiveCarryoverContracts, useSecondaryCondition, secondaryAFYPMin, secondaryIPMin, usePhase2, phase2StartDate, phase2EndDate, conditionType, passCountAFYPMin, passCountIPMin]);
 
   const handleSearchRef = useRef(handleSearch);
   handleSearchRef.current = handleSearch;
@@ -1993,9 +2025,9 @@ function ThiDuaPageInner() {
     const reference = savedContests.find(contest => contest.id === referenceContestId);
     if (!reference) return new Set<string>();
     return getReferenceContestPassingAgentCodes(
-      reference, [...contracts, ...(appData.carryoverContracts || [])], staffList, recruiterList, tvvStructList,
+      reference, [...contracts, ...effectiveCarryoverContracts], staffList, recruiterList, tvvStructList,
     );
-  }, [conditionType, referenceContestId, savedContests, contracts, appData.carryoverContracts, staffList, recruiterList, tvvStructList]);
+  }, [conditionType, referenceContestId, savedContests, contracts, effectiveCarryoverContracts, staffList, recruiterList, tvvStructList]);
 
   // IP+AFYP cũng là phép đếm trên từng TVV, do đó tổng hợp đúng một lần.
   const passingIPAFYPAgentCodes = useMemo(() => {
@@ -2114,17 +2146,20 @@ function ThiDuaPageInner() {
   };
 
   // Save contest with all new fields
-  const handleSaveContest = async () => {
+  const handleSaveContest = async (saveMode: 'create' | 'update') => {
     if (!contestTitle) { toast({ title: 'Lỗi', description: 'Nhập tên chương trình' }); return; }
     if (registeredProgram && (!registeredProgram.rows.length || !registeredProgram.tiers.length)) { toast({title:'Thiếu cấu hình',description:'Nạp Excel đối tượng và ít nhất một mức thưởng.'}); return; }
     if (registeredProgram) { try { decodeRegisteredProgram(registeredProgram); } catch(e) { toast({title:'Cấu hình không hợp lệ',description:String(e)}); return; } }
     setIsSaving(true);
     try {
       const res = await fetch('/api/contests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        id: saveMode === 'update' ? selectedContestId : undefined,
+        saveMode,
         title: contestTitle, startDate, endDate, issueDate: issueStartDate || undefined,
         issueEndDate: issueEndDate || null,
         conditionType: registeredProgram ? (registeredProgram.metric === 'ip' ? 'total_ip' : 'total_afyp') : conditionType, targetType: registeredProgram ? (registeredProgram.scope === 'nhom' ? 'nhom' : 'tvv') : (conditionType === 'tvv_pass_count' || (conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts')) ? 'nhom' : targetType, bonusTiers: JSON.stringify(bonusTiers),
         posterUrl, participants: JSON.stringify(registeredProgram || subjectCodes),
+        selectedSubjectTypes: JSON.stringify(Array.from(selectedSubjectTypes)),
         usePhase2: registeredProgram || conditionType === 'pass_count_contracts' ? false : usePhase2, phase2StartDate: phase2StartDate || undefined, phase2EndDate: phase2EndDate || undefined,
         bonusTiers2: JSON.stringify(bonusTiers2),
         useSecondaryCondition: registeredProgram ? false : useSecondaryCondition,
@@ -2164,6 +2199,7 @@ function ThiDuaPageInner() {
           }
           setSelectedContestId(data.contest.id);
         }
+        setSaveChoiceOpen(false);
         toast({ title: 'Thành công', description: data.message });
         await Promise.all([
           fetchSavedContests(),
@@ -2203,6 +2239,11 @@ function ThiDuaPageInner() {
       console.error('[Contest save] Network/client error:', err);
     }
     finally { setIsSaving(false); }
+  };
+
+  const requestSaveContest = () => {
+    if (selectedContestId) setSaveChoiceOpen(true);
+    else void handleSaveContest('create');
   };
 
   const activeSavedContests = useMemo(
@@ -2255,9 +2296,44 @@ function ThiDuaPageInner() {
   };
 
   // Load contest with all new fields
-  const handleLoadContest = (contestId: string) => {
+  const handleLoadContest = async (contestId: string) => {
     setResultPage(0);
-    setSelectedContestId(contestId); setDraftRegisteredApprovals({}); const contest = savedContests.find(c => c.id === contestId); if (!contest) return;
+    setSelectedContestId(contestId);
+    setDraftRegisteredApprovals({});
+    const summaryContest = savedContests.find(c => c.id === contestId);
+    if (!summaryContest) return;
+    let contest = summaryContest;
+    try {
+      const response = await fetchFresh(`/api/contests?id=${encodeURIComponent(contestId)}`);
+      if (response.ok) contest = await response.json();
+    } catch { /* dùng bản tóm tắt nếu tải chi tiết lỗi */ }
+    if (contest.lockedAt && contest.lockedSnapshot) {
+      try {
+        const snapshot = JSON.parse(contest.lockedSnapshot) as LockedContestSnapshot;
+        setLockedSnapshot(snapshot);
+        setContracts(snapshot.contracts || []);
+        setStaffList(snapshot.staff || []);
+        setRecruiterList(snapshot.recruiters || []);
+        setTvvStructList(snapshot.structureTvv || []);
+        setLeadersList(snapshot.leaders || []);
+        setPhongStructList(snapshot.structurePhong || []);
+        setAdStructList(snapshot.structureAd || []);
+        setBanNhomStructList(snapshot.structureBanNhom || []);
+      } catch {
+        setLockedSnapshot(null);
+        toast({ title: 'Không đọc được dữ liệu khóa', description: 'Chương trình vẫn mở bằng dữ liệu hiện tại.', variant: 'destructive' });
+      }
+    } else {
+      setLockedSnapshot(null);
+      setContracts(appData.contracts || []);
+      setStaffList(appData.staff || []);
+      setRecruiterList(appData.recruiters || []);
+      setTvvStructList(appData.structureTvv || []);
+      setLeadersList(appData.leaders || []);
+      setPhongStructList(appData.structurePhong || []);
+      setAdStructList(appData.structureAd || []);
+      setBanNhomStructList(appData.structureBanNhom || []);
+    }
     setContestTitle(contest.title); setStartDate(new Date(contest.startDate).toISOString().slice(0, 10)); setEndDate(new Date(contest.endDate).toISOString().slice(0, 10));
     setRegisteredProgram(decodeRegisteredProgram(contest.participants || '[]'));
     setConditionType(contest.conditionType as ConditionType);
@@ -2266,16 +2342,12 @@ function ThiDuaPageInner() {
     if (contest.issueDate) setIssueStartDate(new Date(contest.issueDate).toISOString().slice(0, 10)); else setIssueStartDate('');
     setIssueEndDate(contest.issueEndDate ? String(contest.issueEndDate).slice(0, 10) : '');
     try { const tiers = JSON.parse(contest.bonusTiers); if (Array.isArray(tiers)) setBonusTiers(tiers.length > 0 ? tiers : createDefaultBonusTiers()); } catch { setBonusTiers(createDefaultBonusTiers()); }
-    // Startup only preloads the lightweight contest summary. Load the potentially
-    // large poster only when this particular contest is opened.
-    setPosterUrl('');
-    void fetchFresh(`/api/contests?id=${encodeURIComponent(contestId)}`)
-      .then(res => res.ok ? res.json() : null)
-      .then(detail => {
-        if (detail?.id === contestId) setPosterUrl(detail.posterUrl || '');
-      })
-      .catch(() => {});
+    setPosterUrl(contest.posterUrl || '');
     try { const parts = JSON.parse(contest.participants || '[]'); if (Array.isArray(parts) && parts.length > 0) setThiDuaSubjects(parts.join('\n')); else setThiDuaSubjects(''); } catch { setThiDuaSubjects(''); }
+    try {
+      const savedTypes = JSON.parse(contest.selectedSubjectTypes || '[]');
+      setSelectedSubjectTypes(new Set(Array.isArray(savedTypes) ? savedTypes.filter((value): value is string => typeof value === 'string') : []));
+    } catch { setSelectedSubjectTypes(new Set()); }
     // Phase 2
     setUsePhase2(contest.usePhase2 ?? false);
     setPhase2StartDate(contest.phase2StartDate ? new Date(contest.phase2StartDate).toISOString().slice(0, 10) : '');
@@ -2367,6 +2439,45 @@ function ThiDuaPageInner() {
     setDeleteConfirmId(null);
   };
 
+  const handleLockContest = async (id: string) => {
+    const contest = savedContests.find(item => item.id === id);
+    if (!contest || contest.lockedAt || !isChotContestTitle(contest.title)) return;
+    const confirmed = window.confirm(`Khóa kết quả "${contest.title}" tại dữ liệu hiện tại?\n\nSau khi khóa, chương trình này không thể cập nhật và sẽ không thay đổi theo dữ liệu HĐ mới.`);
+    if (!confirmed) return;
+    setLockingContestId(id);
+    const snapshot: LockedContestSnapshot = {
+      version: 1,
+      capturedAt: new Date().toISOString(),
+      contracts: appData.contracts || [],
+      carryoverContracts: appData.carryoverContracts || [],
+      staff: appData.staff || [],
+      recruiters: appData.recruiters || [],
+      structureTvv: appData.structureTvv || [],
+      leaders: appData.leaders || [],
+      structurePhong: appData.structurePhong || [],
+      structureAd: appData.structureAd || [],
+      structureBanNhom: appData.structureBanNhom || [],
+      saoVietRows: registeredSaoViet.rows || [],
+      approvedCodes: Object.entries(registeredApprovals.approvals).filter(([, approved]) => approved).map(([code]) => code),
+    };
+    try {
+      const response = await fetch('/api/contests', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, lockSnapshot: snapshot }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Không thể khóa chương trình');
+      setSavedContests(current => current.map(item => item.id === id ? { ...item, lockedAt: data.contest.lockedAt } : item));
+      if (selectedContestId === id) setLockedSnapshot(snapshot);
+      toast({ title: 'Đã khóa kết quả', description: 'Chương trình sẽ tiếp tục dùng dữ liệu tại thời điểm khóa.' });
+    } catch (error) {
+      toast({ title: 'Không thể khóa', description: error instanceof Error ? error.message : 'Vui lòng thử lại', variant: 'destructive' });
+    } finally {
+      setLockingContestId(null);
+    }
+  };
+
   // handleImportFromUrl removed — data sourced from Quản lý page only
 
   const handlePrint = () => {
@@ -2377,8 +2488,8 @@ function ThiDuaPageInner() {
   };
 
   const handleCopyText = async () => {
-    if (registeredProgram && registeredSaoViet.loading) { toast({title:'Đang tải FYP Sao Việt',description:'Vui lòng đợi tải xong số liệu lũy kế.'}); return; }
-    if (registeredProgram) { try { const approvals = await fetchContestApprovals(selectedContestId); await navigator.clipboard.writeText(registeredExportRows(computeRegisteredResults(registeredContracts,registeredConfig,registeredProgram,tvvStructList,leadersList,registeredSaoViet.rows,approvals),registeredProgram).map(r=>r.map(value=>String(value).replace(/\n/g,' ')).join('\t')).join('\n')); } catch(e) { toast({title:'Không thể sao chép',description:String(e),variant:'destructive'}); } return; }
+    if (registeredProgram && !lockedSnapshot && registeredSaoViet.loading) { toast({title:'Đang tải FYP Sao Việt',description:'Vui lòng đợi tải xong số liệu lũy kế.'}); return; }
+    if (registeredProgram) { try { const approvals = lockedSnapshot ? effectiveApprovals : await fetchContestApprovals(selectedContestId); await navigator.clipboard.writeText(registeredExportRows(computeRegisteredResults(registeredContracts,registeredConfig,registeredProgram,tvvStructList,leadersList,effectiveSaoVietRows,approvals),registeredProgram).map(r=>r.map(value=>String(value).replace(/\n/g,' ')).join('\t')).join('\n')); } catch(e) { toast({title:'Không thể sao chép',description:String(e),variant:'destructive'}); } return; }
     if (perContractDisplayContracts.length === 0 && nydData.length === 0 && recruitmentRows.length === 0 && tvvTotalRows.length === 0 && groupedData.length === 0) return;
     const sTiers = [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP);
     let text = `🏆 ${contestTitle}\n📅 Từ ${startDate ? formatDate(startDate) : '...'} đến ${(phase2EndDate || endDate) ? formatDate(phase2EndDate || endDate) : '...'}\n🎯 ${getTargetLabel(targetType)}\n━━━━━━━━━━━━━━━━━━━━\n📊 Mức thưởng:\n`;
@@ -2470,8 +2581,8 @@ function ThiDuaPageInner() {
 
   const handleExport = async () => {
     try {
-    if (registeredProgram && registeredSaoViet.loading) { toast({title:'Đang tải FYP Sao Việt',description:'Vui lòng đợi tải xong số liệu lũy kế.'}); return; }
-    if (registeredProgram) { const approvals = await fetchContestApprovals(selectedContestId); await exportRegisteredTargets(computeRegisteredResults(registeredContracts, registeredConfig, registeredProgram, tvvStructList, leadersList, registeredSaoViet.rows, approvals), registeredProgram, contestTitle); return; }
+    if (registeredProgram && !lockedSnapshot && registeredSaoViet.loading) { toast({title:'Đang tải FYP Sao Việt',description:'Vui lòng đợi tải xong số liệu lũy kế.'}); return; }
+    if (registeredProgram) { const approvals = lockedSnapshot ? effectiveApprovals : await fetchContestApprovals(selectedContestId); await exportRegisteredTargets(computeRegisteredResults(registeredContracts, registeredConfig, registeredProgram, tvvStructList, leadersList,effectiveSaoVietRows, approvals), registeredProgram, contestTitle); return; }
     if (perContractDisplayContracts.length === 0 && nydData.length === 0 && recruitmentRows.length === 0 && groupedData.length === 0 && tvvTotalRows.length === 0) { toast({ title: 'Thông báo', description: 'Không có dữ liệu' }); return; }
     let headers: string[];
     let rows: (string | number)[][];
@@ -3861,7 +3972,11 @@ function ThiDuaPageInner() {
     if (registeredProgram) {
       if (!registeredProgram.rows.length || !registeredProgram.tiers.length) { toast({title:'Thiếu cấu hình',description:'Nạp Excel đối tượng và mức thưởng trước khi tính.'}); return; }
       try { decodeRegisteredProgram(registeredProgram); } catch(e) {toast({title:'Cấu hình không hợp lệ',description:String(e)});return;}
-      setIsResultDialogOpen(true); return;
+      const warnings = findContestDataWarnings(registeredContracts);
+      setContestWarnings(warnings);
+      if (warnings.length > 0) setWarningDialogOpen(true);
+      else setIsResultDialogOpen(true);
+      return;
     }
     const results = handleSearch() || [];
     if (results.length === 0 && subjectCodes.length === 0) {
@@ -3871,7 +3986,10 @@ function ThiDuaPageInner() {
     }
     setResultPage(0);
     setFilteredContracts(results);
-    setIsResultDialogOpen(true);
+    const warnings = findContestDataWarnings(results);
+    setContestWarnings(warnings);
+    if (warnings.length > 0) setWarningDialogOpen(true);
+    else setIsResultDialogOpen(true);
   };
 
   // Ref luôn trỏ tới handleCalculate mới nhất (có state mới nhất).
@@ -4007,14 +4125,22 @@ function ThiDuaPageInner() {
   );
 
   const renderSavedContestMenuRow = (contest: SavedContest, showStartDate = false) => (
-    <div key={contest.id} className="group flex items-center gap-1 rounded-md">
+    <div key={contest.id} className="group flex items-center gap-1 border-b border-white/8 px-1 py-1.5 last:border-b-0">
       <button
-        className="min-w-0 flex-1 rounded px-2 py-1.5 text-left text-xs text-white/80 transition-colors hover:bg-emerald-600 hover:text-white"
-        onClick={() => { handleLoadContest(contest.id); setContestListOpen(false); }}
+        className="min-w-0 flex-1 rounded-md px-2 py-1.5 text-left text-xs text-white/85 transition-colors hover:bg-emerald-500/15 hover:text-white"
+        onClick={() => { void handleLoadContest(contest.id); setContestListOpen(false); }}
       >
-        <span className="block truncate">{contest.title}</span>
-        {showStartDate ? <span className="mt-0.5 block text-[9px] text-emerald-300/55">Bắt đầu {formatDate(contest.startDate)}</span> : null}
+        <span className="flex items-center gap-1.5"><span className="block truncate font-medium">{contest.title}</span>{contest.lockedAt ? <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-amber-400/15 px-1 py-0.5 text-[8px] font-bold text-amber-300"><LockKeyhole className="h-2.5 w-2.5" />ĐÃ KHÓA</span> : null}</span>
+        {showStartDate ? <span className="mt-0.5 block text-[9px] text-emerald-300/55">{formatDate(contest.startDate)} – {formatDate(contest.endDate)}</span> : null}
       </button>
+      <Button variant="ghost" size="sm" className="h-7 w-7 shrink-0 p-0 text-sky-300/75 hover:bg-sky-500/10 hover:text-sky-200" onClick={() => { void handleLoadContest(contest.id); setContestListOpen(false); }} aria-label={`Sửa ${contest.title}`} title="Mở để sửa">
+        <Pencil className="h-3.5 w-3.5" />
+      </Button>
+      {isChotContestTitle(contest.title) ? (
+        <Button variant="ghost" size="sm" disabled={Boolean(contest.lockedAt) || lockingContestId === contest.id} className="h-7 w-7 shrink-0 p-0 text-amber-300/80 hover:bg-amber-500/10 hover:text-amber-200 disabled:text-amber-300/35" onClick={() => void handleLockContest(contest.id)} aria-label={`Khóa ${contest.title}`} title={contest.lockedAt ? 'Kết quả đã được khóa' : 'Khóa dữ liệu tại thời điểm hiện tại'}>
+          {lockingContestId === contest.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : contest.lockedAt ? <ShieldCheck className="h-3.5 w-3.5" /> : <LockKeyhole className="h-3.5 w-3.5" />}
+        </Button>
+      ) : null}
       {deleteConfirmId === contest.id ? (
         <div className="flex shrink-0 items-center gap-0.5">
           <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-red-400 hover:bg-red-500/10 hover:text-red-300" onClick={() => handleDeleteContest(contest.id)} aria-label={`Xác nhận xóa ${contest.title}`}>
@@ -4025,8 +4151,8 @@ function ThiDuaPageInner() {
           </Button>
         </div>
       ) : (
-        <Button variant="ghost" size="sm" className="h-5 w-5 shrink-0 p-0 text-white/20 opacity-0 transition-opacity hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100" onClick={() => setDeleteConfirmId(contest.id)} aria-label={`Xóa ${contest.title}`}>
-          <Trash2 className="h-3 w-3" />
+        <Button variant="ghost" size="sm" className="h-7 w-7 shrink-0 p-0 text-red-300/65 transition-colors hover:bg-red-500/10 hover:text-red-300" onClick={() => setDeleteConfirmId(contest.id)} aria-label={`Xóa ${contest.title}`} title="Xóa">
+          <Trash2 className="h-3.5 w-3.5" />
         </Button>
       )}
     </div>
@@ -4148,7 +4274,7 @@ function ThiDuaPageInner() {
                     ) : null}
                   </PopoverContent>
                 </Popover>
-                <Button variant="outline" size="sm" onClick={handleSaveContest} disabled={isSaving} className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 h-7 text-xs bg-transparent">{isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}Lưu</Button>
+                <Button variant="outline" size="sm" onClick={requestSaveContest} disabled={isSaving} className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 h-7 text-xs bg-transparent">{isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}Lưu</Button>
               </div>
             </div>
           </CardHeader>
@@ -4911,6 +5037,44 @@ function ThiDuaPageInner() {
       {!isEmbedMode && <MainAppBottomNav active="contest" />}
 
       <ContestCommunicationDialog message={communication} onClose={() => setCommunication(null)} />
+
+      <Dialog open={saveChoiceOpen} onOpenChange={setSaveChoiceOpen}>
+        <DialogContent className="max-w-md border-sky-500/30 bg-[#111827] text-white">
+          <DialogHeader>
+            <DialogTitle>Chọn cách lưu chương trình</DialogTitle>
+            <DialogDescription className="text-slate-300">Bạn đang chỉnh chương trình đã lưu. Chọn tạo bản mới hoặc cập nhật đúng chương trình đang chọn.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button type="button" variant="outline" className="h-auto justify-start border-emerald-500/30 bg-emerald-500/10 px-3 py-3 text-left text-emerald-100 hover:bg-emerald-500/20" onClick={() => void handleSaveContest('create')}>
+              <BookmarkPlus className="mr-2 h-4 w-4" /><span><span className="block font-bold">Lưu mới</span><span className="block text-[10px] font-normal opacity-70">Giữ nguyên bản hiện tại</span></span>
+            </Button>
+            <Button type="button" variant="outline" disabled={Boolean(lockedSnapshot)} className="h-auto justify-start border-amber-500/30 bg-amber-500/10 px-3 py-3 text-left text-amber-100 hover:bg-amber-500/20" onClick={() => void handleSaveContest('update')}>
+              <Pencil className="mr-2 h-4 w-4" /><span><span className="block font-bold">Cập nhật</span><span className="block text-[10px] font-normal opacity-70">{lockedSnapshot ? 'Bản đã khóa không thể cập nhật' : 'Ghi vào chương trình đang chọn'}</span></span>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={warningDialogOpen} onOpenChange={setWarningDialogOpen}>
+        <DialogContent className="max-h-[86vh] max-w-2xl overflow-y-auto border-amber-400/40 bg-[#111827] text-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-300"><AlertTriangle className="h-5 w-5" />Cảnh báo dữ liệu trước khi tính</DialogTitle>
+            <DialogDescription className="text-slate-300">Ứng dụng phát hiện các điểm đáng nghi trong đúng tập hợp đồng đang dùng. Đây là cảnh báo đối soát, chưa tự thay đổi kết quả.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {contestWarnings.map(item => (
+              <div key={item.code} className={`rounded-lg border px-3 py-2 ${item.severity === 'error' ? 'border-red-400/40 bg-red-500/10' : 'border-amber-400/35 bg-amber-500/10'}`}>
+                <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-bold">{item.title}</p><p className="text-xs text-slate-300">{item.detail}</p></div><Badge className={item.severity === 'error' ? 'bg-red-500 text-white' : 'bg-amber-400 text-slate-950'}>{item.count}</Badge></div>
+                {item.samples.length > 0 ? <p className="mt-1 text-[10px] text-slate-400">Ví dụ: {item.samples.join(' · ')}</p> : null}
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setWarningDialogOpen(false)}>Quay lại kiểm tra</Button>
+            <Button type="button" className="bg-amber-500 text-slate-950 hover:bg-amber-400" onClick={() => { setWarningDialogOpen(false); setIsResultDialogOpen(true); }}>Vẫn xem kết quả</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Result Dialog Popup - White theme, only poster + detail table
           In embed mode: always open + CSS .embed-mode biến Dialog thành full-page (KHÔNG còn là popup) */}
       <Dialog open={isEmbedMode || isResultDialogOpen} onOpenChange={(open) => { if (!isEmbedMode) { setIsResultDialogOpen(open); if (!open) setIsResultExpanded(false); } }}>

@@ -654,3 +654,7 @@ Trang Thi đua (tìm kiếm và popup), SavedContestInline và chương trình t
 Cần cập nhật index.mjs và khởi động lại Data Hub Windows để nguồn mới chạy; không khẳng định Excel đã lên cloud chỉ từ deploy. Các snapshot rỗng chỉ được thay khi sheet/header hợp lệ; lỗi đọc hoặc sai header giữ dữ liệu cũ.
 
 - Tương thích khi cập nhật lệch phiên bản: HĐ tồn gửi bằng carryoverCsv, không gửi contractCsv. Server cũ bỏ qua trường mới, không thể nhập nhầm vào Contract; Data Hub chỉ chốt checksum sau xác nhận đúng carryoverMonth/count. API mới từ chối trộn carryover và contractCsv.
+
+## Điều kiện Sao Việt cho mục tiêu Excel
+
+Bảng kết quả có 10 cột; sau FYP lũy kế là điều kiện đạt Sao Việt hoặc nâng hạng. Tất cả loại thưởng chỉ được xét khi admin duyệt mã đối tượng. Duyệt lưu riêng trong Setting theo contest-sao-viet-approval:<id>:<scope>:<code>, không nhận từ Excel/participants; API settings chặn sửa prefix này. Không migration schema. Admin dùng cookie HttpOnly ký HMAC, đăng nhập tại trang chủ bằng NMC_ADMIN_PASSWORD; NMC_ADMIN_SESSION_SECRET chỉ ở server. SessionStorage không cấp quyền API. KPI và iframe chỉ đọc. Admin vẫn thấy dòng chưa đạt khi bật ẩn chưa đạt để có thể duyệt; bỏ tích lập tức bỏ thưởng. Các màn hình và xuất Excel dùng chung phép tính.

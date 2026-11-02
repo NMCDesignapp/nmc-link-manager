@@ -675,7 +675,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               </TableCell>
             </TableRow>
           ) : filteredRows.map((row, idx) => (
-            <TableRow key={`${row.contract.id}-${idx}`} className={`${row.effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
+            <TableRow key={`${row.contract.id}-${idx}`} className="border-b border-gray-200">
               <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
               <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{row.contract.nhom || '—'}</TableCell>
               <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.contract.agentCode}</TableCell>
@@ -820,7 +820,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             const combinedTopNote = getCombinedTopNote(`tvv:${row.agent.agentCode}`);
             if (combinedTopNote) noteLabel = <span className="inline-flex items-center gap-1 text-amber-700 font-bold text-sm"><Crown className="w-4 h-4" />{combinedTopNote}</span>;
             return (
-              <TableRow key={row.agent.agentCode} className={`${effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
+              <TableRow key={row.agent.agentCode} className="border-b border-gray-200">
                 <TableCell className="text-center text-xs whitespace-nowrap text-gray-400">{idx + 1}</TableCell>
                 <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{row.agent.nhom || '—'}</TableCell>
                 <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.agent.agentCode}</TableCell>
@@ -957,7 +957,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               </TableCell>
             </TableRow>
           ) : sortedGroups.map((row, idx) => (
-            <TableRow key={row.g.maNhom} className={`${row.effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
+            <TableRow key={row.g.maNhom} className="border-b border-gray-200">
               <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
               <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{row.g.nhom || '—'}</TableCell>
               <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.g.leader?.agentCode || '—'}</TableCell>
@@ -1058,7 +1058,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               </TableCell>
             </TableRow>
           ) : filteredRows.map((row, idx) => (
-            <TableRow key={row.nyd.nydCode} className={`${row.effectiveTier ? 'bg-white' : 'bg-red-50'} hover:bg-emerald-50 border-b border-gray-200`}>
+            <TableRow key={row.nyd.nydCode} className="border-b border-gray-200">
               <TableCell className="text-center text-gray-400 text-xs whitespace-nowrap">{idx + 1}</TableCell>
               <TableCell className="text-xs text-emerald-700 font-semibold whitespace-nowrap">{row.nyd.nhom || '—'}</TableCell>
               <TableCell className="text-xs text-gray-600 font-mono whitespace-nowrap">{row.nyd.nydCode}</TableCell>
@@ -1182,8 +1182,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
           .saoviet-detail-table-wrapper th.w-\\[32px\\] { width: 20px !important; min-width: 20px !important; }
         }
         .saoviet-detail-table-wrapper tr.sv-row-highlighted > td {
-          background-color: #FED7AA !important;
-          color: #7C2D12 !important;
+          background-color: #DCEFE1 !important;
+          color: #14532D !important;
           font-weight: 700 !important;
         }
       `}} />
