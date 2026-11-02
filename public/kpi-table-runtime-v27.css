@@ -11,6 +11,33 @@ body table.nmc-kpi-v21-table tbody tr > td[data-nmc-achieved='1'][data-nmc-achie
   box-shadow: none !important;
   border-color: #8bd6a6 !important;
 }
+
+/* Thi đua KPI: exactly two alternating body surfaces. Achievement and reward
+   states remain visible through text/icons; selected rows use the same green
+   family with a slightly stronger tint. */
+html body [data-nmc-kpi-detail-shell][data-nmc-kpi-detail-shell] table.nmc-kpi-v21-table tbody > tr:nth-child(odd) > td,
+html body [data-nmc-kpi-detail-shell][data-nmc-kpi-detail-shell] table.nmc-kpi-v21-table tbody > tr:nth-child(odd) > th {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+}
+
+html body [data-nmc-kpi-detail-shell][data-nmc-kpi-detail-shell] table.nmc-kpi-v21-table tbody > tr:nth-child(even) > td,
+html body [data-nmc-kpi-detail-shell][data-nmc-kpi-detail-shell] table.nmc-kpi-v21-table tbody > tr:nth-child(even) > th {
+  background: #f2faf4 !important;
+  background-color: #f2faf4 !important;
+}
+
+html body [data-nmc-kpi-detail-shell][data-nmc-kpi-detail-shell] table.nmc-kpi-v21-table tbody > tr:hover > td,
+html body [data-nmc-kpi-detail-shell][data-nmc-kpi-detail-shell] table.nmc-kpi-v21-table tbody > tr:hover > th,
+html body [data-nmc-kpi-detail-shell][data-nmc-kpi-detail-shell] table.nmc-kpi-v21-table tbody > tr.nmc-kpi-row-selected > td,
+html body [data-nmc-kpi-detail-shell][data-nmc-kpi-detail-shell] table.nmc-kpi-v21-table tbody > tr.nmc-kpi-row-selected > th,
+html body [data-nmc-kpi-detail-shell][data-nmc-kpi-detail-shell] table.nmc-kpi-v21-table tbody > tr.sv-row-highlighted > td,
+html body [data-nmc-kpi-detail-shell][data-nmc-kpi-detail-shell] table.nmc-kpi-v21-table tbody > tr.sv-row-highlighted > th,
+html body [data-nmc-kpi-detail-shell][data-nmc-kpi-detail-shell] table.nmc-kpi-v21-table tbody > tr.clbsv-row-highlighted > td,
+html body [data-nmc-kpi-detail-shell][data-nmc-kpi-detail-shell] table.nmc-kpi-v21-table tbody > tr.clbsv-row-highlighted > th {
+  background: #dcefe1 !important;
+  background-color: #dcefe1 !important;
+}
 body table.nmc-kpi-v21-table tbody tr > td[data-nmc-achieved='1'][data-nmc-achieved] * {
   color: inherit !important;
   font-weight: inherit !important;

@@ -51,8 +51,8 @@ export function RegisteredTargetSetup({value,onChange,leaders=[]}:{value: Regist
     <label className="flex gap-2"><input type="checkbox" checked={value.hideNotAchieved} onChange={e=>change({hideNotAchieved:e.target.checked})}/>Ẩn đối tượng chưa đạt</label>
   </section>;
 }
-export function RegisteredTargetResults({program,contracts,config,title,posterUrl='',structure=[],leaders=[],editableApprovals=false,draftApprovals={},onDraftApprovalChange,tableOnly=false,groupFilter=[],searchText=''}:{program:RegisteredProgram;contracts:Contract[];config:ContestConfig;title:string;posterUrl?:string;structure?:{agentCode:string;maBanNhom?:string}[];leaders?:RegisteredLeader[];editableApprovals?:boolean;draftApprovals?:Record<string,boolean>;onDraftApprovalChange?:(code:string,checked:boolean)=>void;tableOnly?:boolean;groupFilter?:string[];searchText?:string}) {
-  const saoViet = useRegisteredFyp();
+export function RegisteredTargetResults({program,contracts,config,title,posterUrl='',structure=[],leaders=[],editableApprovals=false,draftApprovals={},onDraftApprovalChange,tableOnly=false,groupFilter=[],searchText='',frozenSaoVietRows,frozenApprovals,readOnly=false}:{program:RegisteredProgram;contracts:Contract[];config:ContestConfig;title:string;posterUrl?:string;structure?:{agentCode:string;maBanNhom?:string}[];leaders?:RegisteredLeader[];editableApprovals?:boolean;draftApprovals?:Record<string,boolean>;onDraftApprovalChange?:(code:string,checked:boolean)=>void;tableOnly?:boolean;groupFilter?:string[];searchText?:string;frozenSaoVietRows?:Parameters<typeof computeRegisteredResults>[5];frozenApprovals?:Record<string,boolean>;readOnly?:boolean}) {
+  const saoViet = useRegisteredFyp(!readOnly);
   const approval = useContestApprovals(config.id);
   const [page,setPage]=useState(0);
   const [query,setQuery]=useState('');
@@ -62,10 +62,11 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
   const [loginPassword,setLoginPassword]=useState('');
   const [loginBusy,setLoginBusy]=useState(false);
   const [loginError,setLoginError]=useState('');
-  const effectiveApprovals = config.id ? approval.approvals : draftApprovals;
+  const effectiveApprovals = frozenApprovals ?? (config.id ? approval.approvals : draftApprovals);
+  const effectiveSaoVietRows = frozenSaoVietRows ?? saoViet.rows;
   const all=useMemo(
-    ()=>computeRegisteredResults(contracts,config,program,structure,leaders,saoViet.rows,effectiveApprovals),
-    [contracts,config,program,structure,leaders,saoViet.rows,effectiveApprovals]
+    ()=>computeRegisteredResults(contracts,config,program,structure,leaders,effectiveSaoVietRows,effectiveApprovals),
+    [contracts,config,program,structure,leaders,effectiveSaoVietRows,effectiveApprovals]
   );
   const submitAdminLogin = async () => {
     setLoginBusy(true); setLoginError('');
@@ -97,7 +98,7 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
   const showShortfall = config.id === 'fda994a2-6433-4ff5-8281-c862d30e8f9b';
   const headers=registeredExportRows([],program)[0];
   const fmtPct=(v:number)=>v.toLocaleString('vi-VN',{maximumFractionDigits:2})+'%';
-  return <section className="bg-white text-slate-800" data-registered-target-results data-saoviet-table={config.id ? `saved-${config.id}` : undefined}>
+  return <section className="bg-white text-slate-800" data-registered-target-results data-saoviet-table={config.id ? `saved-${config.id}` : undefined} data-nmc-kpi-detail-shell="saved-contest">
     {!tableOnly && <>
       <div className="px-3 py-3 bg-emerald-950 text-white">
         <h2 className="font-bold text-lg">{title}</h2>
@@ -106,19 +107,19 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
     </>}
     {!tableOnly && <div className="p-2 flex gap-2 flex-wrap items-center">
       <input aria-label="Tìm đối tượng đăng ký" placeholder="Tìm nhóm, mã, họ tên" className="p-2 border rounded text-slate-900" value={query} onChange={e=>{setQuery(e.target.value);setPage(0);}}/>
-      <button type="button" disabled={saoViet.loading||approval.loading||Boolean(approval.error)} className="border rounded px-3 py-2" onClick={()=>{void exportRegisteredTargets(rows,program,title,showShortfall).catch(e=>setError(String(e)));}}>Tải Excel kết quả</button>
+      <button type="button" disabled={saoViet.loading||(!readOnly&&(approval.loading||Boolean(approval.error)))} className="border rounded px-3 py-2" onClick={()=>{void exportRegisteredTargets(rows,program,title,showShortfall).catch(e=>setError(String(e)));}}>Tải Excel kết quả</button>
       <button type="button" className="border rounded px-2 py-2 text-xs" onClick={()=>{setDescending(!descending);setPage(0);}} aria-label="Đổi thứ tự FYP lũy kế và tiến độ">{descending?'FYP ↓ · HT ↓':'FYP ↑ · HT ↑'}</button>
-      {editableApprovals && !approval.loading && !approval.admin && (
+      {editableApprovals && !readOnly && !approval.loading && !approval.admin && (
         <button type="button" className="rounded border border-green-700 px-2 py-1.5 text-xs font-semibold text-green-800" onClick={()=>setLoginOpen(current=>!current)}>
           Đăng nhập quản trị để duyệt
         </button>
       )}
       <span className="ml-auto text-xs font-semibold text-slate-600"></span>
     </div>}
-    {tableOnly && editableApprovals && !approval.loading && !approval.admin && <div className="flex justify-end px-2 py-1">
+    {tableOnly && editableApprovals && !readOnly && !approval.loading && !approval.admin && <div className="flex justify-end px-2 py-1">
       <button type="button" onClick={()=>setLoginOpen(v=>!v)} className="rounded border border-emerald-700 px-2 py-1 text-[11px] font-semibold text-emerald-800">Quyền duyệt</button>
     </div>}
-    {editableApprovals && loginOpen && !approval.admin && (
+    {editableApprovals && !readOnly && loginOpen && !approval.admin && (
       <form className="flex items-center gap-2 px-2 py-1.5" onSubmit={event=>{event.preventDefault();void submitAdminLogin();}}>
         <input type="password" autoComplete="current-password" aria-label="Mật khẩu admin" value={loginPassword} onChange={event=>setLoginPassword(event.target.value)} className="w-40 rounded border border-slate-300 p-1.5 text-xs" placeholder="Mật khẩu admin" />
         <button type="submit" disabled={loginBusy || !loginPassword} className="rounded bg-green-800 px-3 py-1.5 text-xs font-semibold text-white">Đăng nhập</button>
@@ -126,9 +127,9 @@ export function RegisteredTargetResults({program,contracts,config,title,posterUr
       </form>
     )}
     {saoViet.loading&&<p role="status" className="px-3 py-1 text-xs">Đang tải FYP Sao Việt…</p>}
-    {approval.loading&&<p role="status" className="px-3 py-1 text-xs">Đang tải điều kiện duyệt…</p>}
+    {!readOnly&&approval.loading&&<p role="status" className="px-3 py-1 text-xs">Đang tải điều kiện duyệt…</p>}
     {saoViet.error&&<p role="alert" className="px-3 py-1 text-red-700">{saoViet.error}</p>}
-    {approval.error&&<p role="alert" className="px-3 py-1 text-red-700">{approval.error}</p>}
+    {!readOnly&&approval.error&&<p role="alert" className="px-3 py-1 text-red-700">{approval.error}</p>}
     {error&&<p role="alert" className="px-3 py-1 text-red-700">{error}</p>}
     <div className={tableOnly ? 'w-full overflow-x-auto bg-white' : 'overflow-auto'}>
       <div className="flex justify-end px-2 py-1 text-[10px] font-semibold text-slate-600">Đơn vị tính: đồng</div>

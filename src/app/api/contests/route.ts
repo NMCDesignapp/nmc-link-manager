@@ -10,7 +10,7 @@ const noStore = { 'Cache-Control': 'no-store, max-age=0, must-revalidate' };
 
 const contestSummarySelect = {
   id: true, title: true, startDate: true, endDate: true, issueDate: true,
-  conditionType: true, targetType: true, bonusTiers: true, participants: true,
+  conditionType: true, targetType: true, bonusTiers: true, participants: true, selectedSubjectTypes: true,
   usePhase2: true, phase2StartDate: true, phase2EndDate: true, bonusTiers2: true,
   useSecondaryCondition: true, secondaryAFYPMin: true, secondaryIPMin: true,
   secondaryLuotHDMin: true, secondaryLuotHDCMin: true, secondaryLuotHDFilter: true,
@@ -20,6 +20,7 @@ const contestSummarySelect = {
   tvv90MinIP: true, referenceContestId: true, includeTNInPassCount: true,
   topN: true, topNMinIP: true, topNValueType: true, useTopRanking: true, topRewardAmounts: true, filterByEffectiveDate: true,
   csvContractUrl: true, csvStaffUrl: true, csvRecruiterUrl: true,
+  lockedAt: true,
   createdAt: true, updatedAt: true,
 } as const;
 
@@ -36,6 +37,7 @@ type PosterContest = {
 const contestCompatSelect = {
   ...contestSummarySelect,
   posterUrl: true,
+  lockedSnapshot: true,
 } as const;
 
 const recruitedAgentScopeKey = (id: string) => `contest-recruited-agent-scope-${id}`;
@@ -260,6 +262,16 @@ async function ensureRecruitedAgentScopeColumn(): Promise<void> {
   }
 }
 
+async function ensureContestLockColumns(): Promise<void> {
+  try {
+    await db.$executeRawUnsafe('ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "lockedAt" TIMESTAMP(3)');
+    await db.$executeRawUnsafe('ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "lockedSnapshot" TEXT NOT NULL DEFAULT \'\'');
+    await db.$executeRawUnsafe('ALTER TABLE "Contest" ADD COLUMN IF NOT EXISTS "selectedSubjectTypes" TEXT NOT NULL DEFAULT \'[]\'');
+  } catch (e) {
+    console.warn('[ensureContestLockColumns] Skipped:', (e as Error)?.message);
+  }
+}
+
 async function readContests(request: NextRequest) {
   const id = request.nextUrl.searchParams.get('id');
   const summary = request.nextUrl.searchParams.get('summary') === '1';
@@ -304,10 +316,11 @@ async function readContests(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    await ensureContestLockColumns();
     return await readContests(request);
   } catch (error) {
     console.warn('[GET /api/contests] First attempt failed, trying self-heal:', (error as Error)?.message);
-    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn(), ensureCombinedTopRankingColumns(), ensureRecruitedAgentScopeColumn()]);
+    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn(), ensureCombinedTopRankingColumns(), ensureRecruitedAgentScopeColumn(), ensureContestLockColumns()]);
     try {
       return await readContests(request);
     } catch (retryError) {
@@ -322,8 +335,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const {
+      id: requestedId, saveMode,
       title, startDate, endDate, issueDate, issueEndDate, conditionType, targetType,
-      bonusTiers, posterUrl, participants,
+      bonusTiers, posterUrl, participants, selectedSubjectTypes,
       usePhase2, phase2StartDate, phase2EndDate, bonusTiers2,
       useSecondaryCondition, secondaryAFYPMin, secondaryIPMin,
       secondaryLuotHDMin, secondaryLuotHDCMin,
@@ -340,7 +354,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Thiếu thông tin bắt buộc' }, { status: 400 });
     }
 
-    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn(), ensureCombinedTopRankingColumns(), ensureRecruitedAgentScopeColumn()]);
+    await Promise.all([ensureTopNColumns(), ensureFilterByEffectiveDateColumn(), ensureTopNValueTypeColumn(), ensureCombinedTopRankingColumns(), ensureRecruitedAgentScopeColumn(), ensureContestLockColumns()]);
     const normalizedIssueEnd = normalizeIssueEndDate(issueEndDate);
     if (issueEndDate != null && issueEndDate !== '' && normalizedIssueEnd === null) {
       return NextResponse.json({ error: 'Ngày phát hành đến không hợp lệ' }, { status: 400 });
@@ -349,6 +363,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Ngày phát hành đến phải từ ngày phát hành bắt đầu trở đi' }, { status: 400 });
     }
     try { decodeRegisteredProgram(participants); } catch (error) { return NextResponse.json({error: (error as Error).message}, {status:400}); }
+    try {
+      const parsedSubjectTypes = JSON.parse(selectedSubjectTypes || '[]');
+      if (!Array.isArray(parsedSubjectTypes) || parsedSubjectTypes.some(value => typeof value !== 'string')) throw new Error();
+    } catch {
+      return NextResponse.json({ error: 'Danh sách lựa chọn đối tượng không hợp lệ' }, { status: 400 });
+    }
 
     const parsedStart = new Date(startDate);
     const parsedEnd = new Date(endDate);
@@ -356,7 +376,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Ngày bắt đầu/kết thúc không hợp lệ' }, { status: 400 });
     }
 
-    const existing = await db.contest.findFirst({ where: { title }, select: { id: true, posterUrl: true } });
+    const existing = saveMode === 'create'
+      ? null
+      : requestedId
+        ? await db.contest.findUnique({ where: { id: String(requestedId) }, select: { id: true, posterUrl: true, lockedAt: true } })
+        : await db.contest.findFirst({ where: { title }, select: { id: true, posterUrl: true, lockedAt: true } });
+    if (existing?.lockedAt) {
+      return NextResponse.json({ error: 'Chương trình đã khóa. Hãy chọn Lưu mới để tạo một phiên bản khác.' }, { status: 409 });
+    }
     const rawPoster = posterUrl || createDefaultContestPoster({ title, startDate: parsedStart, endDate: parsedEnd, targetType });
     const temporaryPoster = rawPoster.startsWith('data:')
       ? (existing?.posterUrl && !existing.posterUrl.startsWith('data:') ? existing.posterUrl : '')
@@ -372,6 +399,7 @@ export async function POST(request: NextRequest) {
       bonusTiers,
       posterUrl: temporaryPoster,
       participants: participants || '[]',
+      selectedSubjectTypes: selectedSubjectTypes || '[]',
       usePhase2: usePhase2 ?? false,
       phase2StartDate: phase2StartDate ? new Date(phase2StartDate) : null,
       phase2EndDate: phase2EndDate ? new Date(phase2EndDate) : null,
@@ -453,9 +481,29 @@ export async function DELETE(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    await ensureContestLockColumns();
     const body = await request.json();
     const { id, ...updates } = body as { id: string; [key: string]: any };
     if (!id) return NextResponse.json({ error: 'Thiếu ID chương trình thi đua' }, { status: 400 });
+    if (updates.lockSnapshot !== undefined) {
+      const current = await db.contest.findUnique({ where: { id }, select: { lockedAt: true } });
+      if (!current) return NextResponse.json({ error: 'Không tìm thấy chương trình thi đua' }, { status: 404 });
+      if (current.lockedAt) return NextResponse.json({ error: 'Chương trình đã được khóa trước đó' }, { status: 409 });
+      const snapshot = updates.lockSnapshot;
+      if (!snapshot || typeof snapshot !== 'object' || !Array.isArray(snapshot.contracts)) {
+        return NextResponse.json({ error: 'Dữ liệu khóa không hợp lệ' }, { status: 400 });
+      }
+      const serialized = JSON.stringify(snapshot);
+      if (serialized.length > 8_000_000) {
+        return NextResponse.json({ error: 'Dữ liệu khóa vượt quá giới hạn 8 MB' }, { status: 413 });
+      }
+      const contest = await db.contest.update({
+        where: { id },
+        data: { lockedAt: new Date(), lockedSnapshot: serialized },
+        select: contestCompatSelect,
+      });
+      return NextResponse.json({ message: 'Đã khóa kết quả chương trình', contest: { ...contest, posterUrl: posterPublicUrl(contest) } });
+    }
     const recruitedAgentScopeUpdate = updates.recruitedAgentScope;
     if (updates.participants !== undefined) { try { decodeRegisteredProgram(updates.participants); } catch(error) { return NextResponse.json({error:(error as Error).message},{status:400}); } }
     const recruitmentConfigUpdate = updates.recruitmentConfig;
