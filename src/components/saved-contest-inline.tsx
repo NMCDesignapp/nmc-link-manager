@@ -24,7 +24,7 @@
 
 import { RegisteredTargetResults } from '@/components/registered-target-contest';
 import { TVVContractCountTable } from '@/components/tvv-contract-count-table';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Table,
   TableHeader,
@@ -33,7 +33,7 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
-import { Trophy, Search, ChevronDown, ChevronRight, X, Award, Gift, Percent, FileDown, Crown, Medal, LoaderCircle } from 'lucide-react';
+import { Trophy, Search, ChevronDown, ChevronRight, X, Award, Gift, Percent, FileDown, Crown, Medal, LoaderCircle, Camera } from 'lucide-react';
 import { useAppData } from '@/lib/app-data-context';
 import { buildCombinedTopRanking, passesCombinedTopEligibility, supportsCombinedTopRanking } from '@/lib/contest-combined-top-ranking';
 import {
@@ -117,6 +117,10 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   const [nhomFilter, setNhomFilter] = useState<string[]>([]);
   // nmc-saved-contest-multigroup-filter-fix-v1
   const [nameFilter, setNameFilter] = useState('');
+  const exportPosterRef = useRef<HTMLDivElement>(null);
+  const exportTableRef = useRef<HTMLDivElement>(null);
+  const [exportingExcel, setExportingExcel] = useState(false);
+  const [exportingImages, setExportingImages] = useState(false);
   // Danh sáº¡ch card táº£i nhanh khÃ´ng kÃ¨m base64 poster. Khi má»Ÿ chi tiáº¿t,
   // láº¥y poster cá»§a Ä‘Ãºng chÆ°Æ¡ng trÃ¬nh nÃ y tá»« server Ä‘á»ƒ khÃ´ng bao giá» máº¥t áº£nh.
   const suppliedPosterUrl = contest?.posterUrl || '';
@@ -415,6 +419,140 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
   // ===== Apply local filters (nhom + name) =====
   // Note: filter on top of computed results to keep calculator logic untouched
   const q = nameFilter.trim().toLowerCase();
+
+  const safeExportName = useCallback((extension: string, page?: number) => {
+    const base = String(config.title || 'ket_qua_thi_dua')
+      .trim().replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ')
+      .replace(/[. ]+$/g, '').slice(0, 110) || 'ket_qua_thi_dua';
+    return `${base}${page ? `_${page}` : ''}.${extension}`;
+  }, [config.title]);
+
+  const handleExportExcel = useCallback(async () => {
+    const table = exportTableRef.current?.querySelector('table');
+    if (!table) return;
+    setExportingExcel(true);
+    try {
+      const XLSX = await import('xlsx-js-style');
+      const worksheet = XLSX.utils.table_to_sheet(table, { raw: true });
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
+      const widths: Array<{ wch: number }> = [];
+      for (let column = range.s.c; column <= range.e.c; column += 1) {
+        let maximum = 10;
+        for (let row = range.s.r; row <= range.e.r; row += 1) {
+          const cell = worksheet[XLSX.utils.encode_cell({ r: row, c: column })];
+          maximum = Math.max(maximum, String(cell?.v ?? '').length);
+          if (!cell) continue;
+          cell.s = row === range.s.r
+            ? { font: { bold: true, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: '047857' } }, alignment: { horizontal: 'center', vertical: 'center', wrapText: true }, border: { top: { style: 'thin', color: { rgb: '065F46' } }, bottom: { style: 'thin', color: { rgb: '065F46' } }, left: { style: 'thin', color: { rgb: '065F46' } }, right: { style: 'thin', color: { rgb: '065F46' } } } }
+            : { fill: { fgColor: { rgb: row % 2 ? 'FFFFFF' : 'ECFDF5' } }, alignment: { vertical: 'center', wrapText: false }, border: { top: { style: 'hair', color: { rgb: 'D1D5DB' } }, bottom: { style: 'hair', color: { rgb: 'D1D5DB' } }, left: { style: 'hair', color: { rgb: 'D1D5DB' } }, right: { style: 'hair', color: { rgb: 'D1D5DB' } } } };
+        }
+        widths.push({ wch: Math.min(36, maximum + 2) });
+      }
+      worksheet['!cols'] = widths;
+      worksheet['!rows'] = [{ hpt: 34 }];
+      worksheet['!freeze'] = { xSplit: 0, ySplit: 1 };
+      worksheet['!autofilter'] = { ref: worksheet['!ref'] || 'A1:A1' };
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Kết quả thi đua');
+      XLSX.writeFile(workbook, safeExportName('xlsx'));
+    } catch (error) {
+      console.error('[saved-contest] Excel export failed:', error);
+      window.alert('Không thể xuất Excel. Vui lòng thử lại.');
+    } finally {
+      setExportingExcel(false);
+    }
+  }, [safeExportName]);
+
+  const handleExportImages = useCallback(async () => {
+    const poster = exportPosterRef.current;
+    const sourceTable = exportTableRef.current?.querySelector('table');
+    if (!poster || !sourceTable) return;
+    setExportingImages(true);
+    const captureHost = document.createElement('div');
+    captureHost.style.cssText = 'position:fixed;left:-100000px;top:0;z-index:-1;background:#fff;pointer-events:none;';
+    document.body.appendChild(captureHost);
+    try {
+      const { getFontEmbedCSS, toBlob } = await import('html-to-image');
+      const bodyRows = Array.from(sourceTable.querySelectorAll('tbody > tr'));
+      const rowsPerImage = 20;
+      const imageCount = Math.max(1, Math.min(2, Math.ceil(bodyRows.length / rowsPerImage)));
+      const preserveAppearance = (source: Element, target: Element) => {
+        if (source instanceof HTMLElement && target instanceof HTMLElement) {
+          const style = window.getComputedStyle(source);
+          for (const property of ['background-color', 'background-image', 'color', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color', 'font-family', 'font-size', 'font-weight', 'font-style', 'text-align', 'vertical-align', 'white-space']) {
+            target.style.setProperty(property, style.getPropertyValue(property), 'important');
+          }
+        }
+        Array.from(source.children).forEach((child, index) => {
+          if (target.children[index]) preserveAppearance(child, target.children[index]);
+        });
+      };
+      for (let page = 0; page < imageCount; page += 1) {
+        const root = document.createElement('div');
+        root.style.cssText = 'width:max-content;min-width:1100px;background:#fff;font-family:Arial,"Segoe UI",sans-serif;';
+        const posterClone = poster.cloneNode(true) as HTMLElement;
+        posterClone.querySelectorAll('button').forEach(button => button.remove());
+        posterClone.style.cssText += ';width:100%;height:310px;aspect-ratio:auto;overflow:hidden;';
+        preserveAppearance(poster, posterClone);
+        const tableClone = sourceTable.cloneNode(true) as HTMLTableElement;
+        const clonedRows = Array.from(tableClone.querySelectorAll('tbody > tr'));
+        clonedRows.forEach((row, index) => {
+          if (index < page * rowsPerImage || index >= (page + 1) * rowsPerImage) row.remove();
+        });
+        preserveAppearance(sourceTable, tableClone);
+        tableClone.style.setProperty('width', 'max-content', 'important');
+        tableClone.style.setProperty('min-width', '1100px', 'important');
+        tableClone.style.setProperty('table-layout', 'auto', 'important');
+        tableClone.querySelectorAll<HTMLElement>('th,td').forEach(cell => {
+          cell.style.setProperty('font-family', 'Arial,"Segoe UI",sans-serif', 'important');
+          cell.style.setProperty('font-size', cell.tagName === 'TH' ? '16px' : '14px', 'important');
+          cell.style.setProperty('line-height', '1.3', 'important');
+          cell.style.setProperty('padding', cell.tagName === 'TH' ? '11px 9px' : '7px 9px', 'important');
+          cell.style.setProperty('white-space', cell.tagName === 'TH' ? 'normal' : 'nowrap', 'important');
+          cell.style.setProperty('max-width', 'none', 'important');
+        });
+        const tableFrame = document.createElement('div');
+        tableFrame.style.cssText = 'width:max-content;min-width:1100px;overflow:visible;border:2px solid #047857;background:#fff;';
+        tableFrame.appendChild(tableClone);
+        root.append(posterClone, tableFrame);
+        captureHost.appendChild(root);
+        await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+        const width = Math.ceil(Math.max(1100, tableClone.scrollWidth, tableClone.getBoundingClientRect().width));
+        root.style.width = `${width}px`;
+        posterClone.style.width = `${width}px`;
+        tableFrame.style.width = `${width}px`;
+        tableClone.style.width = `${width}px`;
+        const fontEmbedCSS = await getFontEmbedCSS(root, { preferredFontFormat: 'woff2' }).catch(() => '');
+        const blob = await toBlob(root, { backgroundColor: '#ffffff', quality: 1, pixelRatio: Math.min(2, Math.max(1, 7600 / width)), cacheBust: false, ...(fontEmbedCSS ? { fontEmbedCSS } : { skipFonts: true }) });
+        root.remove();
+        if (!blob) throw new Error('Không thể tạo dữ liệu ảnh');
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = safeExportName('png', imageCount > 1 ? page + 1 : undefined);
+        link.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+        if (page + 1 < imageCount) await new Promise(resolve => window.setTimeout(resolve, 350));
+      }
+    } catch (error) {
+      console.error('[saved-contest] Image export failed:', error);
+      window.alert('Không thể tải ảnh. Vui lòng thử lại.');
+    } finally {
+      captureHost.remove();
+      setExportingImages(false);
+    }
+  }, [safeExportName]);
+
+  const exportActions = (mobile = false) => (
+    <div className={`flex items-center gap-1 ${mobile ? 'absolute right-2 top-2 z-30' : ''}`} data-contest-export-actions>
+      <button type="button" onClick={() => void handleExportExcel()} disabled={exportingExcel || exportingImages || isContestDataLoading} className="inline-flex h-7 items-center gap-1 rounded border border-emerald-300/70 bg-[#047857]/95 px-2 text-[9px] font-black text-white shadow-md hover:bg-[#065F46] disabled:opacity-50" title="Tải file Excel theo bộ lọc hiện tại">
+        {exportingExcel ? <LoaderCircle className="h-3 w-3 animate-spin" /> : <FileDown className="h-3 w-3" />}<span>Excel</span>
+      </button>
+      <button type="button" onClick={() => void handleExportImages()} disabled={exportingExcel || exportingImages || isContestDataLoading} className="inline-flex h-7 items-center gap-1 rounded border border-amber-200/80 bg-[#92400E]/95 px-2 text-[9px] font-black text-white shadow-md hover:bg-[#78350F] disabled:opacity-50" title="Tải tối đa 2 ảnh, 20 dòng mỗi ảnh, theo bộ lọc hiện tại">
+        {exportingImages ? <LoaderCircle className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}<span>Ảnh</span>
+      </button>
+    </div>
+  );
   const applyLocalFilter = <T extends { matchesName?: boolean; nhomLabel?: string }>(rows: T[]): T[] => {
     return rows.filter((r) => {
       if (nhomFilter.length > 0 && !nhomFilter.includes(r.nhomLabel || '')) return false;
@@ -540,7 +678,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
     const startDateStr = config.startDate ? formatDate(config.startDate) : '...';
     const endDateStr = config.endDate ? formatDate(config.endDate) : '...';
     return (
-      <div className="relative flex-shrink-0 w-full overflow-hidden" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
+      <div ref={exportPosterRef} className="relative flex-shrink-0 w-full overflow-hidden" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }} data-contest-export-poster>
         {currentPosterUrl ? (
           <img src={currentPosterUrl} alt={config.title} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
@@ -562,6 +700,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             </span>
           </div>
         </div>
+        {exportActions(true)}
       </div>
     );
   };
@@ -1133,6 +1272,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
 
   const tableBlock = (
     <div
+      ref={exportTableRef}
       className="flex-1 min-h-0 overflow-auto border bg-white saoviet-detail-table-wrapper"
       style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
       data-saoviet-table={`saved-${config.id}`}
@@ -1235,7 +1375,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             style={{ height: '160px', backgroundColor: '#C0C0C0', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
           >
             {/* Left: poster */}
-            <div className="relative w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
+            <div ref={exportPosterRef} className="relative w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }} data-contest-export-poster>
               {(posterUrl || config.posterUrl) ? (
                 <img src={posterUrl || config.posterUrl} alt={config.title} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
               ) : (
@@ -1251,6 +1391,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
               className="w-1/2 flex flex-col justify-center gap-1.5 p-2 overflow-visible relative z-[200] border-l-2"
               style={{ backgroundColor: '#D1D5DB', boxShadow: 'inset 2px 0 6px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.15)', borderColor: '#9CA3AF' }}
             >
+              <div className="absolute right-2 top-2">{exportActions()}</div>
               <div className="relative z-[200]">
                 <span className="block text-[9px] font-bold uppercase tracking-wider text-gray-700 mb-0.5">Nhóm KD</span>
                 <button
