@@ -155,7 +155,6 @@ model Contest {
   bonusTiers      String
   posterUrl       String   @default("")
   participants    String   @default("[]")
-  selectedSubjectTypes String @default("[]")
   usePhase2       Boolean  @default(false)
   phase2StartDate DateTime?
   phase2EndDate   DateTime?
@@ -188,8 +187,6 @@ model Contest {
   csvContractUrl   String   @default("")
   csvStaffUrl      String   @default("")
   csvRecruiterUrl  String   @default("")
-  lockedAt         DateTime?
-  lockedSnapshot   String   @default("")
   createdAt         DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
