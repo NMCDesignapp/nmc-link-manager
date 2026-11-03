@@ -16,8 +16,10 @@ function normalizeRuntimeDatabaseUrl(value: string): string {
     const url = new URL(value)
     const isSupabasePooler = url.hostname.endsWith('.pooler.supabase.com')
 
-    if (isSupabasePooler && url.port === '5432') {
-      url.port = '6543'
+    if (isSupabasePooler) {
+      if (url.port === '5432') {
+        url.port = '6543'
+      }
       url.searchParams.set('pgbouncer', 'true')
       // The KPI/management bootstrap intentionally runs several independent
       // reads in parallel. A single Prisma connection serialized those reads
