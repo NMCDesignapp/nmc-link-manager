@@ -131,15 +131,14 @@ export async function GET(
         const decodedPath = decodeURIComponent(resolved.pathname);
         const decodedCurrentPath = decodeURIComponent(currentPath);
 
+        const posterImagePrefix = '/api/poster-image/';
         if (decodedPath === decodedCurrentPath) {
           const stored = await loadPosterImage(storedKey);
           if (stored) {
             return binaryResponse(request, contest.id, stored, stored.updatedAt.getTime());
           }
-        }
-
-        const posterImagePrefix = '/api/poster-image/';
-        if (decodedPath.startsWith(posterImagePrefix)) {
+          // Missing/corrupt self-referenced image falls through to the generated default.
+        } else if (decodedPath.startsWith(posterImagePrefix)) {
           const key = decodeURIComponent(decodedPath.slice(posterImagePrefix.length));
           const stored = key ? await loadPosterImage(key) : null;
           if (stored) {

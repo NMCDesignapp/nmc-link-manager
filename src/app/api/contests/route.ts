@@ -217,7 +217,7 @@ async function saveRecruitedAgentEffectiveDate(id: string, value: unknown): Prom
 
 const posterKey = (id: string) => `contest-poster-${id}`;
 const posterPublicUrl = (contest: Pick<PosterContest, 'id' | 'updatedAt'>) =>
-  `/api/poster-image/${encodeURIComponent(posterKey(contest.id))}?v=${contest.updatedAt ? new Date(contest.updatedAt).getTime() : Date.now()}`;
+  `/api/contest-poster/${encodeURIComponent(contest.id)}?v=${contest.updatedAt ? new Date(contest.updatedAt).getTime() : Date.now()}`;
 
 async function ensurePosterTable(): Promise<void> {
   await db.$executeRawUnsafe(`
