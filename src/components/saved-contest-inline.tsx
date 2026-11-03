@@ -1048,7 +1048,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       .replace(/đ/g, 'd')
       .replace(/Đ/g, 'D')
       .toLowerCase();
-    const isAnhTaiToaSang = normalizedContestTitle.includes('anh tai toa sang');
+    const isAnhTaiToaSang = normalizedContestTitle.includes('anh tai toa sang')
+      || normalizedContestTitle.includes('an tai toa sang');
     const valueLabel = config.includeIndividualTN && !isPassCount
       ? 'TỔNG CỘNG'
       : isPassCountIPAFYP
