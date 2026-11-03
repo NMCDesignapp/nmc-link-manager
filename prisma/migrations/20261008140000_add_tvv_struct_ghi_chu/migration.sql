@@ -1,0 +1,2 @@
+-- No database column is required. TVV structure notes are stored in Setting
+-- so Data Hub replacement syncs do not overwrite manually maintained notes.
