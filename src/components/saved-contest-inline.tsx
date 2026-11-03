@@ -899,7 +899,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>NHÓM KD</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>MÃ SỐ ĐẠI LÝ</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>HỌ TÊN TVV</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>{valueLabel}</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-normal leading-tight text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}><div className="mx-auto max-w-[92px]">{valueLabel}</div></TableHead>
             {renderSupplementaryHeadings()}
             {showRateColumn && (
               <TableHead className="text-[10px] font-bold uppercase text-center align-middle bg-violet-100 whitespace-nowrap" style={{ color: '#5B21B6' }}><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
@@ -1042,12 +1042,21 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       reward={(group, count) => { const row = sortedGroups.find(row => row.g === group); return row?.effectiveTier ? formatBonusAmountFromContracts(row.effectiveTier, group.contracts, count) : null; }}
     />;
 
+    const normalizedContestTitle = String(config.title || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .toLowerCase();
+    const isAnhTaiToaSang = normalizedContestTitle.includes('anh tai toa sang');
     const valueLabel = config.includeIndividualTN && !isPassCount
       ? 'TỔNG CỘNG'
       : isPassCountIPAFYP
       ? 'SL TVV ĐẠT'
       : isPassCount
-      ? 'SL TVV ĐẠT CTĐK'
+      ? isAnhTaiToaSang
+        ? 'SL TVV ĐẠT MTDS'
+        : 'SL TVV ĐẠT CTĐK'
       : isActivity
       ? 'LƯỢT HĐ'
       : isAFYP
@@ -1055,7 +1064,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       : 'TỔNG IP';
     const valueSubLabel = isPassCountIPAFYP
       ? `IP ≥ ${formatCurrency(config.secondaryIPMin ?? 0)} + AFYP ≥ ${formatCurrency(config.secondaryAFYPMin ?? 0)}${config.includeTNInPassCount ? '' : ' · Không tính TN'}`
-      : isPassCount
+      : isPassCount && !isAnhTaiToaSang
       ? `${config.referenceContestId ? 'Theo chương trình tham chiếu' : 'Theo CTĐK'}${config.includeTNInPassCount ? '' : ' · Không tính TN'}`
       : '';
 
@@ -1068,8 +1077,8 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>MÃ TN</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>TÊN TRƯỞNG NHÓM</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>CHỨC VỤ</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>
-              <div>{valueLabel}</div>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-normal leading-tight text-center align-middle" style={{ color: '#FEF3C7', backgroundColor: '#065F46' }}>
+              <div className="mx-auto max-w-[92px]">{valueLabel}</div>
               {valueSubLabel && <div className="text-[9px] italic font-normal normal-case" style={{ color: '#FCD34D' }}>{valueSubLabel}</div>}
             </TableHead>
             {renderSupplementaryHeadings()}
@@ -1172,7 +1181,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>MÃ NTD</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>TÊN NTD</TableHead>
             <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#065F46', backgroundColor: '#D1FAE5' }}>CHỨC VỤ</TableHead>
-            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap text-center align-middle" style={{ color: '#ECFDF5', backgroundColor: '#047857' }}>{valueLabel}</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-normal leading-tight text-center align-middle" style={{ color: '#ECFDF5', backgroundColor: '#047857' }}><div className="mx-auto max-w-[92px]">{valueLabel}</div></TableHead>
             {renderSupplementaryHeadings()}
             {showRateColumn && (
               <TableHead className="text-[10px] font-bold uppercase text-center align-middle whitespace-nowrap" style={{ color: '#ECFDF5', backgroundColor: '#047857' }}><Percent className="w-3 h-3 inline -mt-0.5" /> Tỷ lệ</TableHead>
