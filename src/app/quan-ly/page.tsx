@@ -11116,6 +11116,8 @@ export default function QuanLyPage() {
     { key: 'tien-do',     label: 'TIẾN ĐỘ GIA NHẬP CLB',              desc: 'IP 3 tháng gần nhất (T-2, T-1, T) — xét gia nhập khi ≥ 60tr', icon: TrendingUp, color: '#0D9488' },
   ] as const;
   type CLBSVProgram = typeof CLBSV_ITEMS[number]['key'];
+  const HIDDEN_CLBSV_TITLE_PROGRAMS = new Set<CLBSVProgram>(['ca-nhan', 'tn-td', 'tn-ktm']);
+  const visibleClbSaoVietItems = CLBSV_ITEMS.filter((item) => !HIDDEN_CLBSV_TITLE_PROGRAMS.has(item.key));
 
   // Header colors — blue/navy theme (distinct from saoviet's lightsalmon)
   const CLBSV_HEADER_BG = '#DBEAFE';     // blue-100 — light blue header
@@ -12375,7 +12377,7 @@ export default function QuanLyPage() {
         Chương trình CLB Sao Việt
       </h3>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {CLBSV_ITEMS.map(item => {
+        {(isEmbedded ? visibleClbSaoVietItems : CLBSV_ITEMS).map(item => {
           const IIcon = item.icon;
           const posterUrl = clbsvPosters[item.key] || '';
           return (
@@ -12555,6 +12557,7 @@ export default function QuanLyPage() {
     if (clbsvOpen === 'toan-chang-ca-nhan') return renderSaoVietCaNhan();
     if (clbsvOpen === 'toan-chang-tn-td')   return renderSaoVietTNTD();
     if (clbsvOpen === 'toan-chang-tn-ktm')  return renderSaoVietTNKTM();
+    if (isEmbedded && clbsvOpen && HIDDEN_CLBSV_TITLE_PROGRAMS.has(clbsvOpen as CLBSVProgram)) return renderCLBSaoVietList();
     if (clbsvOpen === 'ca-nhan') return renderCLBSVCaNhan();
     if (clbsvOpen === 'tn-td')   return renderCLBSVTNTuyenDung();
     if (clbsvOpen === 'tn-ktm')  return renderCLBSVTNKTM();
