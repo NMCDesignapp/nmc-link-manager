@@ -7,7 +7,7 @@ const recruiters = [
   { id: 'r2', nhom: 'B', agentCode: 'TN1', agentName: 'TN Một', position: 'Trưởng nhóm', startDate: null, ngayHieuLuc: '2026-09-01' },
 ];
 const tvvStructList = [
-  { id: '1', agentCode: 'A1', agentName: 'A Một', maBanNhom: 'A', chucVu: 'TVV', ngayBatDau: '2026-10-10', maTVVTuyendung: 'TTN1', ghiChu: '' },
+  { id: '1', agentCode: 'A1', agentName: 'A Một', maBanNhom: 'A', chucVu: 'TVV', ngayBatDau: '2026-10-10', ngayHieuLuc: '2026-10-08', maTVVTuyendung: 'TTN1', ghiChu: '' },
   { id: '2', agentCode: 'A2', agentName: 'A Hai', maBanNhom: 'A', chucVu: 'TVV', ngayBatDau: '2026-10-11', maTVVTuyendung: 'TTN1', ghiChu: 'x' },
   { id: '3', agentCode: 'B1', agentName: 'B Một', maBanNhom: 'B', chucVu: 'TVV', ngayBatDau: '2026-10-12', maTVVTuyendung: 'TN1', ghiChu: '' },
 ];
@@ -26,4 +26,12 @@ test('counts eligible recruits, excludes Ghi chú x, scopes recruiters and adds 
   assert.equal(rows[0].activityQualifiedCount, 1);
   assert.equal(rows[0].baseBonus, 500_000);
   assert.equal(rows[0].totalBonus, 700_000);
+});
+
+test('fixed TVVm position-effective date can exclude recruits without changing recruiter effective-date mode', () => {
+  const rows = computeRecruitmentContestRows({
+    startDate: '2026-10-01', endDate: '2026-10-31', recruiters, tvvStructList, contracts, bonusTiers,
+    config: { subjectScope: 'ttn', filterByEffectiveDate: false, recruitEffectiveDateFrom: '2026-10-09', activityEnabled: false, activityMetric: 'total_ip', activityComparator: 'gte', activityThreshold: 0, activityBonusAmount: 0 },
+  });
+  assert.equal(rows[0].recruitCount, 0);
 });

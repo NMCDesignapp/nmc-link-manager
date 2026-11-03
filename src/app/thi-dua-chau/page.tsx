@@ -161,6 +161,7 @@ interface TVVStructItem {
   maBanNhom: string;
   chucVu: string;        // "Tư vấn tài chính" | "Tiền trưởng nhóm" | "Trưởng nhóm" | "Trưởng ban" | ...
   ngayBatDau: string | null;  // startDate — ISO date string
+  ngayHieuLuc?: string | null; // Ngày hiệu lực chức vụ của chính TVV/TVVm
   maTVVTuyendung?: string;
   note?: string;
   ghiChu?: string;
@@ -183,6 +184,7 @@ interface SavedContest {
   tvv90MaxMonths?: number; tvv90MinIP?: number;
   referenceContestId?: string;
   includeTNInPassCount?: boolean; tvvContractCountMin?: number;
+  groupLeaderScope?: 'leader' | 'ttn';
   topN?: number;
   topNMinIP?: number;
   topNValueType?: 'ip' | 'afyp';
@@ -190,6 +192,7 @@ interface SavedContest {
   topRewardAmounts?: string;
   filterByEffectiveDate?: boolean;
   recruitedAgentScope?: 'all' | 'tvvm';
+  recruitedAgentEffectiveDateFrom?: string | null;
   recruitmentConfig?: RecruitmentContestConfig | null;
   csvContractUrl?: string; csvStaffUrl?: string; csvRecruiterUrl?: string;
   lockedAt?: string | null; lockedSnapshot?: string;
@@ -820,6 +823,7 @@ function ThiDuaPageInner() {
   // pass_count_ip_afyp mode: đếm TVV đạt Tổng IP >= X + Tổng AFYP >= Y
   // Reuse secondaryIPMin (IP min) + secondaryAFYPMin (AFYP min) để lưu vào DB
   const [tvvContractCountMin, setTVVContractCountMin] = useState(2);
+  const [groupLeaderScope, setGroupLeaderScope] = useState<'leader' | 'ttn'>('leader');
   const [passCountIPMin, setPassCountIPMin] = useState(6000000);    // 6 triệu
   const [passCountAFYPMin, setPassCountAFYPMin] = useState(12000000); // 12 triệu
   // Top N mode config (top_n_ip)
@@ -836,6 +840,7 @@ function ThiDuaPageInner() {
   const [filterByEffectiveDate, setFilterByEffectiveDate] = useState(false);
   // Với hình thức NTD: chọn rõ tổng/lượt lấy từ toàn bộ TVV hay chỉ TVVm do từng NTD tuyển.
   const [recruitedAgentScope, setRecruitedAgentScope] = useState<RecruitedAgentScope>('all');
+  const [recruitedAgentEffectiveDateFrom, setRecruitedAgentEffectiveDateFrom] = useState('');
   const [recruitmentConfig, setRecruitmentConfig] = useState<RecruitmentContestConfig>({
     subjectScope: 'both',
     filterByEffectiveDate: false,
@@ -1324,9 +1329,9 @@ function ThiDuaPageInner() {
       contracts: filteredContracts,
       bonusTiers,
       selectedRecruiterCodes: subjectCodes,
-      config: recruitmentConfig,
+      config: { ...recruitmentConfig, recruitEffectiveDateFrom: recruitedAgentEffectiveDateFrom || null },
     });
-  }, [conditionType, startDate, endDate, ntdCandidates, tvvStructList, filteredContracts, bonusTiers, subjectCodes, recruitmentConfig]);
+  }, [conditionType, startDate, endDate, ntdCandidates, tvvStructList, filteredContracts, bonusTiers, subjectCodes, recruitmentConfig, recruitedAgentEffectiveDateFrom]);
 
   const chooseSubjectType = useCallback((type: string) => {
     const list = type.startsWith('phong_')
@@ -1377,9 +1382,9 @@ function ThiDuaPageInner() {
   // Display contracts with subject filter applied
   // LOGIC: Dùng DS nguồn (Staff/Recruiter) làm chuẩn, ánh xạ HĐ vào
   const displayContracts = useMemo(() => filterDisplayContracts(filteredContracts, parseContestConfig({
-    targetType, participants: JSON.stringify(subjectCodes), includeIndividualNTD, recruitedAgentScope, filterByEffectiveDate,
+    targetType, participants: JSON.stringify(subjectCodes), includeIndividualNTD, recruitedAgentScope, recruitedAgentEffectiveDateFrom, filterByEffectiveDate,
   }), staffList, ntdCandidates, tvvStructList, leadersList),
-  [filteredContracts, subjectCodes, targetType, staffList, leadersList, ntdCandidates, filterByEffectiveDate, tvvStructList, includeIndividualNTD, recruitedAgentScope]);
+  [filteredContracts, subjectCodes, targetType, staffList, leadersList, ntdCandidates, filterByEffectiveDate, tvvStructList, includeIndividualNTD, recruitedAgentScope, recruitedAgentEffectiveDateFrom]);
 
   // Several contest summaries need every contract for the same agent. Build the
   // index once instead of scanning the full contract list again for every row.
@@ -1795,11 +1800,18 @@ function ThiDuaPageInner() {
       }
     }
 
-    // Tìm Trưởng nhóm tham dự thi đua
+    // Tìm người đứng tên tham dự thi đua.
     // NGUỒN ĐÚNG: DS TB/TN (leadersList) — mỗi dòng = 1 TB hoặc TN của nhóm đó
     // Ưu tiên: Trưởng ban > Trưởng nhóm (TB tham dự với vai trò TN)
     // Fallback sang Recruiter table (DS TTN) nếu DS TB/TN không có
     for (const [maNhom, g] of map) {
+      if (groupLeaderScope === 'ttn') {
+        const ttn = recruiterList.find(r => norm(r.nhom || '').toLowerCase() === norm(g.nhom || maNhom).toLowerCase());
+        if (ttn) {
+          g.leader = { agentCode: ttn.agentCode, agentName: ttn.agentName, position: ttn.position || 'Tiền trưởng nhóm' };
+          continue;
+        }
+      }
       // Tìm leader từ DS TB/TN (leadersList) — nguồn CHÍNH
       const leader = leadersList.find(l => l.maNhom === maNhom);
       if (leader) {
@@ -1885,7 +1897,7 @@ function ThiDuaPageInner() {
     }
 
     return Array.from(map.values());
-  }, [displayContracts, targetType, conditionType, leadersList, recruiterList, subjectCodes, includeIndividualTN, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, tvvStructList, calculateLuotWithStructure]);
+  }, [displayContracts, targetType, conditionType, leadersList, recruiterList, subjectCodes, includeIndividualTN, groupLeaderScope, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, tvvStructList, calculateLuotWithStructure]);
 
   const phaseConfig = useMemo(() => parseContestConfig({
     conditionType, targetType, includeIndividualNTD, recruitedAgentScope, usePhase2, phase2StartDate, phase2EndDate, luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP, useSecondaryCondition, secondaryTotalAFYPMin, secondaryTotalIPMin, secondaryContractCountMin, secondaryContractIPMin, secondaryLuotHDMin, secondaryLuotHDCMin, secondaryLuotHDFilter, secondaryLuotHDCFilter, bonusTiers: JSON.stringify(bonusTiers), bonusTiers2: JSON.stringify(bonusTiers2),
@@ -2169,7 +2181,7 @@ function ThiDuaPageInner() {
         hideNotAchieved, includeIndividualNTD, includeIndividualTN,
         luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
         referenceContestId: referenceContestId || undefined,
-        includeTNInPassCount, tvvContractCountMin,
+        includeTNInPassCount, tvvContractCountMin, groupLeaderScope,
         topN, topNMinIP, topNValueType,
         useTopRanking: supportsCombinedTopRanking(conditionType) ? useTopRanking : false,
         topRewardAmounts: JSON.stringify({
@@ -2177,7 +2189,7 @@ function ThiDuaPageInner() {
           eligibilityType: topEligibilityType,
           eligibilityMin: Math.max(0, Number(topEligibilityMin) || 0),
         }),
-        filterByEffectiveDate, recruitedAgentScope, recruitmentConfig,
+        filterByEffectiveDate, recruitedAgentScope, recruitedAgentEffectiveDateFrom: recruitedAgentEffectiveDateFrom || null, recruitmentConfig,
         secondaryIPMin: (conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts') ? passCountIPMin : secondaryIPMin,
         secondaryAFYPMin: (conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts') ? passCountAFYPMin : secondaryAFYPMin,
       }) });
@@ -2380,6 +2392,7 @@ function ThiDuaPageInner() {
     // Reference contest for tvv_pass_count
     setReferenceContestId(contest.referenceContestId || '');
     setIncludeTNInPassCount(contest.includeTNInPassCount ?? false);
+    setGroupLeaderScope(contest.groupLeaderScope === 'ttn' ? 'ttn' : 'leader');
     // Top N mode
     setTopN(contest.topN ?? 3);
     setTopNMinIP(contest.topNMinIP ?? 50_000_000);
@@ -2406,6 +2419,7 @@ function ThiDuaPageInner() {
     // Filter by effective date
     setFilterByEffectiveDate(contest.filterByEffectiveDate ?? false);
     setRecruitedAgentScope(contest.recruitedAgentScope === 'tvvm' ? 'tvvm' : 'all');
+    setRecruitedAgentEffectiveDateFrom(contest.recruitedAgentEffectiveDateFrom || '');
     setRecruitmentConfig(contest.recruitmentConfig || {
       subjectScope: 'both', filterByEffectiveDate: false, activityEnabled: false,
       activityMetric: 'total_ip', activityComparator: 'gte', activityThreshold: 0, activityBonusAmount: 0,
@@ -2838,7 +2852,8 @@ function ThiDuaPageInner() {
         const passCountCondLabel = (conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts')
           ? ` (IP≥${vndToNgan(passCountIPMin)}k + AFYP≥${vndToNgan(passCountAFYPMin)}k)`
           : refContestLabel || ' (CTĐK)';
-        headers = ['STT', 'Nhóm', 'Mã TN', 'Họ tên TN', `SL TVV đủ điều kiện${passCountCondLabel}${!includeTNInPassCount ? ' (KO tính TN)' : ''}`, ...extraMetricHeaders, 'Thưởng', 'Ghi chú'];
+        const ownerLabel = groupLeaderScope === 'ttn' ? 'TTN' : 'TN';
+        headers = ['STT', 'Nhóm', `Mã ${ownerLabel}`, `Họ tên ${ownerLabel}`, `SL TVV đủ điều kiện${passCountCondLabel}${!includeTNInPassCount ? ` (KO tính ${ownerLabel})` : ''}`, ...extraMetricHeaders, 'Thưởng', 'Ghi chú'];
         rows = [];
         const sortedGroups = [...groupedData].map((g) => {
           const tvvPassCount = (conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts') ? getGroupTVVPassCountIPAFYP(g) : getGroupTVVPassCount(g);
@@ -4396,6 +4411,11 @@ function ThiDuaPageInner() {
                       Chỉ tính TVV/TVVm được tuyển từ ngày hiệu lực chức vụ gần nhất của chính NTD hoặc TTN đó
                     </Label>
                   </div>
+                  <div className="space-y-1 rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-2">
+                    <Label className="text-[11px] font-semibold text-cyan-100">Ngày hiệu lực chức vụ của TVV/TVVm từ ngày</Label>
+                    <Input type="date" value={recruitedAgentEffectiveDateFrom} onChange={(event) => setRecruitedAgentEffectiveDateFrom(event.target.value)} className="h-8 border-cyan-500/30 bg-gray-900 text-xs text-white" />
+                    <p className="text-[10px] leading-4 text-cyan-100/75">Để trống: đếm toàn bộ TVV do người đó tuyển. Có ngày: chỉ giữ TVV/TVVm có ngày hiệu lực chức vụ từ mốc này trở đi. Độc lập với ngày hiệu lực chức vụ gần nhất của NTD.</p>
+                  </div>
                   <div className="flex items-start gap-2 rounded-lg border border-violet-500/20 bg-gray-900/30 p-2">
                     <Checkbox id="includeIndividualNTDScope" checked={includeIndividualNTD} onCheckedChange={(v) => setIncludeIndividualNTD(!!v)} />
                     <Label htmlFor="includeIndividualNTDScope" className="cursor-pointer text-[11px] leading-4 text-violet-100/80">
@@ -4403,7 +4423,7 @@ function ThiDuaPageInner() {
                     </Label>
                   </div>
                   <p className="text-[10px] leading-4 text-violet-200/75">
-                    Đang tính <b>{getContestMetricLabel(conditionType, topNValueType, 'nyd')}</b> trên <b>{recruitedAgentScope === 'tvvm' ? 'chỉ TVVm' : 'toàn bộ TVV'}</b> do từng NTD/TTN tuyển{filterByEffectiveDate ? ', kể từ ngày hiệu lực chức vụ gần nhất' : ''}{includeIndividualNTD ? ', có cộng cá nhân NTD/TTN' : ', không cộng cá nhân NTD/TTN'}.
+                    Đang tính <b>{getContestMetricLabel(conditionType, topNValueType, 'nyd')}</b> trên <b>{recruitedAgentScope === 'tvvm' ? 'chỉ TVVm' : 'toàn bộ TVV'}</b> do từng NTD/TTN tuyển{recruitedAgentEffectiveDateFrom ? `, TVV có ngày hiệu lực chức vụ từ ${formatDate(recruitedAgentEffectiveDateFrom)}` : ''}{filterByEffectiveDate ? ', kể từ ngày hiệu lực chức vụ gần nhất của NTD' : ''}{includeIndividualNTD ? ', có cộng cá nhân NTD/TTN' : ', không cộng cá nhân NTD/TTN'}.
                   </p>
                 </div>
               )}
@@ -4513,6 +4533,11 @@ function ThiDuaPageInner() {
                       <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2">
                         <Checkbox id="recruitmentEffectiveDate" checked={recruitmentConfig.filterByEffectiveDate} onCheckedChange={v => setRecruitmentConfig(p => ({ ...p, filterByEffectiveDate: !!v }))} />
                         <Label htmlFor="recruitmentEffectiveDate" className="text-[10px] text-amber-200 cursor-pointer">Chỉ tính từ ngày hiệu lực chức vụ của cá nhân NTD</Label>
+                      </div>
+                      <div className="space-y-1 rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-2">
+                        <Label className="text-[10px] font-semibold text-cyan-100">Ngày hiệu lực chức vụ TVVm từ ngày</Label>
+                        <Input type="date" value={recruitedAgentEffectiveDateFrom} onChange={event => setRecruitedAgentEffectiveDateFrom(event.target.value)} className="h-7 border-cyan-500/30 bg-gray-900 text-[10px] text-white" />
+                        <p className="text-[9px] text-cyan-100/70">Để trống là đếm hết; có ngày thì lọc theo ngày hiệu lực chức vụ của chính TVVm.</p>
                       </div>
                       <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2">
                         <Checkbox id="recruitmentActivity" checked={recruitmentConfig.activityEnabled} onCheckedChange={v => setRecruitmentConfig(p => ({ ...p, activityEnabled: !!v }))} />
@@ -4682,7 +4707,7 @@ function ThiDuaPageInner() {
                       <div className="flex items-center gap-2 p-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10">
                         <Checkbox id="includeTNInPassCountIPAFYP" checked={includeTNInPassCount} onCheckedChange={(v) => setIncludeTNInPassCount(!!v)} />
                         <Label htmlFor="includeTNInPassCountIPAFYP" className="text-xs text-indigo-200/80 cursor-pointer flex items-center gap-1">
-                          <UserCheck className="w-3 h-3 text-indigo-400" /> Đếm cả cá nhân TN
+                          <UserCheck className="w-3 h-3 text-indigo-400" /> Đếm cả cá nhân {groupLeaderScope === 'ttn' ? 'TTN' : 'TN'}
                         </Label>
                       </div>
                       <p className="text-[9px] text-amber-400/70 italic">VD: IP ≥ 6tr + AFYP ≥ 12tr → Mức 1 (1 TVV đạt) = 500k, Mức 2 (2 TVV đạt) = 1tr, Mức 3 (3 TVV đạt) = 1.5tr. Cài đặt thưởng trong "Bảng mức thưởng" bên dưới.</p>
@@ -4699,6 +4724,17 @@ function ThiDuaPageInner() {
                       <p className="text-xs text-indigo-200">Mỗi TVV được đếm một lần khi có đủ số HĐ; từng HĐ phải đồng thời đạt IP và AFYP tối thiểu.</p>
                       <Label htmlFor="tvvContractCountMin" className="text-xs text-indigo-200">Số HĐ tối thiểu / TVV</Label>
                       <Input id="tvvContractCountMin" type="number" min={1} step={1} value={tvvContractCountMin} onChange={e => setTVVContractCountMin(Math.max(1, Math.floor(Number(e.target.value) || 1)))} className="h-7 text-xs bg-gray-800 text-white" />
+                      <div className="space-y-1">
+                        <Label className="text-xs text-indigo-200">Đối tượng nhận thưởng của nhóm</Label>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {([['leader', 'TB/TN'], ['ttn', 'Tiền trưởng nhóm']] as const).map(([value, label]) => (
+                            <button key={value} type="button" onClick={() => setGroupLeaderScope(value)} aria-pressed={groupLeaderScope === value}
+                              className={`rounded-lg border px-2 py-1.5 text-xs font-bold ${groupLeaderScope === value ? 'border-indigo-300 bg-indigo-600 text-white' : 'border-indigo-500/30 bg-gray-900 text-indigo-200'}`}>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                       <div className="grid grid-cols-2 gap-1.5">
                         <div className="space-y-0.5">
                           <Label className="text-[9px] text-indigo-400/70">IP tối thiểu mỗi HĐ (nđ)</Label>
@@ -4712,7 +4748,7 @@ function ThiDuaPageInner() {
                       <div className="flex items-center gap-2 p-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10">
                         <Checkbox id="includeTNInContractCount" checked={includeTNInPassCount} onCheckedChange={(v) => setIncludeTNInPassCount(!!v)} />
                         <Label htmlFor="includeTNInContractCount" className="text-xs text-indigo-200/80 cursor-pointer flex items-center gap-1">
-                          <UserCheck className="w-3 h-3 text-indigo-400" /> Đếm cả cá nhân TN
+                          <UserCheck className="w-3 h-3 text-indigo-400" /> Đếm cả cá nhân {groupLeaderScope === 'ttn' ? 'TTN' : 'TN'}
                         </Label>
                       </div>
 
@@ -4764,7 +4800,7 @@ function ThiDuaPageInner() {
                     <div className="flex items-center gap-2 rounded-lg border border-sky-500/30 bg-emerald-500/10 p-2">
                       <Checkbox id="includeIndividualTN" checked={includeIndividualTN} onCheckedChange={(value) => setIncludeIndividualTN(!!value)} />
                       <Label htmlFor="includeIndividualTN" className="flex cursor-pointer items-center gap-1 text-xs text-emerald-200/70">
-                        <UserCheck className="h-3 w-3 text-sky-400" /> Tính cá nhân TN vào chương trình
+                        <UserCheck className="h-3 w-3 text-sky-400" /> Tính cá nhân {conditionType === 'pass_count_contracts' && groupLeaderScope === 'ttn' ? 'TTN' : 'TN'} vào chương trình
                       </Label>
                     </div>
                     {/* Filter by effective date — chỉ tính TVV có ngày LV bằng hoặc sau ngày hiệu lực chức vụ gần nhất của NTD recruiter */}
@@ -5236,7 +5272,7 @@ function ThiDuaPageInner() {
               <div className={`${isEmbedMode ? 'overflow-x-auto' : 'contest-result-table-wrapper'} border border-emerald-600 shadow-sm mt-3`} id="result-table-container">
                 {registeredResultProps ? <RegisteredTargetResults {...registeredResultProps} tableOnly /> : conditionType === 'pass_count_contracts' ? <TVVContractCountTable
                   groups={groupedData} contracts={displayContracts} staff={staffList} structure={tvvStructList}
-                  config={{ secondaryIPMin: passCountIPMin, secondaryAFYPMin: passCountAFYPMin, tvvContractCountMin, includeTNInPassCount }}
+                  config={{ secondaryIPMin: passCountIPMin, secondaryAFYPMin: passCountAFYPMin, tvvContractCountMin, includeTNInPassCount, groupLeaderScope }}
                   hideNotAchieved={hideNotAchieved}
                   reward={(g, count) => { const tier = calculateBonus(count).tier; return tier && checkSecondaryTotalCondition(g.contracts).passed ? formatBonusAmountFromContracts(tier, g.contracts, count) : null; }}
                 /> : (

@@ -5,6 +5,8 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const recruitedAgentScopeKey = (id: string) => `contest-recruited-agent-scope-${id}`;
+const groupLeaderScopeKey = (id: string) => `contest-group-leader-scope-${id}`;
+const recruitedAgentEffectiveDateFromKey = (id: string) => `contest-recruited-agent-effective-date-from-${id}`;
 const secondaryContractCountKey = (id: string) => `contest-secondary-contract-count-${id}`;
 const issueEndDateKey = (id: string) => `contest-issue-end-date-${id}`;
 
@@ -52,6 +54,10 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       console.warn('[contest-detail-lite] recruitedAgentScope fallback read failed:', (error as Error)?.message);
     }
+    const groupLeaderSetting = await db.setting.findUnique({ where: { key: groupLeaderScopeKey(id) }, select: { value: true } }).catch(() => null);
+    const groupLeaderScope = groupLeaderSetting?.value === 'ttn' ? 'ttn' : 'leader';
+    const recruitEffectiveDateSetting = await db.setting.findUnique({ where: { key: recruitedAgentEffectiveDateFromKey(id) }, select: { value: true } }).catch(() => null);
+    const recruitedAgentEffectiveDateFrom = /^\d{4}-\d{2}-\d{2}$/.test(recruitEffectiveDateSetting?.value || '') ? recruitEffectiveDateSetting!.value : null;
 
     let tvvContractCountMin = 2;
     let secondaryContractCountMin = 0;
@@ -87,6 +93,8 @@ export async function GET(request: NextRequest) {
         ...contest,
         issueEndDate,
         recruitedAgentScope,
+        groupLeaderScope,
+        recruitedAgentEffectiveDateFrom,
         tvvContractCountMin,
         secondaryContractCountMin,
         secondaryContractIPMin,

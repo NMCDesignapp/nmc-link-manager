@@ -39,6 +39,8 @@ const contestCompatSelect = {
 } as const;
 
 const recruitedAgentScopeKey = (id: string) => `contest-recruited-agent-scope-${id}`;
+const groupLeaderScopeKey = (id: string) => `contest-group-leader-scope-${id}`;
+const recruitedAgentEffectiveDateFromKey = (id: string) => `contest-recruited-agent-effective-date-from-${id}`;
 const recruitmentConfigKey = (id: string) => `contest-recruitment-config-${id}`;
 const selectedSubjectTypesKey = (id: string) => `contest-selected-subject-types-${id}`;
 const contestLockKey = (id: string) => `contest-lock-${id}`;
@@ -184,6 +186,35 @@ async function saveRecruitedAgentScope(id: string, value: unknown): Promise<void
   });
 }
 
+async function loadGroupLeaderScopes<T extends { id: string }>(contests: T[]): Promise<Array<T & { groupLeaderScope: 'leader' | 'ttn' }>> {
+  if (!contests.length) return [];
+  const keys = contests.map(contest => groupLeaderScopeKey(contest.id));
+  const settings = await db.setting.findMany({ where: { key: { in: keys } }, select: { key: true, value: true } }).catch(() => []);
+  const values = new Map(settings.map(setting => [setting.key, setting.value]));
+  return contests.map(contest => ({ ...contest, groupLeaderScope: values.get(groupLeaderScopeKey(contest.id)) === 'ttn' ? 'ttn' : 'leader' }));
+}
+
+async function saveGroupLeaderScope(id: string, value: unknown): Promise<void> {
+  const normalized = value === 'ttn' ? 'ttn' : 'leader';
+  await db.setting.upsert({ where: { key: groupLeaderScopeKey(id) }, update: { value: normalized }, create: { key: groupLeaderScopeKey(id), value: normalized } });
+}
+
+async function loadRecruitedAgentEffectiveDates<T extends { id: string }>(contests: T[]): Promise<Array<T & { recruitedAgentEffectiveDateFrom: string | null }>> {
+  if (!contests.length) return [];
+  const keys = contests.map(contest => recruitedAgentEffectiveDateFromKey(contest.id));
+  const settings = await db.setting.findMany({ where: { key: { in: keys } }, select: { key: true, value: true } }).catch(() => []);
+  const values = new Map(settings.map(setting => [setting.key, setting.value]));
+  return contests.map(contest => {
+    const value = values.get(recruitedAgentEffectiveDateFromKey(contest.id)) || '';
+    return { ...contest, recruitedAgentEffectiveDateFrom: /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null };
+  });
+}
+
+async function saveRecruitedAgentEffectiveDate(id: string, value: unknown): Promise<void> {
+  const normalized = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : '';
+  await db.setting.upsert({ where: { key: recruitedAgentEffectiveDateFromKey(id) }, update: { value: normalized }, create: { key: recruitedAgentEffectiveDateFromKey(id), value: normalized } });
+}
+
 const posterKey = (id: string) => `contest-poster-${id}`;
 const posterPublicUrl = (contest: Pick<PosterContest, 'id' | 'updatedAt'>) =>
   `/api/poster-image/${encodeURIComponent(posterKey(contest.id))}?v=${contest.updatedAt ? new Date(contest.updatedAt).getTime() : Date.now()}`;
@@ -305,7 +336,9 @@ async function readContests(request: NextRequest) {
     if (!contest) return NextResponse.json({ error: 'Không tìm thấy chương trình thi đua' }, { status: 404 });
     const [withState] = await loadContestStates([contest]);
     const [withScope] = await loadRecruitedAgentScopes([withState]);
-    const [withRecruitment] = await loadRecruitmentConfigs([withScope]);
+    const [withGroupLeaderScope] = await loadGroupLeaderScopes([withScope]);
+    const [withRecruitEffectiveDate] = await loadRecruitedAgentEffectiveDates([withGroupLeaderScope]);
+    const [withRecruitment] = await loadRecruitmentConfigs([withRecruitEffectiveDate]);
     const [withExtraCount] = await loadExtraContractCount([withRecruitment]);
     const [withIssueEnd] = await loadIssueEndDates([withExtraCount]);
     return NextResponse.json(await normalizePoster(withIssueEnd), { headers: noStore });
@@ -327,7 +360,9 @@ async function readContests(request: NextRequest) {
   });
   const scopedWithState = await loadContestStates(scopedContests as any[]);
   const scopedWithScope = await loadRecruitedAgentScopes(scopedWithState);
-  const scopedWithRecruitment = await loadRecruitmentConfigs(scopedWithScope);
+  const scopedWithGroupLeaderScope = await loadGroupLeaderScopes(scopedWithScope);
+  const scopedWithRecruitEffectiveDate = await loadRecruitedAgentEffectiveDates(scopedWithGroupLeaderScope);
+  const scopedWithRecruitment = await loadRecruitmentConfigs(scopedWithRecruitEffectiveDate);
   const scopedWithExtraCount = await loadExtraContractCount(scopedWithRecruitment);
   const scopedWithIssueEnd = await loadIssueEndDates(scopedWithExtraCount);
   if (summary) {
@@ -369,7 +404,7 @@ export async function POST(request: NextRequest) {
       hideNotAchieved, includeIndividualNTD, includeIndividualTN,
       luotHDThreshold, luotHDCTThreshold, tvv90MaxMonths, tvv90MinIP,
       referenceContestId, includeTNInPassCount,
-      topN, topNMinIP, topNValueType, useTopRanking, topRewardAmounts, filterByEffectiveDate, recruitedAgentScope, recruitmentConfig,
+      topN, topNMinIP, topNValueType, useTopRanking, topRewardAmounts, filterByEffectiveDate, recruitedAgentScope, recruitedAgentEffectiveDateFrom, groupLeaderScope, recruitmentConfig,
     } = body as any;
 
     if (!title || !startDate || !endDate) {
@@ -457,6 +492,8 @@ export async function POST(request: NextRequest) {
       : await db.contest.create({ data, select: contestCompatSelect });
 
     await saveRecruitedAgentScope(contest.id, recruitedAgentScope);
+    await saveGroupLeaderScope(contest.id, groupLeaderScope);
+    await saveRecruitedAgentEffectiveDate(contest.id, recruitedAgentEffectiveDateFrom);
     await saveSelectedSubjectTypes(contest.id, selectedSubjectTypes || '[]');
     await saveRecruitmentConfig(contest.id, recruitmentConfig);
     const extraContractCount = await saveExtraContractCount(contest.id, { secondaryContractCountMin, secondaryContractIPMin, tvvContractCountMin });
@@ -474,7 +511,7 @@ export async function POST(request: NextRequest) {
     console.log('[POST /api/contests] Saved', contest.id, `${Date.now() - startTime}ms`);
     return NextResponse.json({
       message: existing ? 'Đã cập nhật chương trình thi đua' : 'Đã lưu chương trình thi đua',
-      contest: { ...contest, ...extraContractCount, selectedSubjectTypes: selectedSubjectTypes || '[]', lockedAt: null, lockedSnapshot: '', issueEndDate: withIssueEnd.issueEndDate, recruitedAgentScope: recruitedAgentScope === 'tvvm' ? 'tvvm' : 'all', recruitmentConfig: recruitmentConfig || null, posterUrl: posterPublicUrl(contest) },
+      contest: { ...contest, ...extraContractCount, selectedSubjectTypes: selectedSubjectTypes || '[]', lockedAt: null, lockedSnapshot: '', issueEndDate: withIssueEnd.issueEndDate, recruitedAgentScope: recruitedAgentScope === 'tvvm' ? 'tvvm' : 'all', recruitedAgentEffectiveDateFrom: /^\d{4}-\d{2}-\d{2}$/.test(recruitedAgentEffectiveDateFrom || '') ? recruitedAgentEffectiveDateFrom : null, groupLeaderScope: groupLeaderScope === 'ttn' ? 'ttn' : 'leader', recruitmentConfig: recruitmentConfig || null, posterUrl: posterPublicUrl(contest) },
     });
   } catch (error: any) {
     console.error('[POST /api/contests] Error:', error);
@@ -492,6 +529,8 @@ export async function DELETE(request: NextRequest) {
     } catch {}
     try {
       await db.setting.deleteMany({ where: { key: recruitedAgentScopeKey(id) } });
+      await db.setting.deleteMany({ where: { key: groupLeaderScopeKey(id) } });
+      await db.setting.deleteMany({ where: { key: recruitedAgentEffectiveDateFromKey(id) } });
       await db.setting.deleteMany({ where: { key: recruitmentConfigKey(id) } });
       await db.setting.deleteMany({ where: { key: secondaryContractCountKey(id) } });
       await db.setting.deleteMany({ where: { key: issueEndDateKey(id) } });
@@ -532,6 +571,8 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ message: 'Đã khóa kết quả chương trình', contest: { ...currentState, lockedAt, lockedSnapshot: serialized, posterUrl: posterPublicUrl(current) } });
     }
     const recruitedAgentScopeUpdate = updates.recruitedAgentScope;
+    const groupLeaderScopeUpdate = updates.groupLeaderScope;
+    const recruitedAgentEffectiveDateFromUpdate = updates.recruitedAgentEffectiveDateFrom;
     if (updates.participants !== undefined) { try { decodeRegisteredProgram(updates.participants); } catch(error) { return NextResponse.json({error:(error as Error).message},{status:400}); } }
     const recruitmentConfigUpdate = updates.recruitmentConfig;
     const selectedSubjectTypesUpdate = updates.selectedSubjectTypes;
@@ -545,6 +586,8 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Ngày phát hành đến không hợp lệ' }, { status: 400 });
     }
     delete updates.recruitedAgentScope;
+    delete updates.groupLeaderScope;
+    delete updates.recruitedAgentEffectiveDateFrom;
     delete updates.recruitmentConfig;
     delete updates.selectedSubjectTypes;
     delete updates.secondaryContractCountMin;
@@ -555,6 +598,8 @@ export async function PATCH(request: NextRequest) {
     }
     const contest = await db.contest.update({ where: { id }, data: updates, select: contestCompatSelect });
     if (recruitedAgentScopeUpdate !== undefined) await saveRecruitedAgentScope(id, recruitedAgentScopeUpdate);
+    if (groupLeaderScopeUpdate !== undefined) await saveGroupLeaderScope(id, groupLeaderScopeUpdate);
+    if (recruitedAgentEffectiveDateFromUpdate !== undefined) await saveRecruitedAgentEffectiveDate(id, recruitedAgentEffectiveDateFromUpdate);
     if (recruitmentConfigUpdate !== undefined) await saveRecruitmentConfig(id, recruitmentConfigUpdate);
     if (selectedSubjectTypesUpdate !== undefined) await saveSelectedSubjectTypes(id, selectedSubjectTypesUpdate || '[]');
     if (issueEndUpdate !== undefined) await saveIssueEndDate(id, normalizedIssueEnd);
@@ -568,7 +613,9 @@ export async function PATCH(request: NextRequest) {
     }
     const [withState] = await loadContestStates([contest]);
     const [withScope] = await loadRecruitedAgentScopes([withState]);
-    const [withRecruitment] = await loadRecruitmentConfigs([withScope]);
+    const [withGroupLeaderScope] = await loadGroupLeaderScopes([withScope]);
+    const [withRecruitEffectiveDate] = await loadRecruitedAgentEffectiveDates([withGroupLeaderScope]);
+    const [withRecruitment] = await loadRecruitmentConfigs([withRecruitEffectiveDate]);
     const [withExtraCount] = await loadExtraContractCount([withRecruitment]);
     const [withIssueEnd] = await loadIssueEndDates([withExtraCount]);
     return NextResponse.json({ message: 'Đã cập nhật chương trình thi đua', contest: { ...withIssueEnd, posterUrl: posterPublicUrl(contest) } });

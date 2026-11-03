@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatTVVContractProgressNote, getTVVQualifyingContractMap, getGroupTVVContractDetails, getGroupTVVContractProgress, getGroupTVVPassCountIPAFYP, isTVVPassCountMode, parseContestConfig, computeContestStats } from '../src/lib/contest-calculator.ts';
+import { formatTVVContractProgressNote, getTVVQualifyingContractMap, getGroupTVVContractDetails, getGroupTVVContractProgress, getGroupTVVPassCountIPAFYP, isTVVPassCountMode, parseContestConfig, computeContestStats, computeGroupedData } from '../src/lib/contest-calculator.ts';
 import type { Contract, GroupData } from '../src/lib/contest-calculator.ts';
 
 function contract(agent: string, number: string, ip = 6, afyp = 12): Contract {
@@ -91,4 +91,14 @@ test('qualified TVV precede pending TVV; pending counts descend then Vietnamese 
   assert.equal(formatTVVContractProgressNote(1, false), '- 01 HĐ');
   assert.equal(formatTVVContractProgressNote(2, false), '- 02 HĐ');
   assert.equal(formatTVVContractProgressNote(3, true), '');
+});
+
+test('group contract tracker can name the Tiền trưởng nhóm as contest owner', () => {
+  const rows = [contract('A', '1'), contract('A', '2')];
+  const leaders = [{ maNhom: 'G1', nhom: 'Group 1', agentCode: 'TN', agentName: 'Trưởng nhóm', position: 'Trưởng nhóm' }];
+  const recruiters = [{ id: 'ttn', nhom: 'Group 1', agentCode: 'TTN', agentName: 'Tiền trưởng nhóm', position: 'Tiền trưởng nhóm', startDate: null, ngayHieuLuc: null }];
+  const [result] = computeGroupedData(rows, { ...config, groupLeaderScope: 'ttn' }, [], recruiters, leaders, []);
+  assert.equal(result.leader?.agentCode, 'TTN');
+  assert.equal(result.leader?.position, 'Tiền trưởng nhóm');
+  assert.equal(getGroupTVVPassCountIPAFYP(result, rows, [], { ...config, groupLeaderScope: 'ttn' }), 1);
 });

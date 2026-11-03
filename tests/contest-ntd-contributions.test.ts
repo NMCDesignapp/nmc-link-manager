@@ -4,8 +4,8 @@ import { buildStructureStartDateMap, calculateNYDPhaseOutcome, computeContestSta
 import type { Contract, RecruiterMember, TVVStructMember } from '../src/lib/contest-calculator.ts';
 const M = 1_000_000;
 const recruiters = [{ id: 'A', agentCode: 'A', agentName: 'Demo A', position: 'TTN', nhom: 'G', startDate: '2025-01-01' }] as RecruiterMember[];
-const struct = (agentCode: string, start = '2026-09-01') => ({ agentCode, ngayBatDau: start, maBanNhom: 'G', maTVVTuyendung: 'A' } as TVVStructMember);
-const structure = [struct('NEW1'), struct('NEW2'), struct('OLD', '2020-01-01'), struct('A'), struct('OTHER')];
+const struct = (agentCode: string, start = '2026-09-01', effective = '2026-09-01') => ({ agentCode, ngayBatDau: start, ngayHieuLuc: effective, maBanNhom: 'G', maTVVTuyendung: 'A' } as TVVStructMember);
+const structure = [struct('NEW1'), struct('NEW2', '2026-09-01', '2026-08-31'), struct('OLD', '2020-01-01'), struct('A'), struct('OTHER')];
 const row = (id: string, agentCode: string, recruiter: string, ip: number, date = '2026-09-10') => ({ id, contractNumber: id, agentCode, agentName: agentCode, maDaiLyTD: recruiter, maNhom: 'G', nhom: 'G', effectiveDate: date, issueDate: '2026-09-20', pdt10DT: ip * M, afyp: ip * 2 * M, tinhLuot3tr: ip * M } as Contract);
 const rows = [row('new1', 'NEW1', 'A', 12), row('new2', 'NEW2', 'A', 13), row('old', 'OLD', 'A', 50), row('own', 'A', 'A', 100), row('other', 'OTHER', 'B', 60)];
 const base = { targetType: 'nyd', conditionType: 'total_ip', startDate: '2026-09-01', endDate: '2026-09-30', issueDate: '2026-09-01', issueEndDate: '2026-10-10', recruitedAgentScope: 'tvvm', includeIndividualNTD: false, participants: JSON.stringify(['A']), luotHDCTThreshold: 12 * M, bonusTiers: JSON.stringify([{ id: 't', minFYP: 1, maxFYP: null, bonusType: 'percent', bonusPercent: 10, bonusAmount: 100 }]) };
@@ -63,6 +63,11 @@ test('selecting recruiter by name does not create duplicate result/reward rows',
 test('all/TVVm scope and empty valid recruiter remain independent of personal flag', () => {
   assert.equal(run({ recruitedAgentScope: 'all' }).results[0].value, 75 * M);
   const empty = run({}, [row('own-only', 'A', '', 100)]); assert.equal(empty.data.length, 1); assert.equal(empty.results[0].value, 0); assert.equal(empty.display.length, 0);
+});
+test('fixed TVV position-effective date is independent from the recruiter latest-effective-date rule', () => {
+  const fixed = run({ recruitedAgentEffectiveDateFrom: '2026-09-01', filterByEffectiveDate: false });
+  assert.deepEqual(fixed.display.map(contract => contract.id), ['new1']);
+  assert.deepEqual(run({ recruitedAgentEffectiveDateFrom: null, filterByEffectiveDate: false }).display.map(contract => contract.id), ['new1', 'new2']);
 });
 test('two phases and percentage bases exclude personal and out-of-scope TVV in both phases', () => {
   const split = [row('p1', 'NEW1', 'A', 12, '2026-09-10'), row('p2', 'NEW2', 'A', 13, '2026-09-20'), row('own-p1', 'A', '', 100), row('old-p2', 'OLD', 'A', 50, '2026-09-20')];

@@ -114,6 +114,7 @@ export interface TVVStructMember {
   maBanNhom: string;
   chucVu: string;
   ngayBatDau: string | null; // Ngày bắt đầu làm việc của TVV
+  ngayHieuLuc?: string | null; // Ngày hiệu lực chức vụ của chính TVV/TVVm
   maTVVTuyendung?: string;
   note?: string;
   ghiChu?: string;
@@ -131,6 +132,7 @@ export interface RecruitmentContestConfig {
   activityComparator: RecruitmentComparator;
   activityThreshold: number;
   activityBonusAmount: number;
+  recruitEffectiveDateFrom?: string | null;
 }
 
 export interface RecruitmentContestRow {
@@ -202,6 +204,7 @@ export interface ContestConfig {
   referenceContestId?: string;
   includeTNInPassCount?: boolean;
   tvvContractCountMin?: number;
+  groupLeaderScope?: 'leader' | 'ttn';
   topN?: number;
   topNMinIP?: number;
   topNValueType?: 'ip' | 'afyp'; // Loại chỉ tiêu xét Top N: 'ip' (mặc định) hoặc 'afyp'
@@ -213,6 +216,7 @@ export interface ContestConfig {
   topEligibilityMin?: number;
   filterByEffectiveDate?: boolean; // true: chỉ tính TVV có ngày LV >= ngày hiệu lực chức vụ gần nhất của NTD recruiter
   recruitedAgentScope?: RecruitedAgentScope; // NTD: toàn bộ TVV hoặc chỉ TVVm do chính NTD tuyển
+  recruitedAgentEffectiveDateFrom?: string | null; // mốc cố định theo ngày hiệu lực chức vụ của TVV/TVVm
 }
 
 // ===== Helpers — mode detection =====
@@ -296,6 +300,11 @@ export function computeRecruitmentContestRows(args: {
       if (String(member.ghiChu || '').trim().toLowerCase() === 'x') return false;
       const joinedAt = dateOnlyTime(member.ngayBatDau);
       if (joinedAt === null || joinedAt < from || joinedAt > to) return false;
+      const fixedEffectiveFrom = dateOnlyTime(config.recruitEffectiveDateFrom);
+      if (fixedEffectiveFrom !== null) {
+        const memberEffectiveDate = dateOnlyTime(member.ngayHieuLuc);
+        if (memberEffectiveDate === null || memberEffectiveDate < fixedEffectiveFrom) return false;
+      }
       return effectiveFrom === null || joinedAt >= effectiveFrom;
     });
     const activityQualifiedCount = config.activityEnabled
@@ -410,15 +419,23 @@ export function getNYDContributingContracts(
 }
 
 export function filterNYDDisplayContracts(
-  contracts: Contract[], config: Pick<ContestConfig, 'participants' | 'includeIndividualNTD' | 'recruitedAgentScope'>,
-  recruiters: RecruiterMember[], structure: ReadonlyArray<Pick<TVVStructMember, 'agentCode' | 'ngayBatDau'>> = []
+  contracts: Contract[], config: Pick<ContestConfig, 'participants' | 'includeIndividualNTD' | 'recruitedAgentScope' | 'recruitedAgentEffectiveDateFrom'>,
+  recruiters: RecruiterMember[], structure: ReadonlyArray<Pick<TVVStructMember, 'agentCode' | 'ngayBatDau' | 'ngayHieuLuc'>> = []
 ): Contract[] {
   const selected = recruiters.filter(person => !norm(person.nhom || '').toLowerCase().includes('dso')
     && (!config.participants.length || config.participants.some(value => normalizeAgentCode(value) === normalizeAgentCode(person.agentCode) || norm(value) === norm(person.agentName))));
   const starts = buildStructureStartDateMap(structure);
-  const included = new Set(selected.flatMap(person => getNYDContributingContracts(contracts, person.agentCode,
+  const fixedEffectiveFrom = dateOnlyTime(config.recruitedAgentEffectiveDateFrom);
+  const effectiveDates = new Map(structure.map(member => [normalizeAgentCode(member.agentCode), dateOnlyTime(member.ngayHieuLuc)]));
+  const dateFilteredContracts = fixedEffectiveFrom === null ? contracts : contracts.filter(contract => {
+    // Chỉ lọc người được tuyển; kết quả cá nhân của NTD (nếu bật) không chịu mốc này.
+    if (!contract.maDaiLyTD || normalizeAgentCode(contract.agentCode) === normalizeAgentCode(contract.maDaiLyTD)) return true;
+    const effectiveDate = effectiveDates.get(normalizeAgentCode(contract.agentCode));
+    return effectiveDate !== null && effectiveDate !== undefined && effectiveDate >= fixedEffectiveFrom;
+  });
+  const included = new Set(selected.flatMap(person => getNYDContributingContracts(dateFilteredContracts, person.agentCode,
     config.includeIndividualNTD ?? false, config.recruitedAgentScope, starts)));
-  return contracts.filter(row => included.has(row));
+  return dateFilteredContracts.filter(row => included.has(row));
 }
 
 export function isTVV90Agent(
@@ -1033,6 +1050,7 @@ export function parseContestConfig(raw: any): ContestConfig {
     referenceContestId: raw.referenceContestId || '',
     tvvContractCountMin: Math.max(1, Math.floor(Number(raw.tvvContractCountMin) || 2)),
     includeTNInPassCount: raw.includeTNInPassCount ?? false,
+    groupLeaderScope: raw.groupLeaderScope === 'ttn' ? 'ttn' : 'leader',
     topN: raw.topN ?? 3,
     topNMinIP: raw.topNMinIP ?? 50_000_000,
     topNValueType: raw.topNValueType === 'afyp' ? 'afyp' : 'ip',
@@ -1042,6 +1060,7 @@ export function parseContestConfig(raw: any): ContestConfig {
     topEligibilityMin,
     filterByEffectiveDate: raw.filterByEffectiveDate ?? false,
     recruitedAgentScope: raw.recruitedAgentScope === 'tvvm' ? 'tvvm' : 'all',
+    recruitedAgentEffectiveDateFrom: /^\d{4}-\d{2}-\d{2}$/.test(String(raw.recruitedAgentEffectiveDateFrom || '')) ? String(raw.recruitedAgentEffectiveDateFrom) : null,
   };
 }
 
@@ -1328,8 +1347,16 @@ export function computeGroupedData(
     }
   }
 
-  // Find leader — từ DS TB/TN (leadersList) hoặc staffList
+  // Find contest owner. Most group contests belong to TB/TN; some programs
+  // explicitly reward the Tiền trưởng nhóm responsible for that group.
   for (const [maNhom, g] of map) {
+    if (config.groupLeaderScope === 'ttn') {
+      const ttn = recruiterList.find((r) => norm(r.nhom || '').toLowerCase() === norm(g.nhom || maNhom).toLowerCase());
+      if (ttn) {
+        g.leader = { agentCode: ttn.agentCode, agentName: ttn.agentName, position: ttn.position || 'Tiền trưởng nhóm' };
+        continue;
+      }
+    }
     // Ưu tiên: tìm trực tiếp từ leadersList (mỗi dòng = TB hoặc TN của nhóm)
     const leader = leadersList?.find((l: any) => l.maNhom === maNhom);
     if (leader) {

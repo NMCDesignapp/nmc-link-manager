@@ -222,6 +222,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           recruiters, tuyenNgang, structurePhong, structureAd, structureBanNhom,
           structureTvv, clbMembers, pendingMembers, contests,
         ] = await secondaryDataPromise
+        const recruitEffectiveDateByCode = new Map((tuyenNgang || []).map((row: any) => [String(row.agentCode || '').trim().toUpperCase(), row.ngayHieuLuc || null]))
+        const structureTvvWithEffectiveDates = (structureTvv || []).map((row: any) => ({
+          ...row,
+          ngayHieuLuc: recruitEffectiveDateByCode.get(String(row.agentCode || '').trim().toUpperCase()) || row.ngayHieuLuc || null,
+        }))
 
         // /api/quan-ly/all is the single source for the four largest tables.
         // Avoid fetching the same contracts/revenue/staff/leaders a second time.
@@ -237,7 +242,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           structurePhong: structurePhong || [],
           structureAd: structureAd || [],
           structureBanNhom: structureBanNhom || [],
-          structureTvv: structureTvv || [],
+          structureTvv: structureTvvWithEffectiveDates,
           clbMembers: clbMembers || [],
           pendingMembers: pendingMembers || [],
           quanLyAll: quanLyAll || null,
