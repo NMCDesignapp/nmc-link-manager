@@ -21,26 +21,25 @@ test('only acknowledged sync, never heartbeat/export time; missing, invalid and 
   assert.equal(successfulSyncTime({...settings,'nmc-sync-source':'google'},now),null);
   assert.match(buildContestCommunication(config(),{},now).text,/Chưa xác định/);
 });
-test('AFYP qualification does not turn percentage reward into AFYP reward', () => {
+test('communication keeps the progress essentials and omits contest mechanics', () => {
   const result = buildContestCommunication(config(),settings,now);
-  assert.match(result.text,/AFYP\/HĐ/);
-  assert.match(result.text,/5% × IP/);
   assert.match(result.text,/27\/10\/2026/);
   assert.match(result.text,/HÔM NAY VÀ NGÀY MAI/);
+  assert.match(result.text,/CẬP NHẬT TIẾN ĐỘ THI ĐUA/);
+  assert.doesNotMatch(result.text,/NỘI DUNG VÀ CƠ CHẾ THƯỞNG/);
+  assert.doesNotMatch(result.text,/5% × IP|AFYP\/HĐ|Xét thưởng theo/);
   assert.equal(result.lines.find(x=>x.tone==='urgent')?.emphasis,true);
+  assert.equal(result.text, result.lines.map(line => line.text).join('\n\n'));
 });
-test('rank rewards follow array order, not monetary thresholds', () => {
+test('TOP configuration is not included in the communication copy', () => {
   const c = {...config(),conditionType:'top_n_ip' as const,topN:2,topNValueType:'afyp' as const,bonusTiers:[{...tier,bonusType:'money' as const,bonusAmount:1000000,minFYP:50000000},{...tier,bonusType:'money' as const,bonusAmount:500000,minFYP:0}]};
   const text = buildContestCommunication(c,settings,now).text;
-  assert.match(text,/Hạng 1: 1.000.000 đ/);
-  assert.match(text,/Hạng 2: 500.000 đ/);
-  assert.match(text,/TOP AFYP/);
+  assert.doesNotMatch(text,/Hạng 1|Hạng 2|TOP AFYP|1.000.000 đ/);
 });
-test('two phases and each percentage base remain distinct', () => {
+test('two-phase mechanics are not included in the communication copy', () => {
   const c = config();
   c.usePhase2 = true; c.phase2StartDate='2026-10-15'; c.phase2EndDate='2026-10-29';
   c.bonusTiers2=[{...c.bonusTiers[0],bonusType:'percent_total_ip',bonusPercent:10}];
   const text = buildContestCommunication(c,settings,now).text;
-  assert.match(text,/Giai đoạn 1/); assert.match(text,/Giai đoạn 2/);
-  assert.match(text,/10% × tổng IP/);
+  assert.doesNotMatch(text,/Giai đoạn 1|Giai đoạn 2|10% × tổng IP/);
 });
