@@ -25,7 +25,10 @@ const text = (value: unknown) => String(value ?? '').trim();
 const sampleLabel = (row: WarningContract, index: number) =>
   [text(row.contractNumber), text(row.agentCode), text(row.agentName)].filter(Boolean).join(' · ') || `Dòng ${index + 1}`;
 
-export function findContestDataWarnings(rows: WarningContract[]): ContestDataWarning[] {
+export function findContestDataWarnings(
+  rows: WarningContract[],
+  options: { requireGroupCode?: boolean } = {},
+): ContestDataWarning[] {
   const warnings: ContestDataWarning[] = [];
   const collect = (code: string, severity: ContestWarningSeverity, title: string, detail: string, matches: Array<{ row: WarningContract; index: number }>) => {
     if (!matches.length) return;
@@ -36,7 +39,9 @@ export function findContestDataWarnings(rows: WarningContract[]): ContestDataWar
   collect('missing-agent-code', 'error', 'Thiếu mã đại lý', 'Không thể xác định chính xác người hoặc nhóm nhận kết quả.', indexed.filter(({ row }) => !text(row.agentCode)));
   collect('missing-contract-number', 'warning', 'Thiếu số hợp đồng', 'Cần kiểm tra để tránh đếm trùng hoặc không truy được hợp đồng.', indexed.filter(({ row }) => !text(row.contractNumber)));
   collect('missing-agent-name', 'warning', 'Thiếu họ tên', 'Mã có dữ liệu nhưng thiếu tên hiển thị.', indexed.filter(({ row }) => !text(row.agentName)));
-  collect('missing-group', 'warning', 'Thiếu mã nhóm', 'Kết quả theo nhóm có thể không phân bổ đúng.', indexed.filter(({ row }) => !text(row.maNhom)));
+  if (options.requireGroupCode) {
+    collect('missing-group', 'warning', 'Thiếu mã nhóm', 'Kết quả theo nhóm có thể không phân bổ đúng.', indexed.filter(({ row }) => !text(row.maNhom)));
+  }
 
   const byContract = new Map<string, Array<{ row: WarningContract; index: number }>>();
   for (const item of indexed) {

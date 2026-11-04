@@ -603,7 +603,7 @@ const ContestSourceRows = React.memo(function ContestSourceRows({ contracts, onD
   const visibleContracts = contracts.slice(startIndex, startIndex + CONTEST_SOURCE_PAGE_SIZE);
 
   return <TableBody>{visibleContracts.map((c, idx) => (
-    <TableRow key={c.id} className="hover:bg-emerald-500/10 border-emerald-500/20"><TableCell className="text-center text-emerald-400/50 text-xs">{startIndex + idx + 1}</TableCell><TableCell className="font-mono text-[10px] text-emerald-400 whitespace-nowrap">{c.maNhom}</TableCell><TableCell className="font-mono text-[10px] text-emerald-300/60 whitespace-nowrap">{c.agentCode}</TableCell><TableCell className="text-xs text-emerald-200 whitespace-nowrap">{c.agentName}</TableCell><TableCell className="text-[10px] text-emerald-300/70 whitespace-nowrap">{formatDate(c.effectiveDate)}</TableCell><TableCell className="font-semibold text-emerald-400 text-xs whitespace-nowrap">{formatNumber(c.pdt10DT)}</TableCell><TableCell><Button variant="ghost" size="sm" onClick={() => onDelete(c.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-300"><Trash2 className="w-3 h-3" /></Button></TableCell></TableRow>
+    <TableRow key={c.id} className="hover:bg-emerald-500/10 border-emerald-500/20"><TableCell className="text-center text-emerald-400/50 text-xs">{startIndex + idx + 1}</TableCell><TableCell className="text-xs text-emerald-200 whitespace-nowrap">{c.nhom || '—'}</TableCell><TableCell className="font-mono text-[10px] text-emerald-300/60 whitespace-nowrap">{c.agentCode}</TableCell><TableCell className="text-xs text-emerald-200 whitespace-nowrap">{c.agentName}</TableCell><TableCell className="text-[10px] text-emerald-300/70 whitespace-nowrap">{formatDate(c.effectiveDate)}</TableCell><TableCell className="font-semibold text-emerald-400 text-xs whitespace-nowrap">{formatNumber(c.pdt10DT)}</TableCell><TableCell><Button variant="ghost" size="sm" onClick={() => onDelete(c.id)} className="h-5 w-5 p-0 text-red-400 hover:text-red-300"><Trash2 className="w-3 h-3" /></Button></TableCell></TableRow>
   ))}
   {pageCount > 1 && (
     <TableRow className="border-emerald-500/20 bg-gray-950/70 hover:bg-gray-950/70">
@@ -3987,7 +3987,7 @@ function ThiDuaPageInner() {
     if (registeredProgram) {
       if (!registeredProgram.rows.length || !registeredProgram.tiers.length) { toast({title:'Thiếu cấu hình',description:'Nạp Excel đối tượng và mức thưởng trước khi tính.'}); return; }
       try { decodeRegisteredProgram(registeredProgram); } catch(e) {toast({title:'Cấu hình không hợp lệ',description:String(e)});return;}
-      const warnings = findContestDataWarnings(registeredContracts);
+      const warnings = findContestDataWarnings(registeredContracts, { requireGroupCode: registeredProgram.scope === 'nhom' });
       setContestWarnings(warnings);
       if (warnings.length > 0) setWarningDialogOpen(true);
       else setIsResultDialogOpen(true);
@@ -4001,7 +4001,7 @@ function ThiDuaPageInner() {
     }
     setResultPage(0);
     setFilteredContracts(results);
-    const warnings = findContestDataWarnings(results);
+    const warnings = findContestDataWarnings(results, { requireGroupCode: targetType === 'nhom' });
     setContestWarnings(warnings);
     if (warnings.length > 0) setWarningDialogOpen(true);
     else setIsResultDialogOpen(true);
@@ -5060,7 +5060,7 @@ function ThiDuaPageInner() {
                 <div className="text-center py-6 text-emerald-400/50"><Database className="w-8 h-8 mx-auto mb-2 opacity-30" /><p className="text-sm font-medium">Chưa có dữ liệu</p><p className="text-xs">Nhấn &ldquo;Nhập HD&rdquo; để tải từ Google Sheets</p></div>
               ) : (
                 <div className="rounded-lg border border-emerald-500/30 overflow-x-auto max-h-48 overflow-y-auto">
-                  <Table><TableHeader><TableRow className="bg-emerald-500/20 sticky top-0"><TableHead className="w-[35px] text-center text-xs text-emerald-400/60">STT</TableHead><TableHead className="text-xs text-emerald-400/60">MC NHÓM</TableHead><TableHead className="text-xs text-emerald-400/60">Mã</TableHead><TableHead className="text-xs text-emerald-400/60">Họ tên</TableHead><TableHead className="text-xs text-emerald-400/60">Ngày HL</TableHead><TableHead className="text-xs text-emerald-400/60">IP</TableHead><TableHead className="w-[30px]"></TableHead></TableRow></TableHeader>
+                  <Table><TableHeader><TableRow className="bg-emerald-500/20 sticky top-0"><TableHead className="w-[35px] text-center text-xs text-emerald-400/60">STT</TableHead><TableHead className="text-xs text-emerald-400/60">NHÓM</TableHead><TableHead className="text-xs text-emerald-400/60">Mã</TableHead><TableHead className="text-xs text-emerald-400/60">Họ tên</TableHead><TableHead className="text-xs text-emerald-400/60">Ngày HL</TableHead><TableHead className="text-xs text-emerald-400/60">IP</TableHead><TableHead className="w-[30px]"></TableHead></TableRow></TableHeader>
                     <ContestSourceRows contracts={contracts} onDelete={deleteSourceContract} />
                   </Table>
                 </div>

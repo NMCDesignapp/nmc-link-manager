@@ -10,7 +10,14 @@ test('phát hiện thiếu mã, trùng hợp đồng và giá trị âm', () => 
   const warnings = findContestDataWarnings([
     { contractNumber: 'HD1', agentCode: '', agentName: 'An', maNhom: '', effectiveDate: '', pdt10DT: -1 },
     { contractNumber: 'HD1', agentCode: 'A2', agentName: '', maNhom: 'N2', issueDate: '2026-11-02', pdt10DT: 1 },
-  ]);
+  ], { requireGroupCode: true });
   const codes = new Set(warnings.map(item => item.code));
   for (const code of ['missing-agent-code', 'missing-agent-name', 'missing-group', 'duplicate-contract', 'missing-date', 'negative-value']) assert.ok(codes.has(code), code);
+});
+
+test('thi đua TVV không cảnh báo thiếu mã nhóm', () => {
+  const warnings = findContestDataWarnings([
+    { contractNumber: 'HD1', agentCode: 'A1', agentName: 'An', maNhom: '', effectiveDate: '2026-11-01', pdt10DT: 3_000_000 },
+  ]);
+  assert.ok(!warnings.some(item => item.code === 'missing-group'));
 });
