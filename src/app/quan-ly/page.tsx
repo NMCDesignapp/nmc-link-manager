@@ -37,6 +37,7 @@ import {
 import { evaluateClbsvPersonalRank } from '@/lib/clb-sao-viet-personal-rank';
 import { SaoVietBreakthrough } from '@/components/sao-viet-breakthrough';
 import { CarryoverContractsTable } from '@/components/carryover-contracts-table';
+import { TVVNotesExcelImport } from '@/components/tvv-notes-excel-import';
 import { calculateRevenueTVVmAFYP } from '@/lib/revenue-tvvm';
 
 // nmc-sao-viet-exclude-chot-v1
@@ -5171,6 +5172,7 @@ export default function QuanLyPage() {
           <label htmlFor="tvv-list-upsert-input" className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded-md text-xs font-medium cursor-pointer">
             <Upload className="w-3.5 h-3.5" /> Cập nhật DS TVV
           </label>
+          <TVVNotesExcelImport onImported={fetchTvvStruct} />
           <Button onClick={handleDeleteAllTvv} disabled={tvvStructList.length === 0} variant="outline" className="border-red-500/40 text-red-300 hover:bg-red-500/15 hover:text-red-200 h-8 text-xs disabled:opacity-40"><Trash2 className="w-3.5 h-3.5 mr-1" /> Xóa toàn bộ</Button>
           <Button onClick={() => handleDownloadTemplate('structure-tvv')} variant="outline" className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
           <Button onClick={() => handleExport('structure-tvv')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
