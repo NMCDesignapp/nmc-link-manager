@@ -1,0 +1,18 @@
+# Keep Cloud Run container builds small and prevent local credentials entering images.
+.git
+**/.git
+**/node_modules
+**/.next
+**/.turbo
+**/.vercel
+**/.netlify
+**/coverage
+**/*.log
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*service-account*.json
+**/*credentials*.json
+**/data-hub.config.json
+**/.nmc-data-hub-state.json
