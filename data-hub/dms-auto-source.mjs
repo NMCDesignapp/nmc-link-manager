@@ -41,12 +41,12 @@ async function latestApm(mask){
   if(!mask)throw Error('Thiếu đường dẫn APM01');
   const dir=path.dirname(mask),name=path.basename(mask);
   if(!name.includes('*')){
-    if(!/^APM01 Agent[_ -].+\.xlsx$/i.test(name))throw Error('Tên APM01 không đúng');
+    if(!/^APM01 Agents_.+\.xlsx$/i.test(name))throw Error('Tên APM01 không đúng');
     return mask;
   }
-  if(name!=='APM01 Agent_*.xlsx')throw Error('Mẫu APM01 không hợp lệ');
-  const entries=(await fs.readdir(dir,{withFileTypes:true})).filter(e=>e.isFile()&&/^APM01 Agent_.+\.xlsx$/i.test(e.name));
-  if(!entries.length)throw Error('Không tìm thấy APM01 Agent_...xlsx');
+  if(name!=='APM01 Agents_*.xlsx')throw Error('Mẫu APM01 không hợp lệ');
+  const entries=(await fs.readdir(dir,{withFileTypes:true})).filter(e=>e.isFile()&&/^APM01 Agents_.+\.xlsx$/i.test(e.name));
+  if(!entries.length)throw Error('Không tìm thấy APM01 Agents_...xlsx');
   const list=await Promise.all(entries.map(async e=>{
     const file=path.join(dir,e.name),s=await fs.stat(file);
     return {file,time:s.mtimeMs,size:s.size};
@@ -199,14 +199,14 @@ function buildTamthu(bc,apm,{adMap=new Map(),missingAdAllowed=new Set()}={}){
   return {sheet2,sheet4:filtered.map(r=>Object.fromEntries(HEADERS.map(h=>[h,r[h]??'']))),
     audit:{before:stats(sheet2),after:stats(filtered),removed:sheet2.length-filtered.length}};
 }
-export const testOnly={buildStructure,buildTamthu};
+export const testOnly={buildStructure,buildTamthu,latestApm};
 export function isDmsSource(source){return TRANSFORMS.has(source?.dmsTransform);}
 export async function readDmsSource(source){
   if(!isDmsSource(source))throw Error('Không hỗ trợ loại DMS');
   if(!source.file)throw Error('Thiếu đường dẫn file DMS');
   const isApm=source.dmsTransform.startsWith('apm01');
   const apmFile=await latestApm(isApm?source.file:
-    (source.apmFile||path.join(path.dirname(source.file),'APM01 Agent_*.xlsx')));
+    (source.apmFile||path.join(path.dirname(source.file),'APM01 Agents_*.xlsx')));
   const apm=apmRows(await workbook(apmFile));
   const reference=apmRows(await workbook(source.structureReferenceFile||
     path.join(path.dirname(apmFile),'Cautruc.xlsx')));
