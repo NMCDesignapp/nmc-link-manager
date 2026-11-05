@@ -72,11 +72,10 @@ function apmRows(book){
     return r[0]&&clean(r[0][2])==='Mã TVV'&&r[0].some(x=>clean(x)==='Chức vụ TVV');
   });
   if(!sheet)throw Error('Không tìm thấy sheet APM01 Agent Detail Information');
-  const data=matrix(book,sheet),raw=matrix(book,sheet,true),header=data[0];
+  const data=matrix(book,sheet),header=data[0];
   const rows=data.slice(1).map((cells,i)=>{
     const result={};
     header.slice(0,28).forEach((h,j)=>{if(clean(h))result[clean(h)]=clean(cells[j]);});
-    result['Ngày sinh (ngày)']=clean(raw[i+1]?.[22]);
     return result;
   }).filter(r=>clean(r['Mã TVV']));
   const ad=new Map();
@@ -87,8 +86,7 @@ function apmRows(book){
       ad.set(group,name);
     }
   }
-  const t=Number(header[27]);
-  return {rows,ad,threshold:Number.isFinite(t)&&t>1000?t:null};
+  return {rows,ad};
 }
 function bcRows(book){
   const sheet=book.SheetNames.find(name=>{
@@ -112,11 +110,11 @@ function bcRows(book){
   }
   return rows;
 }
-function buildStructure(source,{threshold=null,officeRecruiters=false}={}){
+function buildStructure(source,{officeRecruiters=false}={}){
   required(source,['Mã TVV','Tên TVV','Chức vụ TVV','Trạng thái TVV','Ngày bắt đầu làm việc',
     'Ngày hiệu lực chức vụ','Mã TVV tuyển dụng'],'APM01');
   const seen=new Set(),tvv=[],leaders=[],recruiters=[];
-  let missingGroup=0,unverifiedNotes=0;
+  let missingGroup=0;
   for(const r of source){
     const code=ident(r['Mã TVV']);
     if(!code)continue;
@@ -127,19 +125,11 @@ function buildStructure(source,{threshold=null,officeRecruiters=false}={}){
     const banca=lower(r.Ban).startsWith('dso team')||(!rawGroup&&lower(r['Kênh'])==='kênh đối tác');
     const group=pick(r,'MÃ NHÓM')||(banca?'Banca':rawGroup);
     if(!group)missingGroup++;
-    let note=pick(r,'Ghi chú','37622');
-    if(!Object.hasOwn(r,'Ghi chú')&&!Object.hasOwn(r,'37622')){
-      if(!threshold)unverifiedNotes++;
-      else {
-        const birth=Number(r['Ngày sinh (ngày)']);
-        note=Number.isFinite(birth)&&birth>=threshold?'x':'';
-      }
-    }
     const name=clean(r['Tên TVV']),position=clean(r['Chức vụ TVV']);
     const joined=clean(r['Ngày bắt đầu làm việc']);
     tvv.push({'Mã TVV':code,'Tên TVV':name,'Mã Ban/Nhóm':group,'Chức vụ':position,
       'Ngày bắt đầu làm việc':joined,'Mã TVV TD':ident(r['Mã TVV tuyển dụng']),
-      'Trạng thái':clean(r['Trạng thái TVV']),'Ghi chú':note});
+      'Trạng thái':clean(r['Trạng thái TVV'])});
     if(['trưởng nhóm','trưởng ban'].includes(lower(position))){
       leaders.push({'Mã số':code,'Họ tên':name,'Chức vụ':position,'Ban':clean(r.Ban),
         'Nhóm':pick(r,'Nhóm','Ban'),'Mã nhóm':group,'Tiền/tháng':'','SĐT':'',
@@ -151,8 +141,7 @@ function buildStructure(source,{threshold=null,officeRecruiters=false}={}){
         'Ngày hiệu lực chức vụ':clean(r['Ngày hiệu lực chức vụ'])});
     }
   }
-  if(missingGroup||unverifiedNotes)throw Error('APM01 chưa đạt đối chiếu: '+missingGroup+
-    ' mã nhóm thiếu, '+unverifiedNotes+' ghi chú chưa xác minh');
+  if(missingGroup)throw Error('APM01 có '+missingGroup+' mã nhóm thiếu; dừng đối chiếu');
   return {tvv,leaders,recruiters};
 }
 function buildTamthu(bc,apm,{adMap=new Map(),missingAdAllowed=new Set()}={}){
@@ -211,8 +200,8 @@ export async function readDmsSource(source){
   const reference=apmRows(await workbook(source.structureReferenceFile||
     path.join(path.dirname(apmFile),'Cautruc.xlsx')));
   for(const [g,ad] of reference.ad)if(!apm.ad.has(g))apm.ad.set(g,ad);
-  const structure=buildStructure(apm.rows,{threshold:apm.threshold||reference.threshold,
-    officeRecruiters:source.includeOfficeRecruiters===true});
+  // Ghi chú/ngày sinh chưa được APM01 xác nhận: tuyệt đối không suy diễn.
+  const structure=buildStructure(apm.rows,{officeRecruiters:source.includeOfficeRecruiters===true});
   let input,audit={tvv:structure.tvv.length,leaders:structure.leaders.length,
     recruiters:structure.recruiters.length};
   if(isApm){
