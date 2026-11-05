@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import {testOnly,isDmsSource} from '../data-hub/dms-auto-source.mjs';
 const agent=(id,role='Tư vấn tài chính')=>({
  'Mã TVV':id,'Tên TVV':'Nhân sự mẫu','Chức vụ TVV':role,
@@ -38,4 +41,19 @@ test('Nguồn thiếu AD hoặc trùng mã bị chặn',()=>{
  const a=agent('D002');
  assert.throws(()=>testOnly.buildTamthu([contract('Có hiệu lực',10,10)],[a]),/AD/);
  assert.throws(()=>testOnly.buildStructure([a,a],{threshold:37622}),/trùng/);
+});
+
+test('Nhận APM01 Agents_ kèm ngày tháng, bỏ qua tiền tố Agent_ cũ và chọn bản mới nhất',async()=>{
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'nmc-dms-name-'));
+ try{
+  const older=path.join(dir,'APM01 Agents_20261104.xlsx');
+  const newer=path.join(dir,'APM01 Agents_20261105.xlsx');
+  const wrong=path.join(dir,'APM01 Agent_20261106.xlsx');
+  for(const file of [older,newer,wrong])await fs.writeFile(file,Buffer.alloc(1200));
+  await fs.utimes(older,new Date('2026-11-04T10:00:00Z'),new Date('2026-11-04T10:00:00Z'));
+  await fs.utimes(newer,new Date('2026-11-05T10:00:00Z'),new Date('2026-11-05T10:00:00Z'));
+  await fs.utimes(wrong,new Date('2026-11-06T10:00:00Z'),new Date('2026-11-06T10:00:00Z'));
+  assert.equal(await testOnly.latestApm(path.join(dir,'APM01 Agents_*.xlsx')),newer);
+  await assert.rejects(testOnly.latestApm(path.join(dir,'APM01 Agent_*.xlsx')),/Mẫu APM01 không hợp lệ/);
+ }finally{await fs.rm(dir,{recursive:true,force:true});}
 });
