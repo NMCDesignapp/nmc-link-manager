@@ -10,6 +10,19 @@ function parseEventId(value: unknown): number | null {
   return Number.isInteger(id) && id > 0 ? id : null
 }
 
+// A backup restore can insert explicit CalendarEvent IDs without advancing the
+// PostgreSQL sequence. Repair it before retrying a create so new plans do not
+// collide with an existing primary key.
+async function repairCalendarEventIdSequence() {
+  await db.$executeRawUnsafe(`
+    SELECT setval(
+      pg_get_serial_sequence('"CalendarEvent"', 'id'),
+      GREATEST(COALESCE((SELECT MAX(id) FROM "CalendarEvent"), 1), 1),
+      true
+    )
+  `)
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -73,23 +86,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Title and date are required' }, { status: 400 })
     }
 
+    const createEvent = () => db.calendarEvent.create({
+      data: { title, date, color, owner },
+    })
+
     try {
-      const event = await db.calendarEvent.create({
-        data: { title, date, color, owner },
-      })
+      const event = await createEvent()
       return NextResponse.json(event, { status: 201 })
-    } catch (prismaErr: any) {
-      console.warn('[calendar] Prisma create failed, falling back to raw SQL:', prismaErr?.message || prismaErr)
-      const rows: any[] = await db.$queryRawUnsafe(
-        `INSERT INTO "CalendarEvent" (title, date, color, owner, updated_at)
-         VALUES ($1, $2, $3, $4, NOW())
-         RETURNING id, title, date, color, owner, created_at, updated_at`,
-        title,
-        date,
-        color,
-        owner,
-      )
-      return NextResponse.json(rows[0] || { success: true }, { status: 201 })
+    } catch (firstError: any) {
+      console.warn('[calendar] Create failed; repairing ID sequence before retry:', firstError?.message || firstError)
+      await repairCalendarEventIdSequence()
+      const event = await createEvent()
+      return NextResponse.json(event, { status: 201 })
     }
   } catch (error) {
     console.error('Error creating calendar event:', error)
