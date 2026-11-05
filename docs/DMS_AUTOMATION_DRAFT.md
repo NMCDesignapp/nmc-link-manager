@@ -19,6 +19,16 @@ Các API đồng bộ hiện tại có cơ chế replace dữ liệu thật, nê
 
 Cờ --dms-shadow chỉ đọc file và in thống kê tổng hợp, hoàn toàn không gọi API ghi và không thay đổi DB. KHÔNG chạy --once, start, activate với cấu hình thử nghiệm.
 
+## ĐÁNH DẤU 2003 (nhập thủ công trên DS TVV)
+
+- Giao diện: Quản lý → Cấu trúc → DS TVV → **Nhập ĐÁNH DẤU 2003**.
+- Excel 2 cột, cột A **Mã TVV**, cột B **Ghi chú** (cũng nhận tiêu đề **ĐÁNH DẤU 2003**); đối chiếu theo Mã TVV, kiểm tra số bản ghi và xác nhận trước khi ghi.
+- Mã TVV không có trong danh sách hiện tại không được tự tạo. Mã TVV không có trong file Excel giữ nguyên giá trị đang lưu. Ô ghi chú trống ở mã có trong file là thao tác xóa dấu của đúng mã.
+- Dấu được lưu bền trong PostgreSQL, khóa **Mã TVV**; API /api/structure/tvv gộp dấu vào từng bản ghi TVV khi đọc. Cấu trúc bảng nhân sự và APM01 không bị thay đổi.
+- Cột trên bảng và trong file xuất DS TVV có tên chính thức **ĐÁNH DẤU 2003**. API nhập DS TVV vẫn hiểu cột **Ghi chú** cũ để tương thích.
+- Các nguồn DMS và cập nhật DS TVV hàng loạt không được xóa phần đánh dấu nhập thủ công. Chỉ nút nhập hai cột hoặc chỉnh sửa trực tiếp mới quản lý phần này.
+- API nhập được bảo vệ bằng phiên admin đã ký và Origin cùng trang. Không đưa Excel có mã nhân sự lên repository công khai.
+
 ## Còn phải nghiệm thu trước khi hợp nhất
 
 1. APM01 nguyên gốc DMS khác workbook cấu trúc cũ ở cột helper mã nhóm/AD/Ghi chú.
