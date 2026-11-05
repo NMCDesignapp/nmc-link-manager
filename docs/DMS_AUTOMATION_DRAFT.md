@@ -2,7 +2,7 @@
 
 Data Hub đọc trực tiếp trong G:\NMC-Data:
 - NEW_BC02.xlsx (đúng tên cố định).
-- APM01 Agent_<ngày tháng>.xlsx (chọn file có thời gian sửa đổi mới nhất).
+- APM01 Agents_<ngày tháng>.xlsx (chọn file có thời gian sửa đổi mới nhất trong các tệp khớp đúng tiền tố `APM01 Agents_`).
 
 APM01 tự phân loại thành structure-tvv, leaders, recruiters. BC02 tạo Sheet2 và lọc TRỪ HỦY = 0 để tạo Sheet4. Chỉ xuất các cột thực sự cần cho KPI. File APM01/BC02 gốc không gửi lên máy chủ.
 
