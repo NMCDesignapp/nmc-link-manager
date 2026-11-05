@@ -6,7 +6,9 @@ Data Hub đọc trực tiếp trong G:\NMC-Data:
 
 APM01 tự phân loại thành structure-tvv, leaders, recruiters. BC02 tạo Sheet2 và lọc TRỪ HỦY = 0 để tạo Sheet4. Chỉ xuất các cột thực sự cần cho KPI. File APM01/BC02 gốc không gửi lên máy chủ.
 
-Các API đồng bộ hiện tại có cơ chế replace dữ liệu thật, nên KHÔNG dùng cấu hình nguồn mới trên Data Hub đang chạy. Giữ nguyên Doanhso, DS CLB, tuyen-ngang và Sao Việt.
+Các API đồng bộ hiện tại có cơ chế replace dữ liệu thật, nên KHÔNG dùng cấu hình nguồn mới trên Data Hub đang chạy.
+
+**Chốt chặn ghi bổ sung:** code Data Hub mặc định từ chối tất cả nguồn DMS trong đường chạy `start`/`--once`, kể cả khi đã thêm nguồn vào cấu hình. Chỉ có thể ghi khi đồng thời đặt `enableDmsWrites: true` ở mức cấu hình và `enableWrite: true` tại từng nguồn DMS. KHÔNG bật hai cờ này trong giai đoạn đối chiếu; chế độ `--dms-shadow` không cần chúng và vẫn tuyệt đối không gửi API. Giữ nguyên Doanhso, DS CLB, tuyen-ngang và Sao Việt.
 
 ## Chạy kiểm tra trên bản sao cấu hình
 
