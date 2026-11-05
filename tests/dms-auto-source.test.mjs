@@ -23,9 +23,10 @@ test('Chỉ nhận đúng các nguồn DMS',()=>{
 });
 test('APM sinh ba bảng tối thiểu, không đưa ngày sinh lên app',()=>{
  const r=testOnly.buildStructure([agent('D001'),agent('D002','Trưởng nhóm'),
- agent('D003','Tiền trưởng nhóm')],{threshold:37622});
+ agent('D003','Tiền trưởng nhóm')]);
  assert.equal(r.tvv.length,3);assert.equal(r.leaders.length,1);
- assert.equal(r.recruiters.length,1);assert.equal(r.tvv[0]['Ghi chú'],'x');
+ assert.equal(r.recruiters.length,1);
+ assert.equal('Ghi chú' in r.tvv[0],false);
  assert.equal('Ngày sinh (ngày)' in r.tvv[0],false);
 });
 test('BC02 thành Sheet2; Sheet4 bỏ những dòng TRỪ HỦY=0 và tính lại lượt',()=>{
@@ -40,7 +41,7 @@ test('BC02 thành Sheet2; Sheet4 bỏ những dòng TRỪ HỦY=0 và tính lạ
 test('Nguồn thiếu AD hoặc trùng mã bị chặn',()=>{
  const a=agent('D002');
  assert.throws(()=>testOnly.buildTamthu([contract('Có hiệu lực',10,10)],[a]),/AD/);
- assert.throws(()=>testOnly.buildStructure([a,a],{threshold:37622}),/trùng/);
+ assert.throws(()=>testOnly.buildStructure([a,a]),/trùng/);
 });
 
 test('Nhận APM01 Agents_ kèm ngày tháng, bỏ qua tiền tố Agent_ cũ và chọn bản mới nhất',async()=>{
