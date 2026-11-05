@@ -1,6 +1,9 @@
 import { db } from '@/lib/db'
 
-const SETTING_KEY = 'tvv-structure-ghi-chu-v1'
+// Namespace riêng cho ĐÁNH DẤU 2003: bắt đầu trống khi triển khai.
+// Không nạp Ghi chú cũ, không xóa dữ liệu cũ (giữ khả năng khôi phục).
+// Dấu mới chỉ được nhập/chỉnh sửa thủ công theo Mã TVV.
+const SETTING_KEY = 'tvv-danh-dau-2003-v1'
 
 export type TVVStructureNotes = Record<string, string>
 
