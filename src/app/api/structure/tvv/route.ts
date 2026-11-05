@@ -124,10 +124,7 @@ export async function POST(request: NextRequest) {
       // ═══════════════════════════════════════════
       if (upsertMode) {
         // Lấy toàn bộ TVV hiện tại trong DB
-        const [existingList, existingNotes] = await Promise.all([
-          db.tVVStruct.findMany({ select: tvvSelect }),
-          getTVVStructureNotes(),
-        ]);
+        const existingList = await db.tVVStruct.findMany({ select: tvvSelect });
         const existingMap = new Map(existingList.map(t => [t.agentCode, t]));
 
         let created = 0;
@@ -197,13 +194,8 @@ export async function POST(request: NextRequest) {
         if (skipped > 0) parts.push(`giữ nguyên ${skipped}`);
         if (deleted > 0) parts.push(`xoá ${deleted}`);
 
-        // Đánh dấu 2003 là dữ liệu nhập thủ công theo mã TVV.
-        // File cập nhật danh sách không được làm mất dấu đã nhập từ Excel hai cột.
-        // Chỉ tiếp nhận giá trị có nội dung; muốn xóa dấu dùng file 2 cột với ô trống.
-        const newNotes = Object.fromEntries(records.filter(rec => rec.ghiChu).map(rec => [rec.agentCode, rec.ghiChu]));
-        if (Object.keys(newNotes).some(code => existingNotes[code] !== newNotes[code])) {
-          await saveTVVStructureNotes({ ...existingNotes, ...newNotes });
-        }
+        // DS TVV chỉ cập nhật thông tin nhân sự, bỏ qua Ghi chú nguồn.
+        // ĐÁNH DẤU 2003 chỉ cập nhật qua import 2 cột hoặc chỉnh sửa trực tiếp.
         return NextResponse.json({
           message: `Đã cập nhật DS TVV: ${parts.join(', ')}`,
           created,
@@ -239,11 +231,7 @@ export async function POST(request: NextRequest) {
         const result = await db.tVVStruct.createMany({ data: batch });
         totalImported += result.count;
       }
-      // Preserve manually imported 2003 markers across full TVV list replacements.
-      const incomingNotes = Object.fromEntries(records.filter(rec => rec.ghiChu).map(rec => [rec.agentCode, rec.ghiChu]));
-      if (Object.keys(incomingNotes).length) {
-        await saveTVVStructureNotes({ ...await getTVVStructureNotes(), ...incomingNotes });
-      }
+      // Không thay đổi ĐÁNH DẤU 2003 khi nhập/thay danh sách TVV.
       return NextResponse.json({ message: `Đã nhập ${totalImported} TVV`, count: totalImported });
     }
 
