@@ -37,6 +37,7 @@ import {
 import { evaluateClbsvPersonalRank } from '@/lib/clb-sao-viet-personal-rank';
 import { SaoVietBreakthrough } from '@/components/sao-viet-breakthrough';
 import { CarryoverContractsTable } from '@/components/carryover-contracts-table';
+import { TVVNotesExcelImport } from '@/components/tvv-notes-excel-import';
 import { calculateRevenueTVVmAFYP } from '@/lib/revenue-tvvm';
 
 // nmc-sao-viet-exclude-chot-v1
@@ -426,7 +427,7 @@ const TEMPLATES: Record<string, { headers: string[]; sampleData: Record<string, 
   // QUAN TRỌNG: cột 'Mã TVV TD' phải khớp CHÍNH XÁC với getVal() trong /api/structure/tvv/route.ts
   // API chấp nhận: 'maTVVTuyendung' | 'Mã TVV tuyển dụng' | 'Mã TVV TD' (case-sensitive)
   'structure-tvv': {
-    headers: ['Mã TVV', 'Tên TVV', 'Mã Ban/Nhóm', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Mã TVV TD', 'Trạng thái', 'Ghi chú'],
+    headers: ['Mã TVV', 'Tên TVV', 'Mã Ban/Nhóm', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Mã TVV TD', 'Trạng thái', 'ĐÁNH DẤU 2003'],
     sampleData: [
       { 'Mã TVV': 'D104132784', 'Tên TVV': 'Nguyễn Văn A', 'Mã Ban/Nhóm': 'U104102122', 'Chức vụ': 'Trưởng nhóm', 'Ngày bắt đầu làm việc': '01/01/2026', 'Mã TVV TD': 'D104102154', 'Trạng thái': 'Hoạt động' },
       { 'Mã TVV': 'D104132785', 'Tên TVV': 'Trần Thị B', 'Mã Ban/Nhóm': 'U104102122', 'Chức vụ': 'TVV', 'Ngày bắt đầu làm việc': '15/02/2026', 'Mã TVV TD': 'D104132784', 'Trạng thái': 'PA' },
@@ -3424,7 +3425,7 @@ export default function QuanLyPage() {
       else if (sheetName === 'staff') data = staff.map(s => ({ 'Mã số': s.agentCode, 'Họ tên': s.agentName, 'Chức vụ': s.position, 'Nhóm': s.nhom, 'Mã nhóm': s.maNhom, 'Ngày bắt đầu': s.startDate ? new Date(s.startDate).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'recruiters') data = recruiters.map(r => ({ 'Mã số': r.agentCode, 'Họ tên': r.agentName, 'Chức vụ': r.position, 'Nhóm': r.nhom, 'Ngày bắt đầu': r.startDate ? new Date(r.startDate).toLocaleDateString('vi-VN') : '', 'Ngày hiệu lực chức vụ': r.ngayHieuLuc ? new Date(r.ngayHieuLuc).toLocaleDateString('vi-VN') : '' }));
       else if (sheetName === 'tuyen-ngang') data = tuyenNgangList.map((t, i) => ({ 'STT': i + 1, 'NHÓM': t.nhom, 'MÃ TVV': t.agentCode, 'HỌ TÊN': t.agentName, 'Ngày bắt đầu làm việc': t.ngayBatDau ? new Date(t.ngayBatDau).toLocaleDateString('vi-VN') : '', 'Ngày hiệu lực chức vụ': t.ngayHieuLuc ? new Date(t.ngayHieuLuc).toLocaleDateString('vi-VN') : '', 'MÃ NGƯỜI TUYỂN DỤNG': t.maNguoiTuyenDung, 'TÊN NGƯỜI TUYỂN DỤNG': t.tenNguoiTuyenDung }));
-      else if (sheetName === 'structure-tvv') data = tvvStructList.map(t => ({ 'Mã TVV': t.agentCode, 'Tên TVV': t.agentName, 'Mã Ban/Nhóm': t.maBanNhom, 'Chức vụ': t.chucVu, 'Ngày bắt đầu làm việc': t.ngayBatDau ? new Date(t.ngayBatDau).toLocaleDateString('vi-VN') : '', 'Mã TVV TD': t.maTVVTuyendung, 'Trạng thái': t.note, 'Ghi chú': t.ghiChu }));
+      else if (sheetName === 'structure-tvv') data = tvvStructList.map(t => ({ 'Mã TVV': t.agentCode, 'Tên TVV': t.agentName, 'Mã Ban/Nhóm': t.maBanNhom, 'Chức vụ': t.chucVu, 'Ngày bắt đầu làm việc': t.ngayBatDau ? new Date(t.ngayBatDau).toLocaleDateString('vi-VN') : '', 'Mã TVV TD': t.maTVVTuyendung, 'Trạng thái': t.note, 'ĐÁNH DẤU 2003': t.ghiChu }));
 
       if (data.length === 0) { toast({ title: 'Không có dữ liệu', variant: 'destructive' }); return; }
 
@@ -5171,6 +5172,7 @@ export default function QuanLyPage() {
           <label htmlFor="tvv-list-upsert-input" className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 rounded-md text-xs font-medium cursor-pointer">
             <Upload className="w-3.5 h-3.5" /> Cập nhật DS TVV
           </label>
+          <TVVNotesExcelImport onImported={fetchTvvStruct} />
           <Button onClick={handleDeleteAllTvv} disabled={tvvStructList.length === 0} variant="outline" className="border-red-500/40 text-red-300 hover:bg-red-500/15 hover:text-red-200 h-8 text-xs disabled:opacity-40"><Trash2 className="w-3.5 h-3.5 mr-1" /> Xóa toàn bộ</Button>
           <Button onClick={() => handleDownloadTemplate('structure-tvv')} variant="outline" className="border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 h-8 text-xs"><FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Tải mẫu</Button>
           <Button onClick={() => handleExport('structure-tvv')} variant="outline" className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8 text-xs"><Download className="w-3.5 h-3.5 mr-1" /> Xuất</Button>
@@ -5188,7 +5190,7 @@ export default function QuanLyPage() {
                 { f: 'maTVVTuyendung', l: 'Mã TVV TD' },
                 { f: '_tenTVVTuyendung', l: 'Tên TVV TD' },
                 { f: 'note', l: 'Trạng thái' },
-                { f: 'ghiChu', l: 'Ghi chú' },
+                { f: 'ghiChu', l: 'ĐÁNH DẤU 2003' },
               ].map(col => (
                 <TableHead key={col.f} className="text-yellow-100 text-xs font-bold uppercase cursor-pointer hover:text-amber-300 whitespace-nowrap" onClick={() => sortData(col.f)}>{col.l} <SortIcon field={col.f} /></TableHead>
               ))}

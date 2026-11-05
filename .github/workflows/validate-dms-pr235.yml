@@ -1,0 +1,23 @@
+name: Validate DMS and TVV notes (branch only)
+on:
+  push:
+    branches:
+      - feature/dms-apm01-bc02-shadow-20261105
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: node --test tests/dms-auto-source.test.mjs
+      - run: node --experimental-strip-types --test tests/tvv-notes-import.test.ts
+      - run: npx eslint src/components/tvv-notes-excel-import.tsx src/lib/tvv-notes-import.ts src/app/api/structure/tvv/notes-import/route.ts src/app/api/structure/tvv/route.ts src/app/api/structure/sync/route.ts
+      - run: npm run build

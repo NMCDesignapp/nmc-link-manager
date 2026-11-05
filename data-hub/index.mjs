@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import XLSX from 'xlsx';
+import { isDmsSource, readDmsSource } from './dms-auto-source.mjs';
 
 const AGENT_VERSION = '2.3.0-20261020';
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -11,6 +12,7 @@ const configPath = process.env.NMC_DATA_HUB_CONFIG || path.join(root, 'data-hub.
 const statePath = path.join(root, '.nmc-data-hub-state.json');
 const activateOnly = process.argv.includes('--activate');
 const diagnoseOnly = process.argv.includes('--diagnose');
+const dmsShadowOnly = process.argv.includes('--dms-shadow');
 const once = process.argv.includes('--once') || activateOnly || diagnoseOnly;
 const force = process.argv.includes('--force') || process.argv.includes('--once');
 
@@ -175,6 +177,7 @@ function rowsFromWorkbook(file, sheetName) {
 }
 
 async function inputFromSource(source) {
+  if (isDmsSource(source)) return (await readDmsSource(source)).input;
   if (!source?.file) throw new Error(`Nguồn "${source?.id || 'không tên'}" chưa khai báo file.`);
   try {
     await fs.access(source.file);
@@ -284,6 +287,12 @@ function validateRevenuePayload(source, input, payload) {
 
 async function importOne(config, rawSource, state, forceImport) {
   const source = normalizeSource(rawSource);
+  // Fail closed: DMS transformations may replace live structure/revenue snapshots.
+  // A configured DMS source is readable by --dms-shadow, but NEVER writable
+  // until both the global and the per-source guard are explicitly enabled.
+  if (isDmsSource(source) && !(config.enableDmsWrites === true && source.enableWrite === true)) {
+    throw new Error('Nguồn DMS chỉ được chạy shadow; chưa bật đồng thời enableDmsWrites và enableWrite.');
+  }
   const rawInput = await inputFromSource(source);
   const historyInput = ['revenue-history', 'revenue-carryover'].includes(source.kind) ? rawInput : null;
   const input = historyInput ? historyInput.csv : rawInput;
@@ -295,7 +304,8 @@ async function importOne(config, rawSource, state, forceImport) {
   const checksumPayload = historyInput ? JSON.stringify(historyInput) : (typeof input === 'string' ? input : JSON.stringify(input));
   // Quy tắc nguồn doanh số thay đổi: force lại 1 vòng đồng bộ khi cập nhật Data Hub,
   // ngay cả khi Tamthu.xlsx và Doanhso.xlsx chưa được sửa từ lần nhập cũ.
-  const sourceSchemaVersion = ['revenue', 'revenue-history', 'revenue-carryover'].includes(source.kind)
+  const sourceSchemaVersion = isDmsSource(source) ? 'dms-v1:' + source.dmsTransform
+    : ['revenue', 'revenue-history', 'revenue-carryover'].includes(source.kind)
     ? 'authoritative-sheet-month-v2'
     : 'unchanged';
   const checksum = sha256(`${sourceSchemaVersion}|${checksumPayload}`);
@@ -436,6 +446,23 @@ async function main() {
   console.log(`NMC Data Hub v${AGENT_VERSION} — đồng bộ Excel với Main App`);
   const config = await loadConfig();
 
+  if (dmsShadowOnly) {
+    const sources = config.sources.filter(isDmsSource);
+    if (!sources.length) throw new Error('Không có nguồn DMS trong cấu hình shadow');
+    let failures = 0;
+    for (const source of sources) {
+      try {
+        const { audit } = await readDmsSource(source);
+        console.log(JSON.stringify({ id: source.id, mode: 'SHADOW_ONLY', audit }));
+      } catch (error) {
+        failures++;
+        console.error(source.id + ': ' + (error instanceof Error ? error.message : String(error)));
+      }
+    }
+    if (failures) throw new Error('Chưa đạt đối chiếu ' + failures + ' nguồn DMS');
+    console.log('SHADOW ONLY: không gọi API, không ghi cơ sở dữ liệu.');
+    return;
+  }
   if (activateOnly) return activate(config);
   if (diagnoseOnly) return diagnose(config);
 
