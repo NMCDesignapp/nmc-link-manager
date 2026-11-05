@@ -287,6 +287,12 @@ function validateRevenuePayload(source, input, payload) {
 
 async function importOne(config, rawSource, state, forceImport) {
   const source = normalizeSource(rawSource);
+  // Fail closed: DMS transformations may replace live structure/revenue snapshots.
+  // A configured DMS source is readable by --dms-shadow, but NEVER writable
+  // until both the global and the per-source guard are explicitly enabled.
+  if (isDmsSource(source) && !(config.enableDmsWrites === true && source.enableWrite === true)) {
+    throw new Error('Nguồn DMS chỉ được chạy shadow; chưa bật đồng thời enableDmsWrites và enableWrite.');
+  }
   const rawInput = await inputFromSource(source);
   const historyInput = ['revenue-history', 'revenue-carryover'].includes(source.kind) ? rawInput : null;
   const input = historyInput ? historyInput.csv : rawInput;
