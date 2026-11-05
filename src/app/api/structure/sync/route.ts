@@ -2,7 +2,6 @@ import { db } from '@/lib/db';
 import { isAuthorizedDataHubRequest, isDataHubImport } from '@/lib/data-hub-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSyncSource } from '@/lib/sync-source';
-import { saveTVVStructureNotes } from '@/lib/tvv-structure-notes';
 
 type Collection = 'tvv' | 'leaders' | 'recruiters' | 'clb-members' | 'tuyen-ngang';
 type Row = Record<string, unknown>;
@@ -70,7 +69,9 @@ export async function POST(request: NextRequest) {
       assertNoDuplicate(rows);
       const dbRows = rows.map(({ ghiChu: _ghiChu, ...row }) => row);
       await db.$transaction([db.tVVStruct.deleteMany({}), db.tVVStruct.createMany({ data: dbRows })]);
-      await saveTVVStructureNotes(Object.fromEntries(rows.map(row => [row.agentCode, row.ghiChu])));
+      // APM01/Data Hub là nguồn chuẩn cho thông tin nhân sự, KHÔNG phải nguồn
+      // của "ĐÁNH DẤU 2003". Giá trị này được lưu theo Mã TVV trong Setting
+      // và hiển thị cùng bản ghi qua /api/structure/tvv; đồng bộ sẽ giữ nguyên.
       return NextResponse.json({ collection, count: rows.length });
     }
 
