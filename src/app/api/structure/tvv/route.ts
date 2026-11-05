@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         ngayBatDau: safeDate(getValFlex(r, 'ngayBatDau', 'Ngày bắt đầu', 'Ngày bắt đầu làm việc', 'ngay bat dau', 'ngay bat dau lam viec', 'ngay bd', 'ngay bat dau lv')),
         maTVVTuyendung: getValFlex(r, 'maTVVTuyendung', 'Mã TVV tuyển dụng', 'Mã TVV TD', 'ma tvv tuyen dung', 'ma tvv td', 'ma nguoi tuyen dung', 'ma nguoi td', 'ma ntd', 'manguoituyendung', 'ma nguoi td', 'ma dl td', 'nguoi tuyen dung', 'nguoi td') || '',
         note: getValFlex(r, 'note', 'Trạng thái', 'trang thai') || '',
-        ghiChu: getValFlex(r, 'ghiChu', 'Ghi chú', 'ghi chu') || '',
+        ghiChu: getValFlex(r, 'ghiChu', 'Ghi chú', 'ghi chu', 'ĐÁNH DẤU 2003') || '',
       }));
       if (records.length === 0) return NextResponse.json({ error: 'Không có dữ liệu hợp lệ' }, { status: 400 });
 
@@ -167,7 +167,6 @@ export async function POST(request: NextRequest) {
               existing.chucVu === rec.chucVu &&
               existing.maTVVTuyendung === rec.maTVVTuyendung &&
               existing.note === rec.note &&
-              (existingNotes[rec.agentCode] || '') === rec.ghiChu &&
               datesEqual(existing.ngayBatDau, rec.ngayBatDau);
 
             if (isSame) {
@@ -198,7 +197,13 @@ export async function POST(request: NextRequest) {
         if (skipped > 0) parts.push(`giữ nguyên ${skipped}`);
         if (deleted > 0) parts.push(`xoá ${deleted}`);
 
-        await saveTVVStructureNotes(Object.fromEntries(records.map(rec => [rec.agentCode, rec.ghiChu])));
+        // Đánh dấu 2003 là dữ liệu nhập thủ công theo mã TVV.
+        // File cập nhật danh sách không được làm mất dấu đã nhập từ Excel hai cột.
+        // Chỉ tiếp nhận giá trị có nội dung; muốn xóa dấu dùng file 2 cột với ô trống.
+        const newNotes = Object.fromEntries(records.filter(rec => rec.ghiChu).map(rec => [rec.agentCode, rec.ghiChu]));
+        if (Object.keys(newNotes).some(code => existingNotes[code] !== newNotes[code])) {
+          await saveTVVStructureNotes({ ...existingNotes, ...newNotes });
+        }
         return NextResponse.json({
           message: `Đã cập nhật DS TVV: ${parts.join(', ')}`,
           created,
@@ -234,7 +239,11 @@ export async function POST(request: NextRequest) {
         const result = await db.tVVStruct.createMany({ data: batch });
         totalImported += result.count;
       }
-      await saveTVVStructureNotes(Object.fromEntries(records.map(rec => [rec.agentCode, rec.ghiChu])));
+      // Preserve manually imported 2003 markers across full TVV list replacements.
+      const incomingNotes = Object.fromEntries(records.filter(rec => rec.ghiChu).map(rec => [rec.agentCode, rec.ghiChu]));
+      if (Object.keys(incomingNotes).length) {
+        await saveTVVStructureNotes({ ...await getTVVStructureNotes(), ...incomingNotes });
+      }
       return NextResponse.json({ message: `Đã nhập ${totalImported} TVV`, count: totalImported });
     }
 
@@ -246,7 +255,7 @@ export async function POST(request: NextRequest) {
     const ngayBatDau = getValFlex(body, 'ngayBatDau', 'Ngày bắt đầu', 'Ngày bắt đầu làm việc', 'ngay bat dau', 'ngay bat dau lv');
     const maTVVTuyendung = getValFlex(body, 'maTVVTuyendung', 'Mã TVV tuyển dụng', 'Mã TVV TD', 'ma tvv tuyen dung', 'ma tvv td', 'ma nguoi tuyen dung', 'ma nguoi td', 'ma ntd', 'ma dl td');
     const note = getValFlex(body, 'note', 'Trạng thái', 'trang thai');
-    const ghiChu = getValFlex(body, 'ghiChu', 'Ghi chú', 'ghi chu');
+    const ghiChu = getValFlex(body, 'ghiChu', 'Ghi chú', 'ghi chu', 'ĐÁNH DẤU 2003');
     if (!agentCode || !agentName) return NextResponse.json({ error: 'Vui lòng nhập mã TVV và tên TVV' }, { status: 400 });
 
     const item = await db.tVVStruct.upsert({
