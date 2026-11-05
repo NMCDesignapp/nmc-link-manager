@@ -8,7 +8,8 @@
     "once": "node index.mjs --once",
     "force": "node index.mjs --once --force",
     "activate": "node index.mjs --activate",
-    "diagnose": "node index.mjs --diagnose"
+    "diagnose": "node index.mjs --diagnose",
+    "dms:shadow": "node index.mjs --dms-shadow"
   },
   "dependencies": {
     "xlsx": "^0.18.5"
