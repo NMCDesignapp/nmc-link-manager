@@ -427,7 +427,7 @@ const TEMPLATES: Record<string, { headers: string[]; sampleData: Record<string, 
   // QUAN TRỌNG: cột 'Mã TVV TD' phải khớp CHÍNH XÁC với getVal() trong /api/structure/tvv/route.ts
   // API chấp nhận: 'maTVVTuyendung' | 'Mã TVV tuyển dụng' | 'Mã TVV TD' (case-sensitive)
   'structure-tvv': {
-    headers: ['Mã TVV', 'Tên TVV', 'Mã Ban/Nhóm', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Mã TVV TD', 'Trạng thái', 'Ghi chú'],
+    headers: ['Mã TVV', 'Tên TVV', 'Mã Ban/Nhóm', 'Chức vụ', 'Ngày bắt đầu làm việc', 'Mã TVV TD', 'Trạng thái', 'ĐÁNH DẤU 2003'],
     sampleData: [
       { 'Mã TVV': 'D104132784', 'Tên TVV': 'Nguyễn Văn A', 'Mã Ban/Nhóm': 'U104102122', 'Chức vụ': 'Trưởng nhóm', 'Ngày bắt đầu làm việc': '01/01/2026', 'Mã TVV TD': 'D104102154', 'Trạng thái': 'Hoạt động' },
       { 'Mã TVV': 'D104132785', 'Tên TVV': 'Trần Thị B', 'Mã Ban/Nhóm': 'U104102122', 'Chức vụ': 'TVV', 'Ngày bắt đầu làm việc': '15/02/2026', 'Mã TVV TD': 'D104132784', 'Trạng thái': 'PA' },
