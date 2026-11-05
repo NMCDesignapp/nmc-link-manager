@@ -25,6 +25,8 @@ Cờ --dms-shadow chỉ đọc file và in thống kê tổng hợp, hoàn toàn
 - Excel 2 cột, cột A **Mã TVV**, cột B **Ghi chú** (cũng nhận tiêu đề **ĐÁNH DẤU 2003**); đối chiếu theo Mã TVV, kiểm tra số bản ghi và xác nhận trước khi ghi.
 - Mã TVV không có trong danh sách hiện tại không được tự tạo. Mã TVV không có trong file Excel giữ nguyên giá trị đang lưu. Ô ghi chú trống ở mã có trong file là thao tác xóa dấu của đúng mã.
 - Dấu được lưu bền trong PostgreSQL, khóa **Mã TVV**; API /api/structure/tvv gộp dấu vào từng bản ghi TVV khi đọc. Cấu trúc bảng nhân sự và APM01 không bị thay đổi.
+- **Giai đoạn hiện tại: để TRỐNG toàn bộ ĐÁNH DẤU 2003.** Dùng namespace riêng `tvv-danh-dau-2003-v1`, không đọc dữ liệu `tvv-structure-ghi-chu-v1` cũ. Giá trị Ghi chú cũ giữ trong backup/setting, không hiển thị và không sao chép sang cột mới; chưa thực hiện xóa vật lý dữ liệu cũ.
+- File APM01 và các lệnh nhập DS TVV đầy đủ không được tự điền Ghi chú vào ĐÁNH DẤU 2003. Chỉ import Excel hai cột về sau mới điền dấu.
 - Cột trên bảng và trong file xuất DS TVV có tên chính thức **ĐÁNH DẤU 2003**. API nhập DS TVV vẫn hiểu cột **Ghi chú** cũ để tương thích.
 - Các nguồn DMS và cập nhật DS TVV hàng loạt không được xóa phần đánh dấu nhập thủ công. Chỉ nút nhập hai cột hoặc chỉnh sửa trực tiếp mới quản lý phần này.
 - API nhập được bảo vệ bằng phiên admin đã ký và Origin cùng trang. Không đưa Excel có mã nhân sự lên repository công khai.
@@ -33,7 +35,7 @@ Cờ --dms-shadow chỉ đọc file và in thống kê tổng hợp, hoàn toàn
 
 1. APM01 nguyên gốc DMS khác workbook cấu trúc cũ ở cột helper mã nhóm/AD/Ghi chú.
 2. NEW_BC02 có thể chứa nhiều tháng do lịch DMS Look Back 1. Không tự lọc theo ngày nếu chưa được xác nhận.
-3. Đối chiếu toàn bộ mã TVV, số hợp đồng, IP, AFYP, ghi chú và nhóm với dữ liệu NC-Link đang chạy.
+3. Đối chiếu toàn bộ mã TVV, số hợp đồng, IP, AFYP và nhóm với dữ liệu NC-Link đang chạy; tạm bỏ qua ĐÁNH DẤU 2003.
 4. Chạy kiểm thử trên Windows; kiểm tra rollback và việc đồng bộ KPI Main/standalone.
 5. Không merge main, không cập nhật API hoặc Supabase production trước khi được đồng ý.
 
