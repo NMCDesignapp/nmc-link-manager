@@ -73,12 +73,12 @@ function apmRows(book){
   });
   if(!sheet)throw Error('Không tìm thấy sheet APM01 Agent Detail Information');
   const data=matrix(book,sheet),raw=matrix(book,sheet,true),header=data[0];
-  const rows=data.slice(1).filter(r=>clean(r[2])).map((cells,i)=>{
+  const rows=data.slice(1).map((cells,i)=>{
     const result={};
     header.slice(0,28).forEach((h,j)=>{if(clean(h))result[clean(h)]=clean(cells[j]);});
     result['Ngày sinh (ngày)']=clean(raw[i+1]?.[22]);
     return result;
-  });
+  }).filter(r=>clean(r['Mã TVV']));
   const ad=new Map();
   for(const cells of data.slice(1)){
     const group=clean(cells[37]),name=clean(cells[38]);
