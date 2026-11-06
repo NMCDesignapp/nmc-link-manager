@@ -66,49 +66,100 @@ function matrix(book,sheet,raw=false){
   if(!book.Sheets[sheet])throw Error('Thiếu sheet '+sheet);
   return XLSX.utils.sheet_to_json(book.Sheets[sheet],{header:1,defval:'',raw,blankrows:true});
 }
+const canonicalHeader = value => clean(value).normalize('NFD')
+  .replace(/[\u0300-\u036f]/g,'').replace(/đ/gi,'d')
+  .toLocaleLowerCase('vi-VN').replace(/\s+/g,' ').trim();
+const APM_ALIASES={
+  'Mã TVV':['Mã TVV','Mã ĐL','Mã đại lý','Mã số TVV'],
+  'Tên TVV':['Tên TVV','Họ tên TVV','Họ và tên TVV','Tên','Họ tên','Họ và tên','Tên đại lý'],
+  'Chức vụ TVV':['Chức vụ TVV','Chức vụ','Chức danh TVV','Chức danh'],
+  'Trạng thái TVV':['Trạng thái TVV','Trạng thái','Tình trạng TVV','Tình trạng hoạt động'],
+  'Ngày bắt đầu làm việc':['Ngày bắt đầu làm việc','Ngày bắt đầu','Ngày bắt đầu LV','Ngày gia nhập'],
+  'Ngày hiệu lực chức vụ':['Ngày hiệu lực chức vụ','Ngày hiệu lực CV','Ngày hiệu lực'],
+  'Mã TVV tuyển dụng':['Mã TVV tuyển dụng','Mã TVV TD','Mã người tuyển dụng','Mã NTD','Mã ĐL TD'],
+  'Mã nhóm':['Mã nhóm','Mã Ban/Nhóm','Mã đơn vị'],
+  'Mã ban':['Mã ban'],
+  'Ban':['Ban','Tên ban'],
+  'Nhóm':['Nhóm','Tên nhóm'],
+  'Kênh':['Kênh','Kênh phân phối'],
+  'AD':['AD','Tên AD']
+};
+function columnIndexes(header){
+  const names=header.map(canonicalHeader);
+  const used=new Set();
+  const mapped=new Map();
+  for(const [field,aliases] of Object.entries(APM_ALIASES)){
+    const idx=names.findIndex((name,j)=>name && !used.has(j) &&
+      aliases.some(alias=>canonicalHeader(alias)===name));
+    if(idx>=0){mapped.set(field,idx);used.add(idx);}
+  }
+  return mapped;
+}
 function apmRows(book){
-  // DMS reports may include a cover/title and blank lines above the true header.
-  // Match the header by field names, not sheet name, row number or column C.
-  const normalizeHeader=value=>lower(value).normalize('NFD')
-    .replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/\s+/g,' ').trim();
-  const required=['ma tvv','ten tvv','chuc vu tvv'];
-  let selected=null;
+  let selected=null,diagnostic='';
   for(const sheet of book.SheetNames){
-    const data=matrix(book,sheet);
-    const limit=Math.min(data.length,80);
-    for(let i=0;i<limit;i++){
-      const headers=(data[i]||[]).map(normalizeHeader);
-      if(required.every(name=>headers.includes(name))){
-        selected={sheet,data,headerIndex:i};
-        break;
+    const values=matrix(book,sheet);
+    const address=book.Sheets[sheet]['!ref'];
+    const offset=address?XLSX.utils.decode_range(address).s.r:0;
+    // DMS export: Excel row 1 is blank, row 2 is the actual header.
+    // Some Excel libraries omit leading blank rows, so use the physical row.
+    const physicalSecond=1-offset;
+    const indices=[physicalSecond,...Array.from({length:Math.min(values.length,80)},(_,i)=>i)]
+      .filter((idx,i,all)=>idx>=0 && idx<values.length && all.indexOf(idx)===i);
+    for(const i of indices){
+      const header=values[i]||[];
+      const mapped=columnIndexes(header);
+      if(i===physicalSecond)diagnostic=header.slice(0,35).map(clean).filter(Boolean).join(' | ');
+      if(['Mã TVV','Tên TVV','Chức vụ TVV'].every(key=>mapped.has(key))){
+        selected={sheet,values,headerIndex:i,header,mapped};break;
       }
     }
     if(selected)break;
   }
-  if(!selected)throw Error('Khong tim thay hang tieu de APM01: Ma TVV, Ten TVV, Chuc vu TVV. Kiem tra mau bao cao DMS.');
-  const {data,headerIndex}=selected;
-  const header=data[headerIndex].map(clean);
-  const codeColumn=header.findIndex(h=>normalizeHeader(h)==='ma tvv');
-  const rows=data.slice(headerIndex+1).map(cells=>{
+  if(!selected)throw Error('Không nhận diện được tiêu đề APM01 ở dòng 2. Các cột đọc được: '+
+    (diagnostic.slice(0,550)||'(không có cột)')+
+    '. Cần đối chiếu đúng tên cột; KHÔNG ghi dữ liệu.');
+  const {values,headerIndex,header,mapped}=selected;
+  const rows=values.slice(headerIndex+1).map(cells=>{
     const result={};
-    header.slice(0,32).forEach((h,j)=>{if(h)result[h]=clean(cells[j]);});
-    // Canonicalize required headers if DMS changes case, accents or spacing.
-    for(const [alias,target] of [['ma tvv','Mã TVV'],['ten tvv','Tên TVV'],['chuc vu tvv','Chức vụ TVV']]){
-      const index=header.findIndex(h=>normalizeHeader(h)===alias);
-      if(index>=0)result[target]=clean(cells[index]);
-    }
+    header.forEach((name,j)=>{if(clean(name))result[clean(name)]=clean(cells[j]);});
+    for(const [field,index] of mapped)result[field]=clean(cells[index]);
     return result;
-  }).filter(r=>clean(r['Mã TVV']));
-  if(!rows.length)throw Error('APM01 khong co TVV sau hang tieu de.');
+  }).filter(row=>clean(row['Mã TVV']));
+  if(!rows.length)throw Error('APM01 không có TVV sau hàng tiêu đề.');
   const ad=new Map();
-  for(const cells of data.slice(headerIndex+1)){
+  // APM01 can contain a supplementary group/AD table in columns AL/AM.
+  // Only accept populated pairs; reject conflicting values for the same group.
+  for(const cells of values.slice(headerIndex+1)){
     const group=clean(cells[37]),name=clean(cells[38]);
     if(group&&name){
-      if(ad.has(group)&&ad.get(group)!==name)throw Error('Bang nhom/AD co gia tri mau thuan');
+      if(ad.has(group)&&ad.get(group)!==name)throw Error('Bảng nhóm/AD có giá trị mâu thuẫn');
       ad.set(group,name);
     }
   }
   return {rows,ad};
+}
+function referenceAdMap(book){
+  // Cautruc.xlsx is an ordinary multi-sheet workbook, NOT an APM01 report.
+  // Only use a sheet when it contains an explicit group/AD header pair.
+  const ad=new Map();
+  for(const sheet of book.SheetNames){
+    const data=matrix(book,sheet);
+    for(let rowIndex=0;rowIndex<Math.min(data.length,25);rowIndex++){
+      const header=(data[rowIndex]||[]).map(canonicalHeader);
+      const groupIndex=header.findIndex(h=>['nhom','ten nhom'].includes(h));
+      const adIndex=header.findIndex(h=>['ad','ten ad'].includes(h));
+      if(groupIndex<0||adIndex<0)continue;
+      for(const row of data.slice(rowIndex+1)){
+        const group=clean(row[groupIndex]),name=clean(row[adIndex]);
+        if(!group||!name)continue;
+        if(ad.has(group)&&ad.get(group)!==name)throw Error('Cautruc có AD mâu thuẫn cho nhóm '+group);
+        ad.set(group,name);
+      }
+      break;
+    }
+  }
+  return ad;
 }
 function bcRows(book){
   const sheet=book.SheetNames.find(name=>{
@@ -210,7 +261,7 @@ function buildTamthu(bc,apm,{adMap=new Map(),missingAdAllowed=new Set()}={}){
   return {sheet2,sheet4:filtered.map(r=>Object.fromEntries(HEADERS.map(h=>[h,r[h]??'']))),
     audit:{before:stats(sheet2),after:stats(filtered),removed:sheet2.length-filtered.length}};
 }
-export const testOnly={buildStructure,buildTamthu,latestApm,apmRows};
+export const testOnly={buildStructure,buildTamthu,latestApm,apmRows,referenceAdMap};
 export function isDmsSource(source){return TRANSFORMS.has(source?.dmsTransform);}
 export async function readDmsSource(source){
   if(!isDmsSource(source))throw Error('Không hỗ trợ loại DMS');
@@ -219,9 +270,9 @@ export async function readDmsSource(source){
   const apmFile=await latestApm(isApm?source.file:
     (source.apmFile||path.join(path.dirname(source.file),'APM01 Agents_*.xlsx')));
   const apm=apmRows(await workbook(apmFile));
-  const reference=apmRows(await workbook(source.structureReferenceFile||
+  const reference=referenceAdMap(await workbook(source.structureReferenceFile||
     path.join(path.dirname(apmFile),'Cautruc.xlsx')));
-  for(const [g,ad] of reference.ad)if(!apm.ad.has(g))apm.ad.set(g,ad);
+  for(const [g,ad] of reference)if(!apm.ad.has(g))apm.ad.set(g,ad);
   // Ghi chú/ngày sinh chưa được APM01 xác nhận: tuyệt đối không suy diễn.
   const structure=buildStructure(apm.rows,{officeRecruiters:source.includeOfficeRecruiters===true});
   let input,audit={tvv:structure.tvv.length,leaders:structure.leaders.length,

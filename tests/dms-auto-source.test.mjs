@@ -137,5 +137,52 @@ test('APM01 rejects unknown report structure instead of overwriting live data',a
  const book={SheetNames:['Sheet1'],Sheets:{Sheet1:XLSX.utils.aoa_to_sheet([
   ['Ma so','Ho ten','Nguoi quan ly'],['D001','A','B']
  ])}};
- assert.throws(()=>testOnly.apmRows(book),/hang tieu de APM01/);
+ assert.throws(()=>testOnly.apmRows(book),/tiêu đề APM01/);
+});
+
+
+test('APM01: Excel dòng 1 trống, dòng 2 tiêu đề cột, dòng 3 dữ liệu',async()=>{
+ const XLSX=(await import('xlsx')).default;
+ const header=['STT','Mã TVV','Tên','Chức vụ','Trạng thái','Ngày bắt đầu làm việc',
+  'Ngày hiệu lực CV','Mã TVV TD','Mã Ban/Nhóm','Nhóm','Ban','AD'];
+ const book={SheetNames:['Bao cao DMS'],Sheets:{'Bao cao DMS':XLSX.utils.aoa_to_sheet([
+   [],header,[1,'D101','Nguyễn Thị A','Trưởng nhóm','Hoạt động','02/02/2026',
+   '03/02/2026','D001','U001','Nhóm A','Ban A','AD A']
+ ])}};
+ const result=testOnly.apmRows(book);
+ assert.equal(result.rows.length,1);
+ assert.equal(result.rows[0]['Mã TVV'],'D101');
+ assert.equal(result.rows[0]['Tên TVV'],'Nguyễn Thị A');
+ assert.equal(result.rows[0]['Chức vụ TVV'],'Trưởng nhóm');
+ assert.equal(result.rows[0]['Trạng thái TVV'],'Hoạt động');
+ assert.equal(result.rows[0]['Mã TVV tuyển dụng'],'D001');
+ assert.equal(result.rows[0]['Mã nhóm'],'U001');
+ assert.equal(testOnly.buildStructure(result.rows).leaders.length,1);
+});
+
+test('Cautruc có DS CLB và tuyen-ngang không phải là sheet APM01',async()=>{
+ const XLSX=(await import('xlsx')).default;
+ const book={SheetNames:['DS CLB','tuyen-ngang'],Sheets:{
+   'DS CLB':XLSX.utils.aoa_to_sheet([['Mã số','Họ tên'],['D001','A']]),
+   'tuyen-ngang':XLSX.utils.aoa_to_sheet([['NHÓM','MÃ TVV','HỌ TÊN'],['N1','D001','A']])
+ }};
+ assert.equal(testOnly.referenceAdMap(book).size,0);
+ assert.throws(()=>testOnly.apmRows(book),/Không nhận diện được tiêu đề APM01/);
+});
+
+test('Cautruc có bảng tên nhóm và AD được đọc riêng, không dùng APM01 parser',async()=>{
+ const XLSX=(await import('xlsx')).default;
+ const book={SheetNames:['DS AD'],Sheets:{
+   'DS AD':XLSX.utils.aoa_to_sheet([['Nhóm','AD'],['Nhóm A','AD A']])
+ }};
+ assert.equal(testOnly.referenceAdMap(book).get('Nhóm A'),'AD A');
+});
+
+test('APM01 tiêu đề thiếu tên TVV báo chính xác tên cột ở dòng 2',async()=>{
+ const XLSX=(await import('xlsx')).default;
+ const book={SheetNames:['Export'],Sheets:{
+   Export:XLSX.utils.aoa_to_sheet([[],['Mã TVV','Chức vụ','Cột lạ'],['D001','TVV','?']])
+ }};
+ assert.throws(()=>testOnly.apmRows(book),error=>
+   /dòng 2/.test(error.message) && /Cột lạ/.test(error.message));
 });
