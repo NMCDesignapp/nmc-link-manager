@@ -91,3 +91,14 @@ Không chạy đồng thời nhiều bản Data Hub trên cùng máy. Không đ�
 Bản mới tự tạo nguồn revenue-carryover cho cấu hình revenue-history hiện có, dùng nguyên file Doanhso, không đổi token/đường dẫn. Tháng 10 đọc sheet 10, tháng 11 đọc sheet 11 theo Asia/Bangkok. Nguồn doanh thu cũ không đổi. Nguồn mới chỉ lưu HĐ tồn, tuyệt đối không cập nhật doanh thu/KPI. Chỉ chương trình Thi đua có cài ngày phát hành mới sử dụng.
 
 Cập nhật file index.mjs từ repository vào thư mục Data Hub đang chạy (giữ data-hub.config.json và state), rồi chạy RESTART-DATA-HUB.cmd. Không cần activate hoặc đổi nguồn. Kiểm tra last-result có nguồn hậu tố -carryover, ok:true và kỳ/số dòng trên bảng HĐ tồn tháng trước của Main App. File thiếu sheet hoặc sai header sẽ báo lỗi và giữ snapshot cũ. Header hợp lệ nhưng sheet hết HĐ thì cập nhật snapshot rỗng đúng kỳ, không xóa doanh thu. Có thể nhập file Doanhso thủ công ngay tại bảng HĐ tồn nếu chưa cập nhật agent.
+
+
+## DMS APM01 / NEW_BC02 — kiểm tra trước đồng bộ
+
+- Mã nguồn có mô-đun `dms-auto-source.mjs`; **chỉ cập nhật GitHub/Vercel không tự cập nhật tiến trình Data Hub đang chạy trên Windows**. Phải cập nhật mã Data Hub local và giữ nguyên cấu hình/token/state.
+- `--dms-shadow` kiểm tra các nguồn có `dmsTransform` mà **không gọi API ghi**. Hãy tạo **bản sao** `data-hub.config.json` để cấu hình đường dẫn DMS từ `dms-shadow-sources.example.json`, không dùng trực tiếp mẫu JSON rời này làm config đầy đủ.
+- DMS chỉ được ghi nếu **đồng thời** bật `enableDmsWrites: true` tại cấu hình gốc và `enableWrite: true` trên từng nguồn. Không bật khi chưa có báo cáo đối chiếu, sao lưu và nghiệm thu.
+- Riêng `bc02-sheet4` thay thế toàn bộ doanh số **tháng hiện tại**: mọi `NGÀY THU` phải hợp lệ và thuộc cùng kỳ Asia/Bangkok. Báo cáo `Look Back 1` có hợp đồng tháng cũ hoặc thiếu ngày thu sẽ **bị từ chối nguyên nguồn**, không âm thầm lọc hoặc đổi tháng. `bc02-sheet2` không chịu quy tắc giới hạn kỳ này.
+- Đối chiếu tối thiểu: tổng số dòng, IP, AFYP, mã TVV, ngày thu, 4 trạng thái TRỪ HỦY; phân biệt `Tamthu` hiện hành với dữ liệu `Doanhso` lịch sử. Cần đối chiếu số liệu thực tế trên Main App trước khi cho phép thay snapshot.
+- Nếu Excel mới chỉ được tải xuống máy nhưng Data Hub local chưa chạy hoặc nguồn active là Google, NC-Link **chưa có dữ liệu mới**. Xác nhận heartbeat, last-sync và kết quả từng nguồn trước khi kết luận đã tự động.
+
