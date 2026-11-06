@@ -58,3 +58,22 @@ test('Nhận APM01 Agents_ kèm ngày tháng, bỏ qua tiền tố Agent_ cũ v�
   await assert.rejects(testOnly.latestApm(path.join(dir,'APM01 Agent_*.xlsx')),/Mẫu APM01 không hợp lệ/);
  }finally{await fs.rm(dir,{recursive:true,force:true});}
 });
+
+
+test('BC02 Sheet4 chấp nhận ngày thu thuộc đúng kỳ hiện tại',()=>{
+  assert.doesNotThrow(()=>testOnly.assertCurrentRevenueMonth([
+    {'NGÀY THU':'01/11/2026'},{'NGÀY THU':'30/11/2026'},{'NGÀY THU':'2026-11-04'}
+  ],'2026-11'));
+});
+
+test('BC02 Look Back 1 khác kỳ phải dừng trước khi thay toàn bộ doanh số',()=>{
+  assert.throws(()=>testOnly.assertCurrentRevenueMonth([
+    {'NGÀY THU':'04/11/2026'},{'NGÀY THU':'31/10/2026'}
+  ],'2026-11'),/1 hợp đồng khác tháng/);
+});
+
+test('BC02 thiếu ngày thu hoặc ngày không tồn tại phải dừng an toàn',()=>{
+  assert.throws(()=>testOnly.assertCurrentRevenueMonth([
+    {'NGÀY THU':''},{'NGÀY THU':'31/11/2026'}
+  ],'2026-11'),/2 hợp đồng thiếu\/sai Ngày thu/);
+});
