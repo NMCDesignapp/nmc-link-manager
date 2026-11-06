@@ -1,0 +1,58 @@
+name: Read-only NC-Link production smoke check
+on:
+  push:
+    branches: [feature/dms-apm01-bc02-shadow-20261105]
+    paths: [.github/workflows/smoke-check-production-20261106.yml]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check public pages, database health, Data Hub heartbeat, and TVV read API
+        shell: bash
+        run: |
+          node <<'JS'
+          const targets = [
+            ['main-page', 'https://nc-link.vercel.app/'],
+            ['kpi-in-main', 'https://nc-link.vercel.app/kpi'],
+            ['database-health', 'https://nc-link.vercel.app/api/health'],
+            ['sync-status', 'https://nc-link.vercel.app/api/settings'],
+            ['tvv-read', 'https://nc-link.vercel.app/api/structure/tvv'],
+            ['standalone-kpi', 'https://angiang2026.vercel.app/'],
+          ];
+          let fail = false;
+          for (const [label, url] of targets) {
+            try {
+              const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(22000), headers: { accept: label.endsWith('page') || label.includes('kpi') ? 'text/html' : 'application/json' } });
+              const code = response.status;
+              if (code !== 200) { console.log(label + ': HTTP ' + code); fail = true; continue; }
+              if (label === 'database-health') {
+                const obj = await response.json();
+                const healthy = obj.db?.status === 'connected';
+                console.log(label + ': HTTP 200, dbConnected=' + healthy);
+                if (!healthy) fail = true;
+              } else if (label === 'sync-status') {
+                const obj = await response.json();
+                const lastSeenMs = Date.parse(obj['nmc-data-hub-last-seen-at'] || '');
+                const lastSyncMs = Date.parse(obj['nmc-data-hub-last-sync-at'] || '');
+                const source = obj['nmc-sync-source'] === 'data-hub' ? 'data-hub' : obj['nmc-sync-source'] === 'google' ? 'google' : 'unset/other';
+                console.log(label + ': HTTP 200, source=' + source + ', hubSeen=' + Number.isFinite(lastSeenMs) + ', hubRecent15m=' + (Number.isFinite(lastSeenMs) && Date.now()-lastSeenMs<900000 && lastSeenMs<=Date.now()+60000) + ', lastSyncPresent=' + Number.isFinite(lastSyncMs));
+              } else if (label === 'tvv-read') {
+                const obj = await response.json();
+                const ok = Array.isArray(obj);
+                console.log(label + ': HTTP 200, isArray=' + ok + ', hasRecords=' + (ok && obj.length > 0) + ', markerColumn=' + (ok && obj.length > 0 && Object.hasOwn(obj[0], 'ghiChu')) + ', anyNonblankMarkers=' + (ok && obj.some(row => String(row.ghiChu ?? '').trim().length>0)));
+                if (!ok) fail = true;
+              } else {
+                const ct = response.headers.get('content-type') || '';
+                console.log(label + ': HTTP 200, html=' + ct.includes('text/html'));
+                if (!ct.includes('text/html')) fail = true;
+              }
+            } catch (e) {
+              console.log(label + ': unavailable (' + String(e?.name || 'request-error') + ')');
+              fail = true;
+            }
+          }
+          if (fail) process.exitCode = 1;
+          JS
