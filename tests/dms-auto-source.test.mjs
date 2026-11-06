@@ -60,20 +60,47 @@ test('Nhận APM01 Agents_ kèm ngày tháng, bỏ qua tiền tố Agent_ cũ v�
 });
 
 
-test('BC02 Sheet4 chấp nhận ngày thu thuộc đúng kỳ hiện tại',()=>{
-  assert.doesNotThrow(()=>testOnly.assertCurrentRevenueMonth([
-    {'NGÀY THU':'01/11/2026'},{'NGÀY THU':'30/11/2026'},{'NGÀY THU':'2026-11-04'}
-  ],'2026-11'));
+test('BC02 đã chọn phạm vi tải: giữ tất cả ngày thu, không chia lại theo tháng',()=>{
+ const person={...agent('D002'),AD:'AD mẫu'};
+ const input=[
+  {...contract('Có hiệu lực',10,10),'NGÀY THU':'31/10/2026'},
+  {...contract('Đang ĐGRR',20,20),'NGÀY THU':'01/11/2026'},
+  {...contract('Chờ kiểm tra YCBH',30,30),'NGÀY THU':'02/12/2026'},
+  {...contract('Từ chối',40,40),'NGÀY THU':'04/11/2026'}
+ ];
+ const result=testOnly.buildTamthu(input,[person]);
+ assert.equal(result.sheet2.length,4);
+ assert.equal(result.sheet4.length,3);
+ assert.deepEqual(result.sheet2.map(row=>row['Ngày hiệu lực']),
+  ['31/10/2026','01/11/2026','02/12/2026','04/11/2026']);
+ assert.deepEqual(result.sheet4.map(row=>row['Ngày hiệu lực']),
+  ['31/10/2026','01/11/2026','02/12/2026']);
+ assert.equal(result.audit.before.ip,100);
+ assert.equal(result.audit.after.ip,60);
+ assert.equal(result.sheet2[0]['TÍNH LƯỢT 3 tr'],100);
+ assert.equal(result.sheet4[0]['TÍNH LƯỢT 3 tr'],60);
 });
 
-test('BC02 Look Back 1 khác kỳ phải dừng trước khi thay toàn bộ doanh số',()=>{
-  assert.throws(()=>testOnly.assertCurrentRevenueMonth([
-    {'NGÀY THU':'04/11/2026'},{'NGÀY THU':'31/10/2026'}
-  ],'2026-11'),/1 hợp đồng khác tháng/);
+test('BC02 không tự loại hợp đồng thiếu ngày thu nếu báo cáo đầu vào vẫn có dòng',()=>{
+ const person={...agent('D002'),AD:'AD mẫu'};
+ const source=[{...contract('Có hiệu lực',50,50),'NGÀY THU':''}];
+ const result=testOnly.buildTamthu(source,[person]);
+ assert.equal(result.sheet2.length,1);
+ assert.equal(result.sheet4.length,1);
+ assert.equal(result.sheet4[0]['Ngày hiệu lực'],'');
 });
 
-test('BC02 thiếu ngày thu hoặc ngày không tồn tại phải dừng an toàn',()=>{
-  assert.throws(()=>testOnly.assertCurrentRevenueMonth([
-    {'NGÀY THU':''},{'NGÀY THU':'31/11/2026'}
-  ],'2026-11'),/2 hợp đồng thiếu\/sai Ngày thu/);
+test('TRỪ HỦY theo đúng bốn trạng thái đã dùng trong mẫu Tamthu',()=>{
+ const person={...agent('D002'),AD:'AD mẫu'};
+ const statuses=['Từ chối','YCBH hết hiệu lực','Trì hoãn','hết hiệu lực'];
+ const source=[
+  ...statuses.map((name,index)=>({...contract(name,10,10),'SỐ HỢP ĐỒNG':String(index)})),
+  {...contract('Có hiệu lực',20,20),'SỐ HỢP ĐỒNG':'5'}
+ ];
+ const result=testOnly.buildTamthu(source,[person]);
+ assert.equal(result.sheet2.length,5);
+ assert.deepEqual(result.sheet2.map(row=>row['TRỪ HỦY']),[0,0,0,0,1]);
+ assert.equal(result.sheet4.length,1);
+ assert.equal(result.sheet4[0]['PĐT + 10% ĐT'],20);
+ assert.equal(result.audit.removed,4);
 });
