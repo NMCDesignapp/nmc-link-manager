@@ -137,7 +137,7 @@ test('APM01 rejects unknown report structure instead of overwriting live data',a
  const book={SheetNames:['Sheet1'],Sheets:{Sheet1:XLSX.utils.aoa_to_sheet([
   ['Ma so','Ho ten','Nguoi quan ly'],['D001','A','B']
  ])}};
- assert.throws(()=>testOnly.apmRows(book),/hang tieu de APM01/);
+ assert.throws(()=>testOnly.apmRows(book),/tiêu đề APM01/);
 });
 
 
