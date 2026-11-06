@@ -39,6 +39,12 @@ jobs:
                 const lastSyncMs = Date.parse(obj['nmc-data-hub-last-sync-at'] || '');
                 const source = obj['nmc-sync-source'] === 'data-hub' ? 'data-hub' : obj['nmc-sync-source'] === 'google' ? 'google' : 'unset/other';
                 console.log(label + ': HTTP 200, source=' + source + ', hubSeen=' + Number.isFinite(lastSeenMs) + ', hubRecent15m=' + (Number.isFinite(lastSeenMs) && Date.now()-lastSeenMs<900000 && lastSeenMs<=Date.now()+60000) + ', lastSyncPresent=' + Number.isFinite(lastSyncMs));
+                let results = [];
+                try { results = JSON.parse(obj['nmc-data-hub-last-result'] || '[]'); } catch {}
+                const successCount = Array.isArray(results) ? results.filter(row => row && row.ok === true).length : 0;
+                const failedCount = Array.isArray(results) ? results.filter(row => row && row.ok !== true).length : 0;
+                console.log('hub-last-run: sourceCount=' + (Array.isArray(results) ? results.length : 0) + ', successCount=' + successCount + ', failedCount=' + failedCount + ', lastSyncRecent30m=' + (Number.isFinite(lastSyncMs) && Date.now()-lastSyncMs<1800000 && lastSyncMs<=Date.now()+60000));
+
               } else if (label === 'tvv-read') {
                 const obj = await response.json();
                 const ok = Array.isArray(obj);
