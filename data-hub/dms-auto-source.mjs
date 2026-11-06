@@ -110,6 +110,33 @@ function bcRows(book){
   }
   return rows;
 }
+// A current-month snapshot must not silently absorb BC02 Look Back 1 records.
+// Refuse mixed/unknown months instead of dropping any contract or rewriting its period.
+function bangkokYearMonth(now=new Date()){
+  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit'}).formatToParts(now);
+  return parts.find(part=>part.type==='year')?.value+'-'+parts.find(part=>part.type==='month')?.value;
+}
+function assertCurrentRevenueMonth(rows,expectedMonth=bangkokYearMonth()){
+  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(expectedMonth))throw Error('Tháng đối chiếu BC02 không hợp lệ');
+  let outside=0,unknown=0;
+  for(const row of rows){
+    const raw=clean(row['NGÀY THU']);
+    const dmy=raw.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+    const iso=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    let year=0,month=0,day=0;
+    if(dmy){day=Number(dmy[1]);month=Number(dmy[2]);year=Number(dmy[3]);}
+    else if(iso){year=Number(iso[1]);month=Number(iso[2]);day=Number(iso[3]);}
+    const date=new Date(Date.UTC(year,month-1,day));
+    if(!raw||!year||date.getUTCFullYear()!==year||date.getUTCMonth()+1!==month||date.getUTCDate()!==day){
+      unknown++;continue;
+    }
+    if(`${year}-${String(month).padStart(2,'0')}`!==expectedMonth)outside++;
+  }
+  if(outside||unknown)throw Error(
+    `BC02 không an toàn để thay doanh số tháng ${expectedMonth}: ${outside} hợp đồng khác tháng, ${unknown} hợp đồng thiếu/sai Ngày thu. Kiểm tra Look Back 1; không tự lọc hoặc ghi đè.`
+  );
+}
+
 function buildStructure(source,{officeRecruiters=false}={}){
   required(source,['Mã TVV','Tên TVV','Chức vụ TVV','Trạng thái TVV','Ngày bắt đầu làm việc',
     'Ngày hiệu lực chức vụ','Mã TVV tuyển dụng'],'APM01');
@@ -188,7 +215,7 @@ function buildTamthu(bc,apm,{adMap=new Map(),missingAdAllowed=new Set()}={}){
   return {sheet2,sheet4:filtered.map(r=>Object.fromEntries(HEADERS.map(h=>[h,r[h]??'']))),
     audit:{before:stats(sheet2),after:stats(filtered),removed:sheet2.length-filtered.length}};
 }
-export const testOnly={buildStructure,buildTamthu,latestApm};
+export const testOnly={buildStructure,buildTamthu,latestApm,assertCurrentRevenueMonth};
 export function isDmsSource(source){return TRANSFORMS.has(source?.dmsTransform);}
 export async function readDmsSource(source){
   if(!isDmsSource(source))throw Error('Không hỗ trợ loại DMS');
@@ -209,7 +236,9 @@ export async function readDmsSource(source){
       source.dmsTransform==='apm01-leaders'?structure.leaders:structure.recruiters;
   }else{
     if(path.basename(source.file)!=='NEW_BC02.xlsx')throw Error('BC02 phải là NEW_BC02.xlsx');
-    const converted=buildTamthu(bcRows(await workbook(source.file)),apm.rows,{
+    const bc=bcRows(await workbook(source.file));
+    if(source.dmsTransform==='bc02-sheet4')assertCurrentRevenueMonth(bc);
+    const converted=buildTamthu(bc,apm.rows,{
       adMap:apm.ad,missingAdAllowed:new Set(source.allowedMissingADGroups||['DSO team - An Giang'])});
     audit=converted.audit;
     if(source.dmsTransform==='bc02-sheet2')input=converted.sheet2;
