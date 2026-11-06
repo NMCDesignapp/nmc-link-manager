@@ -29,4 +29,14 @@ jobs:
       - run: node --test tests/dms-auto-source.test.mjs
       - run: node --experimental-strip-types --test tests/tvv-notes-import.test.ts
       - run: npx eslint src/components/tvv-notes-excel-import.tsx src/lib/tvv-notes-import.ts src/app/api/structure/tvv/notes-import/route.ts src/app/api/structure/tvv/route.ts src/app/api/structure/sync/route.ts
+      - name: Validate Data Hub PowerShell installer syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile('data-hub/INSTALL-DMS-BC02-APM01.ps1', [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | Format-List | Out-String | Write-Host
+            throw 'PowerShell installer syntax errors'
+          }
       - run: npm run build
