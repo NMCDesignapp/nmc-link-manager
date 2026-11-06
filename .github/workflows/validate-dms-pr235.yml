@@ -1,4 +1,4 @@
-name: Validate DMS and TVV notes (branch only)
+name: Validate DMS and TVV notes
 on:
   pull_request:
     paths:
@@ -11,7 +11,15 @@ on:
       - '.github/workflows/validate-dms-pr235.yml'
   push:
     branches:
-      - feature/dms-apm01-bc02-shadow-20261105
+      - main
+    paths:
+      - 'data-hub/**'
+      - 'tests/dms-auto-source.test.mjs'
+      - 'tests/tvv-notes-import.test.ts'
+      - 'src/app/api/structure/**'
+      - 'src/components/tvv-notes-excel-import.tsx'
+      - 'src/lib/tvv-notes-import.ts'
+      - '.github/workflows/validate-dms-pr235.yml'
   workflow_dispatch:
 permissions:
   contents: read

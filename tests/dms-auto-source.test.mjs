@@ -44,6 +44,29 @@ test('Nguồn thiếu AD hoặc trùng mã bị chặn',()=>{
  assert.throws(()=>testOnly.buildStructure([a,a]),/trùng/);
 });
 
+test('ADO chính xác kế thừa nhãn AD đã được Cautruc xác nhận',()=>{
+ const known={...agent('D001'),Nhóm:'Phụng Hoàng Sơn',ADO:'Trương Quốc Uy - L2404058202'};
+ const missing={...agent('D002'),Nhóm:'An Kiên Phát',ADO:'Trương Quốc Uy - L2404058202'};
+ const r=testOnly.buildTamthu([contract('Có hiệu lực',10,10)],[known,missing],{
+  adMap:new Map([['Phụng Hoàng Sơn','AD Uy']])
+ });
+ assert.equal(r.sheet2[0].AD,'AD Uy');
+});
+
+test('Không suy diễn ADO chưa đối chiếu và báo đúng nhóm thiếu',()=>{
+ const missing={...agent('D002'),ADO:'Người chưa đối chiếu - L000'};
+ assert.throws(()=>testOnly.buildTamthu([contract('Có hiệu lực',10,10)],[missing]),
+  /nhóm thiếu AD: Nhóm A \(1 dòng\)/);
+});
+
+test('Chặn ADO ánh xạ đến hai nhãn AD mâu thuẫn',()=>{
+ const a={...agent('D001'),Nhóm:'Nhóm A',ADO:'Cùng ADO'};
+ const b={...agent('D002'),Nhóm:'Nhóm B',ADO:'Cùng ADO'};
+ assert.throws(()=>testOnly.buildTamthu([contract('Có hiệu lực',10,10)],[a,b],{
+  adMap:new Map([['Nhóm A','AD 1'],['Nhóm B','AD 2']])
+ }),/mâu thuẫn/);
+});
+
 test('Nhận APM01 Agents_ kèm ngày tháng, bỏ qua tiền tố Agent_ cũ và chọn bản mới nhất',async()=>{
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'nmc-dms-name-'));
  try{
