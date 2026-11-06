@@ -82,7 +82,8 @@ const APM_ALIASES={
   'Ban':['Ban','Tên ban'],
   'Nhóm':['Nhóm','Tên nhóm'],
   'Kênh':['Kênh','Kênh phân phối'],
-  'AD':['AD','Tên AD']
+  'AD':['AD','Tên AD'],
+  'ADO':['ADO']
 };
 function columnIndexes(header){
   const names=header.map(canonicalHeader);
@@ -226,15 +227,30 @@ function buildTamthu(bc,apm,{adMap=new Map(),missingAdAllowed=new Set()}={}){
     if(people.has(id))throw Error('Mã TVV trùng trong APM01');
     people.set(id,r);
   }
+  const adoToAd=new Map();
+  for(const agent of people.values()){
+    const ado=ident(agent.ADO),group=pick(agent,'Nhóm','Ban');
+    const canonical=clean(adMap.get(group));
+    if(!ado||!canonical)continue;
+    if(adoToAd.has(ado)&&adoToAd.get(ado)!==canonical){
+      throw Error('APM01/Cautruc có AD mâu thuẫn cho ADO '+clean(agent.ADO));
+    }
+    adoToAd.set(ado,canonical);
+  }
   const base=[];let noPerson=0,noAD=0;
+  const missingGroups=new Map();
   for(const r of bc){
     const code=ident(r['MÃ ĐẠI LÝ']);
     if(!code&&!clean(r['SỐ HỢP ĐỒNG']))continue;
     const agent=people.get(code);
     if(code&&!agent)noPerson++;
     const group=pick(r,'TÊN NHÓM','TÊN BAN');
-    const ad=agent?(pick(agent,'AD')||clean(adMap.get(group))):'';
-    if(agent&&!ad&&!missingAdAllowed.has(group))noAD++;
+    const ad=agent?(pick(agent,'AD')||clean(adMap.get(group))||
+      clean(adoToAd.get(ident(agent.ADO)))):'';
+    if(agent&&!ad&&!missingAdAllowed.has(group)){
+      noAD++;
+      missingGroups.set(group,(missingGroups.get(group)||0)+1);
+    }
     base.push({'STT':base.length+1,'Ban':clean(r['TÊN BAN']),'Nhóm':group,
       'Mã Ban/Nhóm':pick(r,'MÃ NHÓM','MÃ BAN'),'Mã ĐL':code,
       'Tên':clean(r['TÊN ĐẠI LÝ']),'Chức vụ':agent?clean(agent['Chức vụ TVV']):'',
@@ -246,7 +262,11 @@ function buildTamthu(bc,apm,{adMap=new Map(),missingAdAllowed=new Set()}={}){
       'Tình trạng HĐ':clean(r['TÌNH TRẠNG HỒ SƠ']),
       'TRỪ HỦY':REMOVED.has(lower(r['TÌNH TRẠNG HỒ SƠ']))?0:1});
   }
-  if(noPerson||noAD)throw Error('BC02 thiếu đối chiếu: '+noPerson+' TVV, '+noAD+' AD');
+  if(noPerson||noAD){
+    const detail=[...missingGroups].map(([group,count])=>group+' ('+count+' dòng)').join(', ');
+    throw Error('BC02 thiếu đối chiếu: '+noPerson+' TVV, '+noAD+' AD'+
+      (detail?'; nhóm thiếu AD: '+detail:''));
+  }
   function sums(rows){
     const total=new Map(),seen=new Set();
     for(const r of rows)total.set(r['Mã ĐL'],(total.get(r['Mã ĐL'])||0)+r['PĐT + 10% ĐT']);
