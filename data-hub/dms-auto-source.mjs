@@ -67,22 +67,44 @@ function matrix(book,sheet,raw=false){
   return XLSX.utils.sheet_to_json(book.Sheets[sheet],{header:1,defval:'',raw,blankrows:true});
 }
 function apmRows(book){
-  const sheet=book.SheetNames.find(name=>{
-    const r=matrix(book,name);
-    return r[0]&&clean(r[0][2])==='Mã TVV'&&r[0].some(x=>clean(x)==='Chức vụ TVV');
-  });
-  if(!sheet)throw Error('Không tìm thấy sheet APM01 Agent Detail Information');
-  const data=matrix(book,sheet),header=data[0];
-  const rows=data.slice(1).map((cells,i)=>{
+  // DMS reports may include a cover/title and blank lines above the true header.
+  // Match the header by field names, not sheet name, row number or column C.
+  const normalizeHeader=value=>lower(value).normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/\s+/g,' ').trim();
+  const required=['ma tvv','ten tvv','chuc vu tvv'];
+  let selected=null;
+  for(const sheet of book.SheetNames){
+    const data=matrix(book,sheet);
+    const limit=Math.min(data.length,80);
+    for(let i=0;i<limit;i++){
+      const headers=(data[i]||[]).map(normalizeHeader);
+      if(required.every(name=>headers.includes(name))){
+        selected={sheet,data,headerIndex:i};
+        break;
+      }
+    }
+    if(selected)break;
+  }
+  if(!selected)throw Error('Khong tim thay hang tieu de APM01: Ma TVV, Ten TVV, Chuc vu TVV. Kiem tra mau bao cao DMS.');
+  const {data,headerIndex}=selected;
+  const header=data[headerIndex].map(clean);
+  const codeColumn=header.findIndex(h=>normalizeHeader(h)==='ma tvv');
+  const rows=data.slice(headerIndex+1).map(cells=>{
     const result={};
-    header.slice(0,28).forEach((h,j)=>{if(clean(h))result[clean(h)]=clean(cells[j]);});
+    header.slice(0,32).forEach((h,j)=>{if(h)result[h]=clean(cells[j]);});
+    // Canonicalize required headers if DMS changes case, accents or spacing.
+    for(const [alias,target] of [['ma tvv','Mã TVV'],['ten tvv','Tên TVV'],['chuc vu tvv','Chức vụ TVV']]){
+      const index=header.findIndex(h=>normalizeHeader(h)===alias);
+      if(index>=0)result[target]=clean(cells[index]);
+    }
     return result;
   }).filter(r=>clean(r['Mã TVV']));
+  if(!rows.length)throw Error('APM01 khong co TVV sau hang tieu de.');
   const ad=new Map();
-  for(const cells of data.slice(1)){
+  for(const cells of data.slice(headerIndex+1)){
     const group=clean(cells[37]),name=clean(cells[38]);
     if(group&&name){
-      if(ad.has(group)&&ad.get(group)!==name)throw Error('Bảng nhóm/AD có giá trị mâu thuẫn');
+      if(ad.has(group)&&ad.get(group)!==name)throw Error('Bang nhom/AD co gia tri mau thuan');
       ad.set(group,name);
     }
   }
@@ -188,7 +210,7 @@ function buildTamthu(bc,apm,{adMap=new Map(),missingAdAllowed=new Set()}={}){
   return {sheet2,sheet4:filtered.map(r=>Object.fromEntries(HEADERS.map(h=>[h,r[h]??'']))),
     audit:{before:stats(sheet2),after:stats(filtered),removed:sheet2.length-filtered.length}};
 }
-export const testOnly={buildStructure,buildTamthu,latestApm};
+export const testOnly={buildStructure,buildTamthu,latestApm,apmRows};
 export function isDmsSource(source){return TRANSFORMS.has(source?.dmsTransform);}
 export async function readDmsSource(source){
   if(!isDmsSource(source))throw Error('Không hỗ trợ loại DMS');

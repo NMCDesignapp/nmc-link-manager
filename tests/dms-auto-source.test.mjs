@@ -104,3 +104,38 @@ test('TRỪ HỦY theo đúng bốn trạng thái đã dùng trong mẫu Tamthu'
  assert.equal(result.sheet4[0]['PĐT + 10% ĐT'],20);
  assert.equal(result.audit.removed,4);
 });
+
+
+// Synthetic DMS workbooks: the real APM01 exporter may prepend a report title.
+test('APM01 reads the true header below report title / blank rows', async()=>{
+ const XLSX=(await import('xlsx')).default;
+ const row=['Ban','Nhóm','Mã TVV','Tên TVV','Ngày bắt đầu làm việc','Trạng thái TVV',
+    'Chức vụ TVV','Ngày hiệu lực chức vụ','Mã TVV tuyển dụng'];
+ const values=[
+  ['APM01 Agent Detail Information'],[],['Bao cao chot ngay 05/11/2026'],
+  row,['Ban A','Nhom A','D001','Nhan su mau','01/01/2026','Hoat dong',
+   'Tu van tai chinh','01/01/2026','D000']
+ ];
+ const book={SheetNames:['Export'],Sheets:{Export:XLSX.utils.aoa_to_sheet(values)}};
+ const actual=testOnly.apmRows(book);
+ assert.equal(actual.rows.length,1);
+ assert.equal(actual.rows[0]['Mã TVV'],'D001');
+ assert.equal(actual.rows[0]['Tên TVV'],'Nhan su mau');
+});
+
+test('APM01 accepts header not starting at first column',async()=>{
+ const XLSX=(await import('xlsx')).default;
+ const book={SheetNames:['Sheet1'],Sheets:{Sheet1:XLSX.utils.aoa_to_sheet([
+  ['Tai lieu DMS'],['STT','Mã TVV','Tên TVV','Chức vụ TVV'],
+  [1,'D002','Nhan su mau','Truong nhom']
+ ])}};
+ assert.equal(testOnly.apmRows(book).rows[0]['Mã TVV'],'D002');
+});
+
+test('APM01 rejects unknown report structure instead of overwriting live data',async()=>{
+ const XLSX=(await import('xlsx')).default;
+ const book={SheetNames:['Sheet1'],Sheets:{Sheet1:XLSX.utils.aoa_to_sheet([
+  ['Ma so','Ho ten','Nguoi quan ly'],['D001','A','B']
+ ])}};
+ assert.throws(()=>testOnly.apmRows(book),/hang tieu de APM01/);
+});
