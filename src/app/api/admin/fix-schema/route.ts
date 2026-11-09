@@ -119,6 +119,25 @@ export async function POST() {
     `;
     results.push('OK: Contract.contractStatus column ensured');
 
+    // BC02 includes valid proposals that do not have a policy number yet.
+    // Prisma already models this field as nullable; align older production DBs.
+    await db.$executeRaw`
+      ALTER TABLE "Contract" ALTER COLUMN "contractNumber" DROP NOT NULL
+    `;
+    results.push('OK: Contract.contractNumber nullable ensured');
+
+    const verifyContractNumber = await db.$queryRaw<Array<{ is_nullable: string }>>`
+      SELECT is_nullable
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'Contract'
+        AND column_name = 'contractNumber'
+    `;
+    const contractNumberNullable = verifyContractNumber[0]?.is_nullable === 'YES';
+    results.push(contractNumberNullable
+      ? 'VERIFY: Contract.contractNumber is nullable'
+      : 'VERIFY FAILED: Contract.contractNumber is still required');
+
     // Sheet2 của Tamthu.xlsx chỉ phục vụ bảng xem chi tiết, tách khỏi Contract/KPI.
     await db.$executeRaw`
       CREATE TABLE IF NOT EXISTS "TamthuDetail" (
@@ -276,8 +295,8 @@ export async function POST() {
     results.push(penExists ? 'VERIFY: PendingMember table exists' : 'VERIFY FAILED: PendingMember table still missing');
 
     return NextResponse.json({
-      success: tableExists && colExists && svExists && clbExists && penExists,
-      message: tableExists && colExists && svExists && clbExists && penExists
+      success: tableExists && colExists && svExists && clbExists && penExists && contractNumberNullable,
+      message: tableExists && colExists && svExists && clbExists && penExists && contractNumberNullable
         ? 'Schema fixed. You can now upload DS TTN Tuyển Ngang, sync Sao Việt data per program. NTD column in CS TVVm will populate. CLB & Pending members sync across devices.'
         : 'Schema fix completed but verification failed. Check server logs.',
       steps: results,

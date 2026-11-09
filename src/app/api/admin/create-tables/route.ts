@@ -196,7 +196,7 @@ export async function POST() {
         sql: `CREATE TABLE IF NOT EXISTS "Contract" (
           "id" TEXT NOT NULL,
           "stt" INTEGER NOT NULL DEFAULT 0,
-          "contractNumber" TEXT NOT NULL,
+          "contractNumber" TEXT,
           "agentCode" TEXT NOT NULL,
           "agentName" TEXT NOT NULL,
           "position" TEXT NOT NULL DEFAULT '',
