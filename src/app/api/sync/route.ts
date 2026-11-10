@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { CARRYOVER_SETTING_PREFIX } from '@/lib/carryover-contracts';
+import { preserveHistoricalRevenueMetadata } from '@/lib/revenue-metadata';
 import { NextRequest, NextResponse } from 'next/server';
 import { isAuthorizedDataHubRequest, isDataHubImport, isGoogleSyncImport } from '@/lib/data-hub-auth';
 import { parseBusinessNumber } from '@/lib/parse-business-number';
@@ -137,13 +138,14 @@ export async function POST(request: NextRequest) {
     if (fromGoogleSync && activeSource !== 'google') {
       return NextResponse.json({ error: 'Google Sheets đã tắt vì Data Hub trên máy tính đang là nguồn đồng bộ' }, { status: 409 });
     }
-    const { contractCsv: revenueContractCsv, staffCsv, recruiterCsv, replaceCurrentRevenueMonth, replaceHistoricalRevenueMonths, replaceRevenueMonths } = body as {
+    const { contractCsv: revenueContractCsv, staffCsv, recruiterCsv, replaceCurrentRevenueMonth, replaceHistoricalRevenueMonths, replaceRevenueMonths, preserveHistoricalMetadata } = body as {
       contractCsv?: string;
       staffCsv?: string;
       recruiterCsv?: string;
       replaceCurrentRevenueMonth?: boolean;
       replaceHistoricalRevenueMonths?: string[];
       replaceRevenueMonths?: string[];
+      preserveHistoricalMetadata?: boolean;
     };
     const carryoverMonth = body.carryoverMonth as string | undefined;
     const carryoverCsv = body.carryoverCsv as string | undefined;
@@ -163,8 +165,12 @@ export async function POST(request: NextRequest) {
       ? replaceRevenueMonths.filter(validMonth)
       : [];
     const replacementRevenueMonths = historicalRevenueMonths.length > 0 ? historicalRevenueMonths : googleRevenueMonths;
+    const preserveKpi04Metadata = fromDataHub && preserveHistoricalMetadata === true && historicalRevenueMonths.length > 0;
+    if (preserveHistoricalMetadata === true && !preserveKpi04Metadata) {
+      return NextResponse.json({ error: 'Chỉ Data Hub KPI04 được giữ metadata lịch sử khi thay thế các tháng đã qua' }, { status: 400 });
+    }
 
-    const results = { contracts: 0, deletedContracts: 0, currentMonth: '', historicalMonths: [] as string[], staff: 0, recruiters: 0, errors: [] as string[] };
+    const results = { contracts: 0, deletedContracts: 0, currentMonth: '', historicalMonths: [] as string[], preservedMetadata: 0, staff: 0, recruiters: 0, errors: [] as string[] };
 
     // 1. Import Contracts — HEADER-BASED mapping (không dùng vị trí cột nữa!)
     if (contractCsv) {
@@ -204,8 +210,8 @@ export async function POST(request: NextRequest) {
           results.currentMonth = currentMonth;
         }
 
-        // Doanhso.xlsx is the authoritative source for completed months.
-        // The Data Hub never sends the current month here (Tamthu owns it).
+        // KPI04 is the authoritative source for completed months.
+        // The Data Hub never sends the current month here (BC02 owns it).
         if (replacementRevenueMonths.length > 0) {
           const requestedMonths = [...new Set(replacementRevenueMonths)];
           const requestedSet = new Set(requestedMonths);
@@ -213,10 +219,10 @@ export async function POST(request: NextRequest) {
           if (fromDataHub && requestedSet.has(activeMonth)) throw new Error(`Không được thay thế tháng hiện tại ${activeMonth} từ Doanhso.`);
           importRows = importRows.filter(({ row }) => {
             if (fromDataHub) {
-              // Doanhso.xlsx: tháng = tên Sheet (đã ghi NMC_DOANHSO:YYYY-MM).
-              // Không lọc bản ghi theo ngày PH/HL, mã TVV hoặc chỉ tiêu.
+              // Data Hub đã phân KPI04 theo Ngày phát hành và ghi nhãn
+              // NMC_DOANHSO:YYYY-MM. Server chỉ xác nhận đúng kỳ được yêu cầu.
               const month = revenueSourceMonth(getVal(row, 'Nguồn dữ liệu', 'Nguồn DL', 'nguonDuLieu'));
-              if (!month) throw new Error('Thiếu nhãn tháng nguồn Doanhso trong dữ liệu Data Hub. Hãy nâng cấp Data Hub trước khi đồng bộ.');
+              if (!month) throw new Error('Thiếu nhãn tháng nguồn KPI04 trong dữ liệu Data Hub. Hãy nâng cấp Data Hub trước khi đồng bộ.');
               return requestedSet.has(month);
             }
             // Giữ hợp đồng Google cũ theo quy tắc nhập của nguồn Google.
@@ -403,6 +409,18 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ success: true, carryoverMonth, count: snapshot.contracts.length, errors: [] });
         }
         if (authoritativeReplacement) {
+          if (preserveKpi04Metadata) {
+            const metadataNumbers = [...new Set(contractsToCreate.map(row => row.contractNumber).filter(Boolean))];
+            const previousRows = metadataNumbers.length ? await db.contract.findMany({
+              where: { contractNumber: { in: metadataNumbers } },
+              select: {
+                contractNumber: true, position: true, ban: true, nhom: true, maNhom: true,
+                ad: true, maDaiLyTD: true,
+                recruiterCode: true, ngayBatDauLamViec: true, startDate: true, chucVu2: true,
+              },
+            }) : [];
+            results.preservedMetadata = preserveHistoricalRevenueMetadata(contractsToCreate, previousRows);
+          }
           // Import nguyên vẹn từng hàng của Sheet gốc. Không loại trùng theo HĐ;
           // do Contract.contractNumber UNIQUE, bản ghi trùng mã được lưu NULL
           // ở cột khóa, còn số HĐ thật được ghi trong nguồn dữ liệu để truy vết.

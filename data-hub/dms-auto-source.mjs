@@ -10,6 +10,7 @@ const TRANSFORMS=new Set(['apm01-tvv','apm01-leaders','apm01-recruiters','bc02-s
 const REMOVED=new Set(['từ chối','ycbh hết hiệu lực','trì hoãn','hết hiệu lực']);
 const HEADERS=['STT','Ban','Nhóm','Mã Ban/Nhóm','Mã ĐL','Tên','Chức vụ','Ngày bắt đầu làm việc',
 'Số hợp đồng','Ngày hiệu lực','Ngày phát hành','PĐT + 10% ĐT','AFYP','AD','TÍNH LƯỢT 3 tr','MÃ ĐL TD'];
+const KPI04_HEADERS=[...HEADERS,'Nguồn dữ liệu'];
 const clean=v=>String(v??'').trim();
 const lower=v=>clean(v).normalize('NFC').toLocaleLowerCase('vi-VN');
 const ident=v=>clean(v).toUpperCase();
@@ -184,6 +185,151 @@ function bcRows(book){
   }
   return rows;
 }
+function kpi04Rows(book){
+  const sheet=book.SheetNames.find(name=>{
+    const values=matrix(book,name);
+    const header=values[1]||[];
+    return clean(header[8])==='Mã đại lý'&&clean(header[14])==='Hợp đồng'&&
+      clean(header[18])==='Ngày phát hành';
+  });
+  if(!sheet)throw Error('Sai cấu trúc báo cáo NEW_KPI04');
+  const values=matrix(book,sheet,true);
+  const display=matrix(book,sheet);
+  const top=values[0]||[],header=values[1]||[];
+  const names=Array.from({length:Math.max(top.length,header.length)},(_,i)=>
+    clean(header[i])||clean(top[i]));
+  const index=new Map(names.map((name,i)=>[canonicalHeader(name),i]));
+  for(const field of ['Mã đại lý','Tên đại lý','Hợp đồng','Ngày hiệu lực','Ngày phát hành','IP','AFYP']){
+    if(!index.has(canonicalHeader(field)))throw Error('KPI04 thiếu cột '+field);
+  }
+  return values.slice(2).map((cells,rowOffset)=>{
+    const result={};
+    names.forEach((name,i)=>{
+      if(!name)return;
+      const formatted=(display[rowOffset+2]||[])[i];
+      result[name]=clean(['Ngày bắt đầu làm việc','Ngày hiệu lực','Ngày phát hành'].includes(name)
+        ? formatted:cells[i]);
+    });
+    return result;
+  }).filter(row=>clean(row['Hợp đồng'])||clean(row['Mã đại lý']));
+}
+function parseKpi04Date(value){
+  const text=clean(value);
+  let match=text.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if(!match){
+    const iso=text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if(iso)match=[iso[0],iso[3],iso[2],iso[1]];
+  }
+  if(!match)throw Error('KPI04 có Ngày phát hành không hợp lệ: '+text);
+  const day=Number(match[1]),month=Number(match[2]),year=Number(match[3]);
+  const date=new Date(Date.UTC(year,month-1,day));
+  if(date.getUTCFullYear()!==year||date.getUTCMonth()+1!==month||date.getUTCDate()!==day){
+    throw Error('KPI04 có Ngày phát hành không tồn tại: '+text);
+  }
+  return {day,month,year,label:`${year}-${String(month).padStart(2,'0')}`};
+}
+function peopleContext(apm,adMap){
+  const people=new Map();
+  for(const row of apm){
+    const code=ident(row['Mã TVV']);
+    if(!code)continue;
+    if(people.has(code))throw Error('Mã TVV trùng trong APM01');
+    people.set(code,row);
+  }
+  const adoToAd=new Map();
+  for(const agent of people.values()){
+    const ado=ident(agent.ADO),group=pick(agent,'Nhóm','Ban');
+    const canonical=clean(adMap.get(group));
+    if(!ado||!canonical)continue;
+    if(adoToAd.has(ado)&&adoToAd.get(ado)!==canonical){
+      throw Error('APM01/Cautruc có AD mâu thuẫn cho ADO '+clean(agent.ADO));
+    }
+    adoToAd.set(ado,canonical);
+  }
+  return {people,adoToAd};
+}
+function assignMonthlyRounds(rows){
+  const byMonth=new Map();
+  for(const row of rows){
+    const month=row.__month;
+    if(!byMonth.has(month))byMonth.set(month,[]);
+    byMonth.get(month).push(row);
+  }
+  const result=[];
+  for(const monthRows of byMonth.values()){
+    const totals=new Map(),seen=new Set();
+    for(const row of monthRows){
+      totals.set(row['Mã ĐL'],(totals.get(row['Mã ĐL'])||0)+row['PĐT + 10% ĐT']);
+    }
+    for(const row of monthRows){
+      const code=row['Mã ĐL'],first=!seen.has(code);seen.add(code);
+      const cleanRow={...row,'TÍNH LƯỢT 3 tr':first?(totals.get(code)||0):0};
+      delete cleanRow.__month;
+      result.push(cleanRow);
+    }
+  }
+  return result.map((row,index)=>({...row,STT:index+1}));
+}
+function buildKpi04(source,apm,{adMap=new Map(),currentMonth,mode='history'}={}){
+  if(!/^\d{4}-\d{2}$/.test(currentMonth||''))throw Error('Thiếu tháng Bangkok cho KPI04');
+  required(source,['Mã đại lý','Tên đại lý','Hợp đồng','Ngày hiệu lực','Ngày phát hành','IP','AFYP'],'KPI04');
+  const [currentYear,currentNumber]=currentMonth.split('-').map(Number);
+  const previousDate=new Date(Date.UTC(currentYear,currentNumber-2,1));
+  const previousMonth=`${previousDate.getUTCFullYear()}-${String(previousDate.getUTCMonth()+1).padStart(2,'0')}`;
+  const {people,adoToAd}=peopleContext(apm,adMap);
+  const seenContracts=new Set(),rows=[];
+  const audit={sourceRows:source.length,selected:0,missingApm:0,missingAd:0,missingRecruiter:0,
+    excludedNonPositiveIp:0,excludedEffectiveMonth:0,months:{}};
+  for(const sourceRow of source){
+    const issue=parseKpi04Date(sourceRow['Ngày phát hành']);
+    if(issue.year!==currentYear||issue.month<1||issue.month>currentNumber)continue;
+    const isCurrent=issue.month===currentNumber;
+    if((mode==='history'&&isCurrent)||(mode==='carryover'&&!isCurrent))continue;
+    const ip=amount(sourceRow.IP);
+    if(ip<=0){audit.excludedNonPositiveIp++;continue;}
+    if(mode==='carryover'){
+      const effective=parseKpi04Date(sourceRow['Ngày hiệu lực']);
+      if(effective.label!==previousMonth){audit.excludedEffectiveMonth++;continue;}
+    }
+    const contract=clean(sourceRow['Hợp đồng']);
+    if(!contract)throw Error('KPI04 có dòng thiếu Số hợp đồng');
+    if(seenContracts.has(contract))throw Error('KPI04 trùng Số hợp đồng: '+contract);
+    seenContracts.add(contract);
+    const code=ident(sourceRow['Mã đại lý']);
+    if(!code)throw Error('KPI04 có dòng thiếu Mã đại lý');
+    const agent=people.get(code);
+    if(!agent)audit.missingApm++;
+    const group=pick(sourceRow,'Tên nhóm','Tên ban');
+    // The KPI04 group can be matched directly to a Cautruc/APM group label even
+    // when the historical agent is no longer present in the current APM01.
+    // This is exact source evidence; never infer an AD from a similar name.
+    const ad=(agent?pick(agent,'AD'):'')||clean(adMap.get(group))||
+      (agent?clean(adoToAd.get(ident(agent.ADO))):'');
+    if(!ad)audit.missingAd++;
+    const recruiter=agent?ident(agent['Mã TVV tuyển dụng']):'';
+    if(!recruiter)audit.missingRecruiter++;
+    rows.push({
+      __month:issue.label,'STT':0,'Ban':clean(sourceRow['Tên ban']),'Nhóm':group,
+      'Mã Ban/Nhóm':pick(sourceRow,'Mã nhóm','Mã ban'),'Mã ĐL':code,
+      'Tên':clean(sourceRow['Tên đại lý']),'Chức vụ':agent?clean(agent['Chức vụ TVV']):'',
+      'Ngày bắt đầu làm việc':agent?clean(agent['Ngày bắt đầu làm việc']):clean(sourceRow['Ngày bắt đầu làm việc']),
+      'Số hợp đồng':contract,'Ngày hiệu lực':clean(sourceRow['Ngày hiệu lực']),
+      'Ngày phát hành':clean(sourceRow['Ngày phát hành']),
+      'PĐT + 10% ĐT':ip,'AFYP':amount(sourceRow.AFYP),'AD':ad,
+      'TÍNH LƯỢT 3 tr':0,'MÃ ĐL TD':recruiter||(agent?'0':''),'Nguồn dữ liệu':`NMC_DOANHSO:${issue.label}`,
+    });
+    audit.months[issue.label]=(audit.months[issue.label]||0)+1;
+  }
+  const enriched=assignMonthlyRounds(rows);
+  audit.selected=enriched.length;
+  const csv=XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet([
+    KPI04_HEADERS,...enriched.map(row=>KPI04_HEADERS.map(header=>row[header]??''))
+  ]),{FS:',',RS:'\n',forceQuotes:true});
+  const months=Array.from({length:Math.max(0,currentNumber-1)},(_,index)=>
+    `${currentYear}-${String(index+1).padStart(2,'0')}`);
+  return mode==='carryover'?{input:{month:currentMonth,csv},audit}:
+    {input:{csv,months},audit};
+}
 function buildStructure(source,{officeRecruiters=false}={}){
   required(source,['Mã TVV','Tên TVV','Chức vụ TVV','Trạng thái TVV','Ngày bắt đầu làm việc',
     'Ngày hiệu lực chức vụ','Mã TVV tuyển dụng'],'APM01');
@@ -221,22 +367,7 @@ function buildStructure(source,{officeRecruiters=false}={}){
 function buildTamthu(bc,apm,{adMap=new Map(),missingAdAllowed=new Set()}={}){
   required(bc,['TÊN BAN','MÃ BAN','MÃ NHÓM','TÊN NHÓM','MÃ ĐẠI LÝ','TÊN ĐẠI LÝ',
     'SỐ HỢP ĐỒNG','TÌNH TRẠNG HỒ SƠ','NGÀY THU','NGÀY PHÁT HÀNH','IP','AFYP'],'BC02');
-  const people=new Map();
-  for(const r of apm){
-    const id=ident(r['Mã TVV']);if(!id)continue;
-    if(people.has(id))throw Error('Mã TVV trùng trong APM01');
-    people.set(id,r);
-  }
-  const adoToAd=new Map();
-  for(const agent of people.values()){
-    const ado=ident(agent.ADO),group=pick(agent,'Nhóm','Ban');
-    const canonical=clean(adMap.get(group));
-    if(!ado||!canonical)continue;
-    if(adoToAd.has(ado)&&adoToAd.get(ado)!==canonical){
-      throw Error('APM01/Cautruc có AD mâu thuẫn cho ADO '+clean(agent.ADO));
-    }
-    adoToAd.set(ado,canonical);
-  }
+  const {people,adoToAd}=peopleContext(apm,adMap);
   const base=[];let noPerson=0,noAD=0;
   const missingGroups=new Map();
   for(const r of bc){
@@ -281,8 +412,9 @@ function buildTamthu(bc,apm,{adMap=new Map(),missingAdAllowed=new Set()}={}){
   return {sheet2,sheet4:filtered.map(r=>Object.fromEntries(HEADERS.map(h=>[h,r[h]??'']))),
     audit:{before:stats(sheet2),after:stats(filtered),removed:sheet2.length-filtered.length}};
 }
-export const testOnly={buildStructure,buildTamthu,latestApm,apmRows,referenceAdMap};
+export const testOnly={buildStructure,buildTamthu,buildKpi04,kpi04Rows,latestApm,apmRows,referenceAdMap};
 export function isDmsSource(source){return TRANSFORMS.has(source?.dmsTransform);}
+export function isKpi04Source(source){return ['history','carryover'].includes(source?.kpi04Transform);}
 export async function readDmsSource(source){
   if(!isDmsSource(source))throw Error('Không hỗ trợ loại DMS');
   if(!source.file)throw Error('Thiếu đường dẫn file DMS');
@@ -319,4 +451,28 @@ export async function readDmsSource(source){
     input.trim().split(/\r?\n/).length-1);
   if(count<(source.minRows??1))throw Error('DMS có quá ít bản ghi: '+count);
   return {input,audit:{type:source.dmsTransform,count,...audit}};
+}
+export async function readKpi04Source(source){
+  if(!isKpi04Source(source))throw Error('Không hỗ trợ loại KPI04');
+  if(!source.file)throw Error('Thiếu đường dẫn NEW_KPI04');
+  const nowParts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit'})
+    .formatToParts(new Date());
+  const currentMonth=`${nowParts.find(part=>part.type==='year')?.value}-${nowParts.find(part=>part.type==='month')?.value}`;
+  const expectedName=`NEW_KPI04_${currentMonth.slice(0,4)}.xlsx`;
+  if(path.basename(source.file).toLocaleLowerCase('vi-VN')!==expectedName.toLocaleLowerCase('vi-VN')){
+    throw Error('KPI04 phải là '+expectedName);
+  }
+  const apmFile=await latestApm(source.apmFile||path.join(path.dirname(source.file),'APM01 Agents_*.xlsx'));
+  const apm=apmRows(await workbook(apmFile));
+  const reference=referenceAdMap(await workbook(source.structureReferenceFile||
+    path.join(path.dirname(apmFile),'Cautruc.xlsx')));
+  for(const [group,ad] of reference)if(!apm.ad.has(group))apm.ad.set(group,ad);
+  const built=buildKpi04(kpi04Rows(await workbook(source.file)),apm.rows,{
+    adMap:apm.ad,currentMonth,mode:source.kpi04Transform,
+  });
+  const count=Math.max(0,built.input.csv.trim().split(/\r?\n/).length-1);
+  if(source.kpi04Transform==='history'&&count<(source.minRows??1)){
+    throw Error('KPI04 có quá ít bản ghi lịch sử: '+count);
+  }
+  return {input:built.input,audit:{type:'kpi04-'+source.kpi04Transform,count,...built.audit}};
 }

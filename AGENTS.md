@@ -78,8 +78,8 @@ Data Hub nằm trong `data-hub/` nhưng chạy trên máy quản trị. Nó:
 
 Các nguồn mẫu trong `data-hub/data-hub.config.example.json`:
 
-- doanh số tháng hiện tại từ `Tamthu.xlsx`;
-- doanh số lịch sử từ các sheet tháng trong `Doanhso.xlsx`, bỏ tháng hiện tại;
+- doanh số tháng hiện tại từ `NEW_BC02.xlsx` qua phép biến đổi `bc02-sheet4`;
+- doanh số lịch sử từ `NEW_KPI04_<năm>.xlsx`, phân tháng theo Ngày phát hành từ tháng 1 đến tháng liền trước tháng hiện tại;
 - cấu trúc TVV, DS TN, DS TTN, thành viên CLB, TTN tuyển ngang từ workbook cấu trúc;
 - Sao Việt cá nhân, TN KTM, TN tuyển dụng từ workbook Sao Việt.
 
@@ -229,7 +229,7 @@ Không nói đã deploy, đã đồng bộ, đã active hoặc đã sửa dữ l
 
 ### HĐ tồn tháng trước (bổ sung 2026-10-20)
 
-- Doanh số giữ nguyên: tháng hiện tại = Tamthu sheet 4; lịch sử = sheet tháng của Doanhso.
-- Doanhso sheet tháng hiện tại là nguồn riêng HĐ tồn tháng trước; lưu snapshot theo tháng trong Setting nmc-carryover-contracts:YYYY-MM. Không ghi vào Contract/MonthlyRevenue hoặc cộng vào KPI/doanh thu/chính sách CLB.
+- Doanh số tháng hiện tại = BC02 sheet 4; lịch sử = KPI04 phân theo Ngày phát hành.
+- KPI04 chỉ nhận HĐ có IP > 0. Nguồn riêng HĐ tồn tháng trước tiếp tục lọc Ngày phát hành trong tháng hiện tại và Ngày hiệu lực đúng tháng T-1; không đối chiếu loại theo BC02. Lưu snapshot theo tháng trong Setting nmc-carryover-contracts:YYYY-MM. Không ghi vào Contract/MonthlyRevenue hoặc cộng vào KPI/doanh thu/chính sách CLB.
 - Chỉ dùng HĐ tồn tại trang Thi đua và chương trình lưu khi có issueDate hoặc issueEndDate. Vẫn lọc ngày HL, ngày PH, đối tượng và các điều kiện khác; không suy diễn ngày PH. HĐ trùng Số HĐ giữa hai nguồn chỉ tính một lần sau lọc; nhận cả SO_HD_GOC.
-- Data Hub mới tự thêm nguồn revenue-carryover từ cấu hình revenue-history; dùng cùng file Doanhso và tự đổi sheet theo tháng Bangkok. Cloud deploy không cập nhật process Data Hub trên Windows.
+- Data Hub tự thêm nguồn revenue-carryover từ cấu hình revenue-history KPI04 và tự đổi tháng theo Bangkok. Cloud deploy không cập nhật process Data Hub trên Windows.

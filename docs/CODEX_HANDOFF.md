@@ -643,9 +643,11 @@ Các bước nâng độ tin cậy được ưu tiên:
 
 Không tự triển khai các bước này trong một nhiệm vụ khác nếu chưa có phạm vi rõ ràng, nhưng dùng chúng để đánh giá kiến trúc và rủi ro.
 
-## Bổ sung 2026-10-20 — HĐ tồn tháng trước
+## Bổ sung 2026-11-10 — KPI04 thay Doanhso và HĐ tồn tháng trước
 
-Nguồn doanh thu/KPI không đổi. Data Hub revenue-carryover đọc sheet tháng hiện tại của cùng file Doanhso đã cấu hình revenue-history. Gửi /api/sync với carryoverMonth và carryoverCsv; không gửi cờ thay doanh thu. API kiểm tra tháng Bangkok, header và nguồn, lưu JSON snapshot trong Setting riêng nmc-carryover-contracts:YYYY-MM, giữ các kỳ cũ. Không migration schema. /api/quan-ly/all trả carryoverContracts/carryoverSnapshots tách khỏi contracts/revenue; /api/settings không trả hoặc cho sửa các snapshot này.
+Nguồn doanh thu tháng hiện tại vẫn là BC02 sheet 4. KPI04 thay hoàn toàn Doanhso cho lịch sử: Data Hub chỉ nhận HĐ có IP > 0, phân HĐ theo Ngày phát hành và chỉ nhận tháng 1 đến tháng liền trước tháng Bangkok hiện tại. Nguồn revenue-carryover cũng chỉ nhận IP > 0, rồi giữ HĐ KPI04 có Ngày phát hành trong tháng hiện tại và Ngày hiệu lực đúng tháng T-1; không đối chiếu loại theo BC02. Gửi /api/sync với carryoverMonth và carryoverCsv; không gửi cờ thay doanh thu. API lưu JSON snapshot trong Setting riêng nmc-carryover-contracts:YYYY-MM, giữ các kỳ cũ. Không migration schema. /api/quan-ly/all trả carryoverContracts/carryoverSnapshots tách khỏi contracts/revenue; /api/settings không trả hoặc cho sửa các snapshot này.
+
+KPI04 được chuyển về đúng cấu trúc doanh số cũ. Chức vụ, AD, Mã ĐL tuyển dụng và ngày bắt đầu lấy từ APM01/Cautruc có đối chiếu; `TÍNH LƯỢT 3 tr` tính lại theo tổng IP từng TVV trong từng tháng. Với HĐ lịch sử đã tồn tại, metadata mô tả được giữ theo đúng Số hợp đồng để việc đổi nguồn không làm thay đổi phân nhóm/quy tắc; ngày và số tiền lấy từ KPI04.
 
 Quản lý → Doanh thu → HĐ tồn tháng trước có bảng chỉ đọc, chọn kỳ, lọc/tìm kiếm, xuất Excel, nhập file Doanhso đúng sheet hiện tại và làm mới. Nút nhập không ghi Contract hoặc MonthlyRevenue.
 
