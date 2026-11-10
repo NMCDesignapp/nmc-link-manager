@@ -1,10 +1,10 @@
 # Data Hub DMS BC02/APM01 - one-file Windows PowerShell installer.
-# It keeps 11 old sources (including Doanhso and SaoViet), changes only five DMS sources.
+# It keeps all 11 source definitions and normalizes every workbook to G:\NMC-Data.
 $ErrorActionPreference='Stop'
 $ProgressPreference='SilentlyContinue'
 $root='C:\NMCDataHub'
 $cfgFile=Join-Path $root 'data-hub.config.json'
-$rev='60cf0086edbbd7762bcb1515b84a6d511288893d'
+$rev='7a14381dc817ab2f59941cb925bc63950422d2ed'
 $remote="https://raw.githubusercontent.com/NMCDesignapp/nmc-link-manager/$rev/data-hub"
 $stamp=Get-Date -Format yyyyMMdd-HHmmss
 $stage=Join-Path $root ("_dms-stage-"+$stamp)
@@ -38,6 +38,8 @@ try{
   Need $cfgFile
   Need 'G:\NMC-Data\NEW_BC02.xlsx'
   Need 'G:\NMC-Data\Cautruc.xlsx'
+  Need 'G:\NMC-Data\Doanhso.xlsx'
+  Need 'G:\NMC-Data\83An Giang_SaoViet2026TT.xlsx'
   if(!@(Get-ChildItem 'G:\NMC-Data\APM01 Agents_*.xlsx' -File -ErrorAction SilentlyContinue).Count){
     throw 'Khong thay APM01 Agents_*.xlsx o o G:'
   }
@@ -47,9 +49,6 @@ try{
     'revenue-current-month','tamthu-detail-view','structure-clb-members',
     'structure-tuyen-ngang','saoviet-ca-nhan','saoviet-tn-ktm',
     'saoviet-tn-td','revenue-completed-months')){$null=Src $id}
-  foreach($id in @('saoviet-ca-nhan','saoviet-tn-ktm','saoviet-tn-td','revenue-completed-months')){
-    Need ([string](Src $id).file)
-  }
   New-Item -ItemType Directory -Force -Path $stage,$backup | Out-Null
   Write-Host '2/6 TAI MA MOI TU GITHUB - KHONG CAN ZIP' -ForegroundColor Cyan
   foreach($name in @('index.mjs','dms-auto-source.mjs','package.json',
@@ -62,10 +61,12 @@ try{
   if($LASTEXITCODE){throw 'Bo doc DMS sai cu phap'}
   npm.cmd install --prefix $stage --omit=dev --no-audit --no-fund
   if($LASTEXITCODE){throw 'Khong cai duoc xlsx'}
-  Write-Host '3/6 CHUYEN NGUON, GIU DOANHSO VA SAOVIET' -ForegroundColor Cyan
+  Write-Host '3/6 CHUYEN TOAN BO NGUON EXCEL SANG O G' -ForegroundColor Cyan
   $apm='G:\NMC-Data\APM01 Agents_*.xlsx'
   $bc='G:\NMC-Data\NEW_BC02.xlsx'
   $ct='G:\NMC-Data\Cautruc.xlsx'
+  $sv='G:\NMC-Data\83An Giang_SaoViet2026TT.xlsx'
+  $doanhso='G:\NMC-Data\Doanhso.xlsx'
   foreach($s in @(
     @{id='structure-tvv';kind='structure';transform='apm01-tvv';min=1000},
     @{id='structure-leaders';kind='structure';transform='apm01-leaders';min=20},
@@ -92,6 +93,15 @@ try{
     Field $o 'sheet' $s.name
     Field $o 'allowEmpty' $false
   }
+  foreach($s in @(@{id='saoviet-ca-nhan';name='TVV'},
+                  @{id='saoviet-tn-ktm';name='Nhom'},
+                  @{id='saoviet-tn-td';name='NhomTD'})){
+    $o=Src $s.id
+    Field $o 'file' $sv
+    Field $o 'sheet' $s.name
+  }
+  Field (Src 'revenue-completed-months') 'file' $doanhso
+  Field $cfg 'requiredSourceRoot' 'G:\NMC-Data'
   Field $cfg 'enableDmsWrites' $false
   $shadow=Join-Path $stage 'data-hub.config.json'
   [IO.File]::WriteAllText($shadow,($cfg | ConvertTo-Json -Depth 40),

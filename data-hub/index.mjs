@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import XLSX from 'xlsx';
 import { isDmsSource, readDmsSource } from './dms-auto-source.mjs';
 
-const AGENT_VERSION = '2.3.0-20261020';
+const AGENT_VERSION = '2.4.0-20261110';
 const root = path.dirname(fileURLToPath(import.meta.url));
 const configPath = process.env.NMC_DATA_HUB_CONFIG || path.join(root, 'data-hub.config.json');
 const statePath = path.join(root, '.nmc-data-hub-state.json');
@@ -435,6 +435,19 @@ async function loadConfig() {
     throw new Error(`Thiếu hoặc sai cấu hình: ${configPath}`);
   }
   config.sources = config.sources.map(normalizeSource);
+  if (config.requiredSourceRoot) {
+    const requiredRoot = path.win32.resolve(String(config.requiredSourceRoot));
+    for (const source of config.sources) {
+      if (!source.file) continue;
+      const candidate = path.win32.resolve(source.file.includes('*')
+        ? path.win32.dirname(source.file)
+        : source.file);
+      const relative = path.win32.relative(requiredRoot, candidate);
+      if (relative.startsWith('..') || path.win32.isAbsolute(relative)) {
+        throw new Error(`Nguồn "${source.id}" nằm ngoài thư mục bắt buộc ${requiredRoot}: ${source.file}`);
+      }
+    }
+  }
   // Reuse the configured Doanhso file; no local path/token/config edits required.
   const carryoverSources = config.sources.filter(source => source.kind === 'revenue-history')
     .map(source => ({ ...source, id: `${source.id}-carryover`, kind: 'revenue-carryover', allowEmpty: true }));
