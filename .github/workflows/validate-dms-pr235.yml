@@ -35,6 +35,7 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: node --test tests/dms-auto-source.test.mjs
+      - run: node --test tests/data-hub-single-g-source.test.mjs
       - run: node --experimental-strip-types --test tests/tvv-notes-import.test.ts
       - run: npx eslint src/components/tvv-notes-excel-import.tsx src/lib/tvv-notes-import.ts src/app/api/structure/tvv/notes-import/route.ts src/app/api/structure/tvv/route.ts src/app/api/structure/sync/route.ts
       - name: Validate Data Hub PowerShell installer syntax
