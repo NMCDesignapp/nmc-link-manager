@@ -38,7 +38,7 @@ try{
   Need $cfgFile
   Need 'G:\NMC-Data\NEW_BC02.xlsx'
   Need 'G:\NMC-Data\Cautruc.xlsx'
-  Need 'G:\NMC-Data\Doanhso.xlsx'
+  Need 'G:\NMC-Data\NEW_KPI04_2026.xlsx'
   Need 'G:\NMC-Data\83An Giang_SaoViet2026TT.xlsx'
   if(!@(Get-ChildItem 'G:\NMC-Data\APM01 Agents_*.xlsx' -File -ErrorAction SilentlyContinue).Count){
     throw 'Khong thay APM01 Agents_*.xlsx o o G:'
@@ -66,7 +66,7 @@ try{
   $bc='G:\NMC-Data\NEW_BC02.xlsx'
   $ct='G:\NMC-Data\Cautruc.xlsx'
   $sv='G:\NMC-Data\83An Giang_SaoViet2026TT.xlsx'
-  $doanhso='G:\NMC-Data\Doanhso.xlsx'
+  $kpi04='G:\NMC-Data\NEW_KPI04_2026.xlsx'
   foreach($s in @(
     @{id='structure-tvv';kind='structure';transform='apm01-tvv';min=1000},
     @{id='structure-leaders';kind='structure';transform='apm01-leaders';min=20},
@@ -100,7 +100,16 @@ try{
     Field $o 'file' $sv
     Field $o 'sheet' $s.name
   }
-  Field (Src 'revenue-completed-months') 'file' $doanhso
+  $history=Src 'revenue-completed-months'
+  Field $history 'file' $kpi04
+  Field $history 'kind' 'revenue-history'
+  Field $history 'kpi04Transform' 'history'
+  Field $history 'apmFile' $apm
+  Field $history 'structureReferenceFile' $ct
+  Field $history 'bc02File' $bc
+  Field $history 'minRows' 1000
+  Field $history 'allowEmpty' $false
+  $history.PSObject.Properties.Remove('sheet')
   Field $cfg 'requiredSourceRoot' 'G:\NMC-Data'
   Field $cfg 'enableDmsWrites' $false
   $shadow=Join-Path $stage 'data-hub.config.json'
@@ -201,7 +210,7 @@ try {
   } else {
     Write-Host 'Server dang chon Google: KHONG TU DOI NGUON. Bat lai khi da kiem tra.' -ForegroundColor Yellow
   }
-  Write-Host 'DA CAI DAT, 4 NUT O DESKTOP. KHONG XOA EXCEL/DOANHSO/SAOVIET.' -ForegroundColor Green
+  Write-Host 'DA CAI DAT, 4 NUT O DESKTOP. KPI04 THAY DOANHSO; KHONG XOA FILE CU/DU LIEU/SAOVIET.' -ForegroundColor Green
   Write-Host ('Ban backup de phuc hoi: '+$backup)
 } catch {
   Write-Host ('CAI DAT LOI: '+$_.Exception.Message) -ForegroundColor Red

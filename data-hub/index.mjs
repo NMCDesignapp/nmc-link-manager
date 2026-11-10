@@ -4,9 +4,9 @@ import crypto from 'node:crypto';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import XLSX from 'xlsx';
-import { isDmsSource, readDmsSource } from './dms-auto-source.mjs';
+import { isDmsSource, isKpi04Source, readDmsSource, readKpi04Source } from './dms-auto-source.mjs';
 
-const AGENT_VERSION = '2.4.0-20261110';
+const AGENT_VERSION = '2.5.0-20261110';
 const root = path.dirname(fileURLToPath(import.meta.url));
 const configPath = process.env.NMC_DATA_HUB_CONFIG || path.join(root, 'data-hub.config.json');
 const statePath = path.join(root, '.nmc-data-hub-state.json');
@@ -177,6 +177,7 @@ function rowsFromWorkbook(file, sheetName) {
 }
 
 async function inputFromSource(source) {
+  if (isKpi04Source(source)) return (await readKpi04Source(source)).input;
   if (isDmsSource(source)) return (await readDmsSource(source)).input;
   if (!source?.file) throw new Error(`Nguồn "${source?.id || 'không tên'}" chưa khai báo file.`);
   try {
@@ -305,6 +306,7 @@ async function importOne(config, rawSource, state, forceImport) {
   // Quy tắc nguồn doanh số thay đổi: force lại 1 vòng đồng bộ khi cập nhật Data Hub,
   // ngay cả khi Tamthu.xlsx và Doanhso.xlsx chưa được sửa từ lần nhập cũ.
   const sourceSchemaVersion = isDmsSource(source) ? 'dms-v1:' + source.dmsTransform
+    : isKpi04Source(source) ? 'kpi04-v1:' + source.kpi04Transform
     : ['revenue', 'revenue-history', 'revenue-carryover'].includes(source.kind)
     ? 'authoritative-sheet-month-v2'
     : 'unchanged';
@@ -324,6 +326,7 @@ async function importOne(config, rawSource, state, forceImport) {
     payload = await postJson(config, '/api/sync', {
       source: 'nmc-data-hub', contractCsv: input, staffCsv: '', recruiterCsv: '',
       replaceHistoricalRevenueMonths: historyInput.months,
+      preserveHistoricalMetadata: source.kpi04Transform === 'history',
     });
     if (Array.isArray(payload?.errors) && payload.errors.length > 0) {
       throw new Error(`Máy chủ báo lỗi đồng bộ doanh số lịch sử: ${payload.errors.join('; ')}`);
@@ -438,19 +441,24 @@ async function loadConfig() {
   if (config.requiredSourceRoot) {
     const requiredRoot = path.win32.resolve(String(config.requiredSourceRoot));
     for (const source of config.sources) {
-      if (!source.file) continue;
-      const candidate = path.win32.resolve(source.file.includes('*')
-        ? path.win32.dirname(source.file)
-        : source.file);
-      const relative = path.win32.relative(requiredRoot, candidate);
-      if (relative.startsWith('..') || path.win32.isAbsolute(relative)) {
-        throw new Error(`Nguồn "${source.id}" nằm ngoài thư mục bắt buộc ${requiredRoot}: ${source.file}`);
+      for (const field of ['file', 'apmFile', 'structureReferenceFile', 'bc02File']) {
+        const configured = source[field];
+        if (!configured) continue;
+        const candidate = path.win32.resolve(configured.includes('*')
+          ? path.win32.dirname(configured)
+          : configured);
+        const relative = path.win32.relative(requiredRoot, candidate);
+        if (relative.startsWith('..') || path.win32.isAbsolute(relative)) {
+          throw new Error(`Nguồn "${source.id}" (${field}) nằm ngoài thư mục bắt buộc ${requiredRoot}: ${configured}`);
+        }
       }
     }
   }
   // Reuse the configured Doanhso file; no local path/token/config edits required.
   const carryoverSources = config.sources.filter(source => source.kind === 'revenue-history')
-    .map(source => ({ ...source, id: `${source.id}-carryover`, kind: 'revenue-carryover', allowEmpty: true }));
+    .map(source => ({ ...source, id: `${source.id}-carryover`, kind: 'revenue-carryover',
+      kpi04Transform: source.kpi04Transform === 'history' ? 'carryover' : source.kpi04Transform,
+      allowEmpty: true }));
   if (!config.sources.some(source => source.kind === 'revenue-carryover')) config.sources.push(...carryoverSources);
   return config;
 }
@@ -460,12 +468,14 @@ async function main() {
   const config = await loadConfig();
 
   if (dmsShadowOnly) {
-    const sources = config.sources.filter(isDmsSource);
+    const sources = config.sources.filter(source => isDmsSource(source) || isKpi04Source(source));
     if (!sources.length) throw new Error('Không có nguồn DMS trong cấu hình shadow');
     let failures = 0;
     for (const source of sources) {
       try {
-        const { audit } = await readDmsSource(source);
+        const { audit } = isKpi04Source(source)
+          ? await readKpi04Source(source)
+          : await readDmsSource(source);
         console.log(JSON.stringify({ id: source.id, mode: 'SHADOW_ONLY', audit }));
       } catch (error) {
         failures++;

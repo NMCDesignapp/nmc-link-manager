@@ -3,8 +3,9 @@
 Data Hub chạy trên máy quản trị và là nguồn ưu tiên cho toàn bộ dữ liệu Main App:
 
 - Sao Việt cá nhân, TN KTM, TN tuyển dụng
-- Doanh số từ `Doanhso.xlsx`: Sheet `1` → tháng 1, ... Sheet `12` → tháng 12, KHÔNG phân tháng theo Ngày PH/HL.
-- Riêng tháng hiện tại, `Tamthu.xlsx` Sheet `4` là nguồn DUY NHẤT (bỏ qua Sheet cùng tháng bên Doanhso).
+- Doanh số lịch sử từ `NEW_KPI04_<năm>.xlsx`: mỗi HĐ được phân vào tháng theo **Ngày phát hành**, chỉ lấy từ tháng 1 đến tháng liền trước tháng hiện tại.
+- Riêng tháng hiện tại, `NEW_BC02.xlsx` theo phép biến đổi `bc02-sheet4` là nguồn doanh số DUY NHẤT.
+- HĐ KPI04 có Ngày phát hành trong tháng hiện tại chỉ vào `HĐ tồn tháng trước` khi Số hợp đồng chưa có trong toàn bộ BC02; không đi vào doanh thu/KPI.
 - Cả hai nguồn giữ đủ mọi hàng Excel có dữ liệu, kể cả thiếu Mã ĐL, ngày phát hành hoặc ngày hiệu lực; chỉ bỏ hàng hoàn toàn trống.
 - Cấu trúc TVV, DS TN, DS TTN, thành viên CLB và TTN tuyển ngang
 
@@ -86,11 +87,11 @@ Dữ liệu bắt đầu từ **dòng Excel số 6 và phải bao gồm dòng 6*
 
 Không chạy đồng thời nhiều bản Data Hub trên cùng máy. Không đưa token, connection string, file `data-hub.config.json` thật, file Excel nghiệp vụ hoặc log chứa dữ liệu khách hàng lên GitHub.
 
-## HĐ tồn tháng trước — v2.3.0
+## HĐ tồn tháng trước — KPI04 v2.5.0
 
-Bản mới tự tạo nguồn revenue-carryover cho cấu hình revenue-history hiện có, dùng nguyên file Doanhso, không đổi token/đường dẫn. Tháng 10 đọc sheet 10, tháng 11 đọc sheet 11 theo Asia/Bangkok. Nguồn doanh thu cũ không đổi. Nguồn mới chỉ lưu HĐ tồn, tuyệt đối không cập nhật doanh thu/KPI. Chỉ chương trình Thi đua có cài ngày phát hành mới sử dụng.
+Nguồn `revenue-history` đọc `NEW_KPI04_<năm>.xlsx`, phân HĐ theo Ngày phát hành và tạo doanh thu lịch sử từ tháng 1 đến tháng liền trước tháng hiện tại. Nguồn carryover cùng file chỉ giữ HĐ của tháng hiện tại chưa xuất hiện trong toàn bộ `NEW_BC02.xlsx`. Nguồn này tuyệt đối không cập nhật doanh thu/KPI; chỉ chương trình Thi đua có cài Ngày phát hành mới sử dụng.
 
-Cập nhật file index.mjs từ repository vào thư mục Data Hub đang chạy (giữ data-hub.config.json và state), rồi chạy RESTART-DATA-HUB.cmd. Không cần activate hoặc đổi nguồn. Kiểm tra last-result có nguồn hậu tố -carryover, ok:true và kỳ/số dòng trên bảng HĐ tồn tháng trước của Main App. File thiếu sheet hoặc sai header sẽ báo lỗi và giữ snapshot cũ. Header hợp lệ nhưng sheet hết HĐ thì cập nhật snapshot rỗng đúng kỳ, không xóa doanh thu. Có thể nhập file Doanhso thủ công ngay tại bảng HĐ tồn nếu chưa cập nhật agent.
+KPI04 bổ sung Chức vụ, Ngày bắt đầu, AD và Mã ĐL tuyển dụng bằng APM01/Cautruc có đối chiếu; `TÍNH LƯỢT 3 tr` được tính lại theo tổng IP của từng TVV trong từng tháng. Metadata lịch sử không có trong APM01 hiện tại được giữ từ HĐ đã lưu cùng Số hợp đồng, không suy đoán. File thiếu cột, sai ngày, trùng Số hợp đồng hoặc sai năm sẽ dừng an toàn.
 
 
 ## DMS APM01 / NEW_BC02 — kiểm tra trước đồng bộ
