@@ -488,15 +488,18 @@ const BONUS_TYPE_BUTTONS = [
 ] as const;
 
 // ContestPoster Component - supports white & gradient variants
-const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDate, endDate, conditionType, targetType, sortedTiers, filteredContracts, groupedData, totalFYP, totalBonus, achievedCount, notAchievedCount, formatCurrency: fc, formatNumber: fn, formatDate: fd, isPreview = false, variant = 'gradient' }: {
+const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDate, endDate, conditionType, targetType, sortedTiers, filteredContracts, groupedData, totalAFYP, totalBonus, achievedCount, notAchievedCount, qualifiedTVVCount, formatCurrency: fc, formatDate: fd, isPreview = false, variant = 'gradient' }: {
   contestTitle: string; startDate: string; endDate: string; conditionType: ConditionType;
   targetType: TargetType; sortedTiers: BonusTier[]; filteredContracts: Contract[];
-  groupedData: GroupData[]; totalFYP: number; totalBonus: number;
-  achievedCount: number; notAchievedCount: number;
-  formatCurrency: (n: number) => string; formatNumber: (n: number) => string;
-  formatDate: (d: string) => string; isPreview?: boolean; variant?: 'gradient' | 'white';
+  groupedData: GroupData[]; totalAFYP: number; totalBonus: number;
+  achievedCount: number; notAchievedCount: number; qualifiedTVVCount: number | null;
+  formatCurrency: (n: number) => string; formatDate: (d: string) => string;
+  isPreview?: boolean; variant?: 'gradient' | 'white';
 }) {
-  const rowCount = targetType === 'nhom' ? groupedData.length : filteredContracts.length;
+  const calculatedRowCount = achievedCount + notAchievedCount;
+  const rowCount = calculatedRowCount > 0
+    ? calculatedRowCount
+    : targetType === 'nhom' ? groupedData.length : filteredContracts.length;
   const hasData = rowCount > 0;
   const achievementPercent = hasData ? Math.round((achievedCount / rowCount) * 100) : 0;
   const tierColors = TIER_COLORS;
@@ -504,6 +507,29 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
 
   const conditionLabel = getConditionLabel(conditionType);
   const targetLabel = getTargetLabel(targetType);
+  const rewardToAFYPPercent = totalAFYP > 0 ? totalBonus / totalAFYP * 100 : null;
+  const averageBonus = achievedCount > 0 ? totalBonus / achievedCount : null;
+  const achievedMetricLabel = qualifiedTVVCount !== null ? 'TVV đạt chuẩn' : `${targetLabel} đạt`;
+  const achievedMetricValue = qualifiedTVVCount ?? achievedCount;
+  const formatPercent = (value: number | null) => value === null
+    ? '—'
+    : `${value.toLocaleString('vi-VN', { minimumFractionDigits: value > 0 && value < 0.1 ? 3 : 2, maximumFractionDigits: 3 })}%`;
+  const efficiencySummary = (
+    <div className="mb-2 overflow-hidden rounded-lg border border-emerald-500/25 bg-emerald-500/[0.06] text-xs">
+      <div className="border-b border-emerald-500/15 px-3 py-1.5 font-bold uppercase tracking-wide text-emerald-200">
+        Hiệu quả chương trình
+      </div>
+      <div className="grid grid-cols-2">
+        <div className="border-b border-r border-emerald-500/15 px-3 py-2"><span className="block text-[10px] text-emerald-200/70">Tổng AFYP</span><strong className="text-sm text-amber-200">{hasData ? fc(totalAFYP) : '—'}</strong></div>
+        <div className="border-b border-emerald-500/15 px-3 py-2"><span className="block text-[10px] text-emerald-200/70">Tổng thưởng</span><strong className="text-sm text-white">{hasData ? fc(totalBonus) : '—'}</strong></div>
+        <div className="border-b border-r border-emerald-500/15 px-3 py-2"><span className="block text-[10px] text-emerald-200/70">{achievedMetricLabel}</span><strong className="text-sm text-emerald-300">{hasData ? achievedMetricValue : '—'}</strong></div>
+        <div className="border-b border-emerald-500/15 px-3 py-2"><span className="block text-[10px] text-emerald-200/70">Tỷ lệ đạt</span><strong className="text-sm text-sky-300">{hasData ? `${achievementPercent}%` : '—'}</strong></div>
+        <div className="border-r border-emerald-500/15 px-3 py-2"><span className="block text-[10px] text-emerald-200/70">Chi phí/AFYP</span><strong className="text-sm text-amber-200">{hasData ? formatPercent(rewardToAFYPPercent) : '—'}</strong></div>
+        <div className="px-3 py-2"><span className="block text-[10px] text-emerald-200/70">Thưởng BQ/{targetLabel} đạt</span><strong className="text-sm text-white">{hasData && averageBonus !== null ? fc(averageBonus) : '—'}</strong></div>
+      </div>
+      {hasData && <div className="px-3 py-1.5 text-[10px] text-emerald-100/70">{achievedCount}/{rowCount} {targetLabel.toLowerCase()} đạt · {notAchievedCount} chưa đạt</div>}
+    </div>
+  );
 
   if (isWhite) {
     return (
@@ -534,13 +560,7 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-4 gap-2 mb-2">
-            <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><FileText className="w-4 h-4 text-emerald-300" /><span className="text-xs text-emerald-300 uppercase font-bold">{targetType === 'nhom' ? 'Nhóm' : targetType === 'nyd' ? 'NYD' : 'HĐ'}</span></div><p className="text-xl font-extrabold text-white">{hasData ? rowCount : '—'}</p></div>
-            <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Banknote className="w-4 h-4 text-amber-300" /><span className="text-xs text-amber-300 uppercase font-bold">Tổng IP</span></div><p className="text-base font-extrabold text-amber-200 whitespace-nowrap">{hasData ? fc(totalFYP) : '—'}</p></div>
-            <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Users className="w-4 h-4 text-sky-300" /><span className="text-xs text-sky-300 uppercase font-bold">Đạt/Chưa</span></div><p className="text-xl font-extrabold">{hasData ? <><span className="text-emerald-300">{achievedCount}</span><span className="text-white mx-0.5">/</span><span className="text-red-400">{notAchievedCount}</span></> : <span className="text-white">—</span>}</p></div>
-            <div className="bg-amber-500/10 rounded-lg p-3 text-center border border-amber-500/30 shadow-[0_0_10px_rgba(255,191,0,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Award className="w-4 h-4 text-amber-200" /><span className="text-xs text-amber-200 uppercase font-bold">Tổng Thưởng</span></div><p className="text-base font-extrabold text-white whitespace-nowrap">{hasData ? fc(totalBonus) : '—'}</p></div>
-          </div>
-          {hasData && (<div className="space-y-1"><div className="flex items-center justify-between text-sm"><span className="text-emerald-200 font-medium">Tỷ lệ đạt</span><span className="text-white font-bold text-base">{achievementPercent}%</span></div><div className="relative h-3 bg-emerald-500/10 rounded-full overflow-hidden"><div className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${achievementPercent}%` }} /><div className="absolute inset-0 flex items-center justify-center"><span className="text-[10px] font-bold text-white drop-shadow-sm">{achievedCount}/{rowCount}</span></div></div></div>)}
+          {efficiencySummary}
         </div>
       </div>
     );
@@ -576,13 +596,7 @@ const ContestPoster = React.memo(function ContestPoster({ contestTitle, startDat
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-4 gap-2 mb-2">
-          <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><FileText className="w-4 h-4 text-emerald-300" /><span className="text-xs text-emerald-300 uppercase font-bold">{targetType === 'nhom' ? 'Nhóm' : targetType === 'nyd' ? 'NYD' : 'HĐ'}</span></div><p className="text-xl font-extrabold text-white">{hasData ? rowCount : '—'}</p></div>
-          <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Banknote className="w-4 h-4 text-amber-300" /><span className="text-xs text-amber-300 uppercase font-bold">Tổng IP</span></div><p className="text-base font-extrabold text-amber-200 whitespace-nowrap">{hasData ? fc(totalFYP) : '—'}</p></div>
-          <div className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/30 shadow-[0_0_10px_rgba(0,255,136,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Users className="w-4 h-4 text-sky-300" /><span className="text-xs text-sky-300 uppercase font-bold">Đạt/Chưa</span></div><p className="text-xl font-extrabold">{hasData ? <><span className="text-emerald-300">{achievedCount}</span><span className="text-white mx-0.5">/</span><span className="text-red-400">{notAchievedCount}</span></> : <span className="text-white">—</span>}</p></div>
-          <div className="bg-amber-500/10 rounded-lg p-3 text-center border border-amber-500/30 shadow-[0_0_10px_rgba(255,191,0,0.05)]"><div className="flex items-center justify-center gap-1 mb-1"><Award className="w-4 h-4 text-amber-200" /><span className="text-xs text-amber-200 uppercase font-bold">Tổng Thưởng</span></div><p className="text-base font-extrabold text-white whitespace-nowrap">{hasData ? fc(totalBonus) : '—'}</p></div>
-        </div>
-        {hasData && (<div className="space-y-1"><div className="flex items-center justify-between text-sm"><span className="text-emerald-200 font-medium">Tỷ lệ đạt</span><span className="text-white font-bold text-base">{achievementPercent}%</span></div><div className="relative h-3 bg-emerald-500/10 rounded-full overflow-hidden"><div className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-amber-400 rounded-full transition-all duration-700" style={{ width: `${achievementPercent}%` }} /><div className="absolute inset-0 flex items-center justify-center"><span className="text-[10px] font-bold text-white drop-shadow-sm">{achievedCount}/{rowCount}</span></div></div></div>)}
+        {efficiencySummary}
         {!hasData && isPreview && (<div className="text-center py-1"><p className="text-emerald-200 text-sm italic">Nhấn &ldquo;Tính kết quả&rdquo; để xem</p></div>)}
       </div>
     </div>
@@ -3848,7 +3862,6 @@ function ThiDuaPageInner() {
       if (isActivityRoundMode(conditionType)) return calculateActivityRoundBonus(g.activityRounds).tier;
       return calculateBonus(getGroupValue(g)).tier;
     }).length;
-    const nhomTotalFYP = groupedData.reduce((sum, g) => sum + g.totalFYP, 0);
     const nhomTotalBonus = groupedData.reduce((sum, g) => {
       if (!checkSecondaryTotalCondition(g.contracts).passed) return sum;
       if (isTVVPassCountMode(conditionType)) {
@@ -3914,11 +3927,16 @@ function ThiDuaPageInner() {
       ? (isActivityRoundMode(conditionType) ? arTotalBonus : nhomTotalBonus)
       : tvvTotalBonus;
     const totalBonusDisplay = usePhase2 && phase2Results ? phase2Results.totalBonus : baseTotalBonus;
-    const displayTotalFYP = targetType === 'nhom' ? nhomTotalFYP : totalFYP;
-
     // TẤT CẢ chế độ: dùng displayContracts (nguồn duy nhất)
     const totalFYPFromContracts = displayContracts.reduce((sum, c) => sum + c.pdt10DT, 0);
     const totalAFYPFromContracts = displayContracts.reduce((sum, c) => sum + c.afyp, 0);
+    const qualifiedTVVCount = targetType === 'nhom' && isTVVPassCountMode(conditionType)
+      ? groupedData.reduce((sum, group) => sum + (
+        conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts'
+          ? getGroupTVVPassCountIPAFYP(group)
+          : getGroupTVVPassCount(group)
+      ), 0)
+      : targetType === 'tvv' ? achievedCount : null;
     const totalFYPValue = totalFYPFromContracts;
     const isTotalModeType = isTotalMode(conditionType) && targetType !== 'nhom';
     const totalValue = isTotalModeType ? (conditionType === 'total_afyp' ? totalAFYPFromContracts : totalFYPValue) : 0;
@@ -3927,16 +3945,17 @@ function ThiDuaPageInner() {
     
     return {
       totalFYP, tvvAchievedCount, tvvTotalBonus,
-      nhomAchievedCount, nhomTotalFYP, nhomTotalBonus,
+      nhomAchievedCount, nhomTotalBonus,
       arAchievedCount, arNotAchievedCount, arTotalBonus,
       nydAchievedCount, nydNotAchievedCount, nydTotalBonus,
       achievedCount, notAchievedCount,
-      baseTotalBonus, totalBonusDisplay, displayTotalFYP,
-      totalFYPValue, totalValue, matchedTotalTier, totalRemaining
+      baseTotalBonus, totalBonusDisplay,
+      totalFYPValue, totalAFYPFromContracts, qualifiedTVVCount,
+      totalValue, matchedTotalTier, totalRemaining
     };
   }, [displayContracts, displayContractsByAgent, perContractDisplayContracts, groupedData, nydData, tvvTotalRows, conditionType, targetType, includeIndividualTN, includeIndividualNTD, usePhase2, phase2Results, calculateBonus, calculateActivityRoundBonus, getActivityRoundBonusAmount, getRemainingToNextTier, checkSecondaryTotalCondition, getGroupTVVPassCount, getGroupTVVPassCountIPAFYP]);
 
-  const { totalFYP, tvvAchievedCount, tvvTotalBonus, nhomAchievedCount, nhomTotalFYP, nhomTotalBonus, arAchievedCount, arNotAchievedCount, arTotalBonus, nydAchievedCount, nydNotAchievedCount, nydTotalBonus, achievedCount, notAchievedCount, baseTotalBonus, totalBonusDisplay, displayTotalFYP, totalFYPValue, totalValue, matchedTotalTier, totalRemaining } = stats;
+  const { totalFYP, tvvAchievedCount, tvvTotalBonus, nhomAchievedCount, nhomTotalBonus, arAchievedCount, arNotAchievedCount, arTotalBonus, nydAchievedCount, nydNotAchievedCount, nydTotalBonus, achievedCount, notAchievedCount, baseTotalBonus, totalBonusDisplay, totalFYPValue, totalAFYPFromContracts, qualifiedTVVCount, totalValue, matchedTotalTier, totalRemaining } = stats;
 
   const sortedTiers = useMemo(() => [...bonusTiers].sort((a, b) => a.minFYP - b.minFYP), [bonusTiers]);
   const showRateColumn = useMemo(() => hasPercentBonus(bonusTiers), [bonusTiers]);
@@ -5021,7 +5040,7 @@ function ThiDuaPageInner() {
         {/* Summary Cards - below buttons, visible when results exist */}
         {(perContractDisplayContracts.length > 0 || nydData.length > 0 || recruitmentRows.length > 0 || tvvTotalRows.length > 0 || groupedData.length > 0) && (
           <div className="space-y-2">
-            {registeredProgram ? <div className="p-3 text-emerald-100">{contestTitle} · {registeredProgram.rows.length} đối tượng · {registeredProgram.metric.toUpperCase()} theo mục tiêu đăng ký (đ)</div> : <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalFYP={displayTotalFYP} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} formatCurrency={formatCurrency} formatNumber={formatNumber} formatDate={formatDate} variant="gradient" />}
+            {registeredProgram ? <div className="p-3 text-emerald-100">{contestTitle} · {registeredProgram.rows.length} đối tượng · {registeredProgram.metric.toUpperCase()} theo mục tiêu đăng ký (đ)</div> : <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalAFYP={totalAFYPFromContracts} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} qualifiedTVVCount={qualifiedTVVCount} formatCurrency={formatCurrency} formatDate={formatDate} variant="gradient" />}
 
             {usePhase2 && phase2Results && (
               <div className="rounded-lg bg-gradient-to-r from-sky-900/40 to-cyan-900/40 border border-sky-500/20 p-3">
@@ -5265,7 +5284,7 @@ function ThiDuaPageInner() {
               {/* Poster image - full width, 21:9 aspect ratio, no gaps */}
               {posterUrl && <div className="mb-3 w-full overflow-hidden" style={{ aspectRatio: '21/9' }}><img src={posterUrl} alt="Poster" className="w-full h-full object-fill shadow-md" /></div>}
               {!posterUrl && !registeredProgram && (
-                <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalFYP={displayTotalFYP} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} formatCurrency={formatCurrency} formatNumber={formatNumber} formatDate={formatDate} variant="white" />
+                <ContestPoster contestTitle={contestTitle} startDate={startDate} endDate={endDate} conditionType={conditionType} targetType={targetType} sortedTiers={sortedTiers} filteredContracts={displayContracts} groupedData={groupedData} totalAFYP={totalAFYPFromContracts} totalBonus={totalBonusDisplay} achievedCount={achievedCount} notAchievedCount={notAchievedCount} qualifiedTVVCount={qualifiedTVVCount} formatCurrency={formatCurrency} formatDate={formatDate} variant="white" />
               )}
 
               {/* Result Table - slightly larger */}
