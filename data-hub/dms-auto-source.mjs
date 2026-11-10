@@ -270,21 +270,29 @@ function assignMonthlyRounds(rows){
   }
   return result.map((row,index)=>({...row,STT:index+1}));
 }
-function buildKpi04(source,apm,{adMap=new Map(),currentMonth,mode='history',bc02Contracts=new Set()}={}){
+function buildKpi04(source,apm,{adMap=new Map(),currentMonth,mode='history'}={}){
   if(!/^\d{4}-\d{2}$/.test(currentMonth||''))throw Error('Thiếu tháng Bangkok cho KPI04');
   required(source,['Mã đại lý','Tên đại lý','Hợp đồng','Ngày hiệu lực','Ngày phát hành','IP','AFYP'],'KPI04');
   const [currentYear,currentNumber]=currentMonth.split('-').map(Number);
+  const previousDate=new Date(Date.UTC(currentYear,currentNumber-2,1));
+  const previousMonth=`${previousDate.getUTCFullYear()}-${String(previousDate.getUTCMonth()+1).padStart(2,'0')}`;
   const {people,adoToAd}=peopleContext(apm,adMap);
   const seenContracts=new Set(),rows=[];
-  const audit={sourceRows:source.length,selected:0,missingApm:0,missingAd:0,missingRecruiter:0,excludedBc02:0,months:{}};
+  const audit={sourceRows:source.length,selected:0,missingApm:0,missingAd:0,missingRecruiter:0,
+    excludedNonPositiveIp:0,excludedEffectiveMonth:0,months:{}};
   for(const sourceRow of source){
     const issue=parseKpi04Date(sourceRow['Ngày phát hành']);
     if(issue.year!==currentYear||issue.month<1||issue.month>currentNumber)continue;
     const isCurrent=issue.month===currentNumber;
     if((mode==='history'&&isCurrent)||(mode==='carryover'&&!isCurrent))continue;
+    const ip=amount(sourceRow.IP);
+    if(ip<=0){audit.excludedNonPositiveIp++;continue;}
+    if(mode==='carryover'){
+      const effective=parseKpi04Date(sourceRow['Ngày hiệu lực']);
+      if(effective.label!==previousMonth){audit.excludedEffectiveMonth++;continue;}
+    }
     const contract=clean(sourceRow['Hợp đồng']);
     if(!contract)throw Error('KPI04 có dòng thiếu Số hợp đồng');
-    if(mode==='carryover'&&bc02Contracts.has(contract)){audit.excludedBc02++;continue;}
     if(seenContracts.has(contract))throw Error('KPI04 trùng Số hợp đồng: '+contract);
     seenContracts.add(contract);
     const code=ident(sourceRow['Mã đại lý']);
@@ -292,8 +300,11 @@ function buildKpi04(source,apm,{adMap=new Map(),currentMonth,mode='history',bc02
     const agent=people.get(code);
     if(!agent)audit.missingApm++;
     const group=pick(sourceRow,'Tên nhóm','Tên ban');
-    const ad=agent?(pick(agent,'AD')||clean(adMap.get(group))||
-      clean(adoToAd.get(ident(agent.ADO)))):'';
+    // The KPI04 group can be matched directly to a Cautruc/APM group label even
+    // when the historical agent is no longer present in the current APM01.
+    // This is exact source evidence; never infer an AD from a similar name.
+    const ad=(agent?pick(agent,'AD'):'')||clean(adMap.get(group))||
+      (agent?clean(adoToAd.get(ident(agent.ADO))):'');
     if(!ad)audit.missingAd++;
     const recruiter=agent?ident(agent['Mã TVV tuyển dụng']):'';
     if(!recruiter)audit.missingRecruiter++;
@@ -304,7 +315,7 @@ function buildKpi04(source,apm,{adMap=new Map(),currentMonth,mode='history',bc02
       'Ngày bắt đầu làm việc':agent?clean(agent['Ngày bắt đầu làm việc']):clean(sourceRow['Ngày bắt đầu làm việc']),
       'Số hợp đồng':contract,'Ngày hiệu lực':clean(sourceRow['Ngày hiệu lực']),
       'Ngày phát hành':clean(sourceRow['Ngày phát hành']),
-      'PĐT + 10% ĐT':amount(sourceRow.IP),'AFYP':amount(sourceRow.AFYP),'AD':ad,
+      'PĐT + 10% ĐT':ip,'AFYP':amount(sourceRow.AFYP),'AD':ad,
       'TÍNH LƯỢT 3 tr':0,'MÃ ĐL TD':recruiter||(agent?'0':''),'Nguồn dữ liệu':`NMC_DOANHSO:${issue.label}`,
     });
     audit.months[issue.label]=(audit.months[issue.label]||0)+1;
@@ -456,13 +467,8 @@ export async function readKpi04Source(source){
   const reference=referenceAdMap(await workbook(source.structureReferenceFile||
     path.join(path.dirname(apmFile),'Cautruc.xlsx')));
   for(const [group,ad] of reference)if(!apm.ad.has(group))apm.ad.set(group,ad);
-  let bc02Contracts=new Set();
-  if(source.kpi04Transform==='carryover'){
-    const bcFile=source.bc02File||path.join(path.dirname(source.file),'NEW_BC02.xlsx');
-    bc02Contracts=new Set(bcRows(await workbook(bcFile)).map(row=>clean(row['SỐ HỢP ĐỒNG'])).filter(Boolean));
-  }
   const built=buildKpi04(kpi04Rows(await workbook(source.file)),apm.rows,{
-    adMap:apm.ad,currentMonth,mode:source.kpi04Transform,bc02Contracts,
+    adMap:apm.ad,currentMonth,mode:source.kpi04Transform,
   });
   const count=Math.max(0,built.input.csv.trim().split(/\r?\n/).length-1);
   if(source.kpi04Transform==='history'&&count<(source.minRows??1)){

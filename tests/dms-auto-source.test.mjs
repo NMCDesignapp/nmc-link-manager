@@ -133,10 +133,10 @@ test('TRỪ HỦY theo đúng bốn trạng thái đã dùng trong mẫu Tamthu'
  assert.equal(result.audit.removed,4);
 });
 
-const kpi04=(contractNumber,issueDate,ip,afyp,agentCode='D002')=>({
+const kpi04=(contractNumber,issueDate,ip,afyp,agentCode='D002',effectiveDate=issueDate)=>({
  'Kênh':'Agency','Mã ban':'B01','Tên ban':'Ban A','Mã nhóm':'N01','Tên nhóm':'Nhóm A',
  'Mã đại lý':agentCode,'Tên đại lý':'Nhân sự mẫu','Ngày bắt đầu làm việc':'01-01-2026',
- 'Hợp đồng':contractNumber,'Ngày hiệu lực':issueDate,'Ngày phát hành':issueDate,IP:ip,AFYP:afyp,
+ 'Hợp đồng':contractNumber,'Ngày hiệu lực':effectiveDate,'Ngày phát hành':issueDate,IP:ip,AFYP:afyp,
 });
 
 test('KPI04 chia lịch sử theo Ngày phát hành và tính lượt theo TVV trong từng tháng',async()=>{
@@ -146,6 +146,7 @@ test('KPI04 chia lịch sử theo Ngày phát hành và tính lượt theo TVV t
   kpi04('JAN-1','05-01-2026',10,11),
   kpi04('JAN-2','20-01-2026',20,22),
   kpi04('FEB-1','02-02-2026',30,33),
+  kpi04('CANCELLED','03-02-2026',0,99),
   kpi04('NOV-1','03-11-2026',40,44),
  ],[person],{currentMonth:'2026-11',mode:'history'});
  const book=XLSX.read(result.input.csv,{type:'string'});
@@ -159,22 +160,51 @@ test('KPI04 chia lịch sử theo Ngày phát hành và tính lượt theo TVV t
  assert.equal(rows[0].AD,'AD mẫu');
  assert.equal(rows[0]['MÃ ĐL TD'],'D009');
  assert.equal(rows[0]['Chức vụ'],'Tư vấn tài chính');
+ assert.equal(result.audit.excludedNonPositiveIp,1);
 });
 
-test('KPI04 tháng hiện tại chỉ giữ HĐ chưa có trong toàn bộ BC02',async()=>{
+test('KPI04 dùng đúng nhãn nhóm Cautruc để lấy AD khi TVV lịch sử không còn trong APM01',async()=>{
+ const XLSX=(await import('xlsx')).default;
+ const result=testOnly.buildKpi04([
+  kpi04('OLD-AGENT','05-10-2026',10,11,'OLD-CODE'),
+ ],[],{currentMonth:'2026-11',mode:'history',adMap:new Map([['Nhóm A','AD đối chiếu']])});
+ const book=XLSX.read(result.input.csv,{type:'string'});
+ const rows=XLSX.utils.sheet_to_json(book.Sheets[book.SheetNames[0]],{defval:'',raw:false});
+ assert.equal(rows[0].AD,'AD đối chiếu');
+ assert.equal(result.audit.missingApm,1);
+ assert.equal(result.audit.missingAd,0);
+});
+
+test('KPI04 tháng hiện tại chỉ giữ HĐ phát hành tháng T và hiệu lực tháng T-1',async()=>{
  const XLSX=(await import('xlsx')).default;
  const person={...agent('D002'),AD:'AD mẫu'};
  const result=testOnly.buildKpi04([
-  kpi04('OLD-1','05-10-2026',10,10),
-  kpi04('IN-BC02','03-11-2026',20,20),
-  kpi04('CARRY-1','04-11-2026',30,30),
- ],[person],{currentMonth:'2026-11',mode:'carryover',bc02Contracts:new Set(['IN-BC02'])});
+  kpi04('OLD-1','05-10-2026',10,10,'D002','01-10-2026'),
+  kpi04('CURRENT-EFFECTIVE','03-11-2026',20,20,'D002','02-11-2026'),
+  kpi04('OLDER-EFFECTIVE','04-11-2026',30,30,'D002','15-09-2026'),
+  kpi04('CANCELLED','05-11-2026',0,50,'D002','31-10-2026'),
+  kpi04('CARRY-1','06-11-2026',40,40,'D002','31-10-2026'),
+ ],[person],{currentMonth:'2026-11',mode:'carryover'});
  const book=XLSX.read(result.input.csv,{type:'string'});
  const rows=XLSX.utils.sheet_to_json(book.Sheets[book.SheetNames[0]],{defval:'',raw:false});
  assert.equal(rows.length,1);
  assert.equal(rows[0]['Số hợp đồng'],'CARRY-1');
- assert.equal(result.audit.excludedBc02,1);
+ assert.equal(result.audit.excludedEffectiveMonth,2);
+ assert.equal(result.audit.excludedNonPositiveIp,1);
  assert.equal(result.input.month,'2026-11');
+});
+
+test('KPI04 HĐ tồn xử lý đúng T-1 khi tháng hiện tại là tháng 1',async()=>{
+ const XLSX=(await import('xlsx')).default;
+ const person={...agent('D002'),AD:'AD mẫu'};
+ const result=testOnly.buildKpi04([
+  kpi04('DEC-EFFECTIVE','02-01-2027',10,10,'D002','15-12-2026'),
+  kpi04('JAN-EFFECTIVE','03-01-2027',20,20,'D002','01-01-2027'),
+ ],[person],{currentMonth:'2027-01',mode:'carryover'});
+ const book=XLSX.read(result.input.csv,{type:'string'});
+ const rows=XLSX.utils.sheet_to_json(book.Sheets[book.SheetNames[0]],{defval:'',raw:false});
+ assert.deepEqual(rows.map(row=>row['Số hợp đồng']),['DEC-EFFECTIVE']);
+ assert.equal(result.audit.excludedEffectiveMonth,1);
 });
 
 test('KPI04 chặn ngày sai và Số hợp đồng trùng',()=>{

@@ -14,7 +14,7 @@
     { "id": "saoviet-ca-nhan", "kind": "saoviet", "program": "ca-nhan", "file": "G:\\NMC-Data\\83An Giang_SaoViet2026TT.xlsx", "sheet": "TVV", "allowEmpty": true },
     { "id": "saoviet-tn-ktm", "kind": "saoviet", "program": "tn-ktm", "file": "G:\\NMC-Data\\83An Giang_SaoViet2026TT.xlsx", "sheet": "Nhom", "allowEmpty": true },
     { "id": "saoviet-tn-td", "kind": "saoviet", "program": "tn-td", "file": "G:\\NMC-Data\\83An Giang_SaoViet2026TT.xlsx", "sheet": "NhomTD", "allowEmpty": true },
-    { "id": "revenue-completed-months", "kind": "revenue-history", "file": "G:\\NMC-Data\\NEW_KPI04_2026.xlsx", "kpi04Transform": "history", "apmFile": "G:\\NMC-Data\\APM01 Agents_*.xlsx", "structureReferenceFile": "G:\\NMC-Data\\Cautruc.xlsx", "bc02File": "G:\\NMC-Data\\NEW_BC02.xlsx", "minRows": 1000, "allowEmpty": false },
+    { "id": "revenue-completed-months", "kind": "revenue-history", "file": "G:\\NMC-Data\\NEW_KPI04_2026.xlsx", "kpi04Transform": "history", "apmFile": "G:\\NMC-Data\\APM01 Agents_*.xlsx", "structureReferenceFile": "G:\\NMC-Data\\Cautruc.xlsx", "minRows": 1000, "allowEmpty": false },
     { "id": "revenue-current-month", "kind": "revenue", "file": "G:\\NMC-Data\\Tamthu.xlsx", "sheet": "4", "replaceCurrentMonth": true, "allowEmpty": false },
     { "id": "tamthu-detail-view", "kind": "tamthu-detail", "file": "G:\\NMC-Data\\Tamthu.xlsx", "sheet": "Sheet2", "allowEmpty": false }
   ]

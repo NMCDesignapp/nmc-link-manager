@@ -16,6 +16,7 @@ function loadRoute({ source = 'data-hub', authorized = true } = {}) {
   const db = new Proxy({ setting: { upsert: async query => { writes.push(query); return query.create; } } }, { get(target, key) { if (!(key in target)) throw Error(`Unexpected revenue access: ${String(key)}`); return target[key]; } });
   const route = compile('src/app/api/sync/route.ts', {
     '@/lib/db': { db }, '@/lib/carryover-contracts': pure, '@/lib/parse-business-number': numbers,
+    '@/lib/revenue-metadata': { preserveHistoricalRevenueMetadata: rows => rows },
     'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
     '@/lib/sync-source': { getSyncSource: async () => source },
     '@/lib/data-hub-auth': { isDataHubImport: body => body.source === 'nmc-data-hub', isGoogleSyncImport: body => body.source === 'google-sync', isAuthorizedDataHubRequest: () => authorized },

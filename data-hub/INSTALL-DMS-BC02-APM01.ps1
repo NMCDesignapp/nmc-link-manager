@@ -106,10 +106,10 @@ try{
   Field $history 'kpi04Transform' 'history'
   Field $history 'apmFile' $apm
   Field $history 'structureReferenceFile' $ct
-  Field $history 'bc02File' $bc
   Field $history 'minRows' 1000
   Field $history 'allowEmpty' $false
   $history.PSObject.Properties.Remove('sheet')
+  $history.PSObject.Properties.Remove('bc02File')
   Field $cfg 'requiredSourceRoot' 'G:\NMC-Data'
   Field $cfg 'enableDmsWrites' $false
   $shadow=Join-Path $stage 'data-hub.config.json'
