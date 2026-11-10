@@ -649,7 +649,7 @@ Nguồn doanh thu tháng hiện tại vẫn là BC02 sheet 4. KPI04 thay hoàn t
 
 KPI04 được chuyển về đúng cấu trúc doanh số cũ. Chức vụ, AD, Mã ĐL tuyển dụng và ngày bắt đầu lấy từ APM01/Cautruc có đối chiếu; `TÍNH LƯỢT 3 tr` tính lại theo tổng IP từng TVV trong từng tháng. Với HĐ lịch sử đã tồn tại, metadata mô tả được giữ theo đúng Số hợp đồng để việc đổi nguồn không làm thay đổi phân nhóm/quy tắc; ngày và số tiền lấy từ KPI04.
 
-Quản lý → Doanh thu → HĐ tồn tháng trước có bảng chỉ đọc, chọn kỳ, lọc/tìm kiếm, xuất Excel, nhập file Doanhso đúng sheet hiện tại và làm mới. Nút nhập không ghi Contract hoặc MonthlyRevenue.
+Quản lý → Doanh thu → HĐ tồn tháng trước có bảng chỉ đọc, chọn kỳ, lọc/tìm kiếm, xuất Excel và làm mới. Data Hub là đường nhập duy nhất để KPI04 được ghép APM01/Cautruc trước khi lưu snapshot; không còn nút nhập Doanhso thủ công.
 
 Trang Thi đua (tìm kiếm và popup), SavedContestInline và chương trình tham chiếu dùng nguồn bổ sung. Chỉ chương trình có một trong hai mốc Ngày phát hành mới tính; sau lọc đầy đủ, ưu tiên HĐ thường đã hợp lệ khi trùng Số HĐ, rồi thêm HĐ tồn chưa có. HĐ lịch sử thiếu ngày PH có thể được bổ sung bản đã phát hành. Dòng không Số HĐ giữ riêng, không tự gộp theo tên/giá trị. Bảng doanh thu/KPI và chính sách CLB không dùng trường carryoverContracts.
 

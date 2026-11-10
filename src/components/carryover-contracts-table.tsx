@@ -41,26 +41,6 @@ export function CarryoverContractsTable({ rows, snapshots, onRefresh, onBack }: 
   const visiblePage = Math.min(page, totalPages);
   const visibleRows = filtered.slice((visiblePage - 1) * 100, visiblePage * 100);
   const snapshot = snapshots.find(item => item.month === month);
-  async function importFile(file: File) {
-    setBusy(true); setMessage('');
-    try {
-      const XLSX = await import('xlsx');
-      const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
-      const sheet = workbook.Sheets[String(Number(currentMonth.slice(5)))];
-      if (!sheet) throw new Error(`File Doanhso thiếu sheet ${Number(currentMonth.slice(5))}.`);
-      const values = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: '', raw: true, blankrows: false })
-        .filter(row => row.some(value => String(value ?? '').trim() !== ''))
-        .map(row => row.map(value => value instanceof Date ? `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}` : typeof value === 'number' ? String(value) : value));
-      if (values.length < 2) throw new Error('Sheet chưa có HĐ; giữ nguyên dữ liệu đã lưu.');
-      const csv = XLSX.utils.sheet_to_csv(XLSX.utils.aoa_to_sheet(values), { forceQuotes: true });
-      const response = await fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ carryoverCsv: csv, carryoverMonth: currentMonth }) });
-      const result = await response.json();
-      if (!response.ok || result.error || result.errors?.length) throw new Error(result.error || result.errors?.join('; ') || 'Nhập HĐ tồn thất bại.');
-      await onRefresh(); setMonth(currentMonth); setPage(1);
-      setMessage(`Đã nhập ${result.count} HĐ tồn của ${currentMonth}.`);
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Không thể đọc file.'); }
-    finally { setBusy(false); }
-  }
   async function exportFile() {
     const XLSX = await import('xlsx');
     const data = [['STT', ...columns.map(([, label]) => label)], ...filtered.map((row, index) => [index + 1, ...columns.map(([key]) => numberFields.has(key) ? Number(row[key] || 0) : display(row, key))])];
@@ -75,9 +55,8 @@ export function CarryoverContractsTable({ rows, snapshots, onRefresh, onBack }: 
       <h2 className="text-base font-bold flex-1">HĐ tồn tháng trước</h2>
       <button type="button" disabled={busy} onClick={() => { setBusy(true); onRefresh().catch(() => setMessage('Không thể làm mới dữ liệu.')).finally(() => setBusy(false)); }} className="rounded border px-3 py-2 text-sm disabled:opacity-50">Làm mới</button>
       <button type="button" onClick={exportFile} className="rounded border px-3 py-2 text-sm">Xuất Excel</button>
-      <label className="rounded bg-cyan-700 px-3 py-2 text-sm text-white cursor-pointer">{busy ? 'Đang xử lý…' : 'Nhập file Doanhso'}<input aria-label="Nhập file Doanhso" type="file" accept=".xlsx,.xls,.xlsm" disabled={busy} className="hidden" onChange={event => { const file = event.target.files?.[0]; if (file) void importFile(file); event.target.value = ''; }} /></label>
     </div>
-    <p className="text-sm text-slate-600">Nguồn: Doanhso — sheet {Number(month.slice(5))}/{month.slice(0, 4)}. Chỉ dùng cho thi đua có cài ngày phát hành; không cộng doanh thu và KPI.</p>
+    <p className="text-sm text-slate-600">Nguồn: NEW_KPI04_{month.slice(0, 4)}.xlsx — Ngày phát hành tháng {Number(month.slice(5))}, Ngày hiệu lực tháng T-1 và IP &gt; 0. Chỉ dùng cho thi đua có cài ngày phát hành; không cộng doanh thu và KPI.</p>
     <div className="flex flex-wrap gap-2">
       <label className="text-sm">Kỳ dữ liệu <select aria-label="Kỳ dữ liệu HĐ tồn" value={month} onChange={e => { setMonth(e.target.value); setGroup(''); setPage(1); }} className="rounded border p-2">{[...new Set([currentMonth, ...snapshots.map(s => s.month)])].sort().reverse().map(value => <option key={value} value={value}>{value}</option>)}</select></label>
       <select aria-label="Lọc Nhóm HĐ tồn" value={group} onChange={e => { setGroup(e.target.value); setPage(1); }} className="rounded border p-2 text-sm"><option value="">Tất cả Nhóm</option>{groups.map(value => <option key={value}>{value}</option>)}</select>
@@ -88,7 +67,7 @@ export function CarryoverContractsTable({ rows, snapshots, onRefresh, onBack }: 
     <div className="max-h-[65vh] overflow-auto rounded border border-slate-300">
       <table className="w-full text-xs whitespace-nowrap border-collapse">
         <thead className="sticky top-0 bg-emerald-900 text-white"><tr><th className="p-2">STT</th>{columns.map(([key, label]) => <th key={key} className="p-2 text-center">{label}</th>)}</tr></thead>
-        <tbody>{visibleRows.map((row, index) => <tr key={row.id} className="border-b border-slate-200 even:bg-slate-50"><td className="p-2 text-center">{(visiblePage - 1) * 100 + index + 1}</td>{columns.map(([key]) => <td key={key} className={`p-2 ${numberFields.has(key) ? 'text-center tabular-nums' : ''}`}>{display(row, key)}</td>)}</tr>)}{!filtered.length && <tr><td colSpan={columns.length + 1} className="p-6 text-center">{snapshot ? 'Không có HĐ phù hợp.' : `Chưa nhận dữ liệu Doanhso — sheet ${Number(month.slice(5))}.`}</td></tr>}</tbody>
+        <tbody>{visibleRows.map((row, index) => <tr key={row.id} className="border-b border-slate-200 even:bg-slate-50"><td className="p-2 text-center">{(visiblePage - 1) * 100 + index + 1}</td>{columns.map(([key]) => <td key={key} className={`p-2 ${numberFields.has(key) ? 'text-center tabular-nums' : ''}`}>{display(row, key)}</td>)}</tr>)}{!filtered.length && <tr><td colSpan={columns.length + 1} className="p-6 text-center">{snapshot ? 'Không có HĐ phù hợp.' : `Chưa nhận dữ liệu KPI04 cho kỳ ${month}.`}</td></tr>}</tbody>
       </table>
     </div>
     {totalPages > 1 && <div className="flex items-center justify-end gap-3 text-sm"><button type="button" disabled={visiblePage <= 1} onClick={() => setPage(visiblePage - 1)} className="rounded border p-2 disabled:opacity-40">Trước</button><span>{visiblePage}/{totalPages}</span><button type="button" disabled={visiblePage >= totalPages} onClick={() => setPage(visiblePage + 1)} className="rounded border p-2 disabled:opacity-40">Sau</button></div>}
