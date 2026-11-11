@@ -441,7 +441,7 @@ async function loadConfig() {
   if (config.requiredSourceRoot) {
     const requiredRoot = path.win32.resolve(String(config.requiredSourceRoot));
     for (const source of config.sources) {
-      for (const field of ['file', 'apmFile', 'structureReferenceFile', 'bc02File']) {
+      for (const field of ['file', 'apmFile', 'structureReferenceFile', 'bc02File', 'legacyAdReferenceFile']) {
         const configured = source[field];
         if (!configured) continue;
         const candidate = path.win32.resolve(configured.includes('*')

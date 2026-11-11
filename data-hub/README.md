@@ -91,7 +91,7 @@ Không chạy đồng thời nhiều bản Data Hub trên cùng máy. Không đ�
 
 Nguồn `revenue-history` đọc `NEW_KPI04_<năm>.xlsx`, chỉ nhận HĐ có IP > 0, phân theo Ngày phát hành và tạo doanh thu lịch sử từ tháng 1 đến tháng liền trước tháng hiện tại. Nguồn carryover cùng file cũng chỉ nhận IP > 0, rồi giữ HĐ có Ngày phát hành trong tháng hiện tại và Ngày hiệu lực đúng tháng T-1 (kể cả qua ranh giới tháng 1/năm trước). Nguồn này tuyệt đối không cập nhật doanh thu/KPI; chỉ chương trình Thi đua có cài Ngày phát hành mới sử dụng.
 
-KPI04 bổ sung Chức vụ, Ngày bắt đầu, AD và Mã ĐL tuyển dụng bằng APM01/Cautruc có đối chiếu; `TÍNH LƯỢT 3 tr` được tính lại theo tổng IP của từng TVV trong từng tháng. Metadata lịch sử không có trong APM01 hiện tại được giữ từ HĐ đã lưu cùng Số hợp đồng, không suy đoán. File thiếu cột, sai ngày, trùng Số hợp đồng hoặc sai năm sẽ dừng an toàn.
+KPI04 bổ sung Chức vụ, Ngày bắt đầu, AD và Mã ĐL tuyển dụng bằng APM01/Cautruc có đối chiếu; `TÍNH LƯỢT 3 tr` được tính lại theo tổng IP của từng TVV trong từng tháng. Với lịch sử phát hành tháng 1–10/2026, `Doanhso.xlsx` chỉ được dùng để bổ sung AD còn thiếu bằng phép ghép chính xác Số hợp đồng; không lấy hợp đồng, IP, AFYP, tháng hoặc mã tuyển dụng từ file này. Từ lịch sử tháng 11/2026 trở đi, AD thiếu vẫn để trống chờ xác nhận. Metadata lịch sử không có trong APM01 hiện tại được giữ từ HĐ đã lưu cùng Số hợp đồng, không suy đoán. File thiếu cột, sai ngày, trùng Số hợp đồng hoặc sai năm sẽ dừng an toàn.
 
 
 ## DMS APM01 / NEW_BC02 — kiểm tra trước đồng bộ

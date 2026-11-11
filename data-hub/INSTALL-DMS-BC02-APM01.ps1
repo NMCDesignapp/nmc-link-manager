@@ -4,7 +4,7 @@ $ErrorActionPreference='Stop'
 $ProgressPreference='SilentlyContinue'
 $root='C:\NMCDataHub'
 $cfgFile=Join-Path $root 'data-hub.config.json'
-$rev='72d6d64554995922e2309e4670bb0da8c1d5604f'
+$rev='8b930b5a626a8095fb8e6b2ac655fd827d3fcfb5'
 $remote="https://raw.githubusercontent.com/NMCDesignapp/nmc-link-manager/$rev/data-hub"
 $stamp=Get-Date -Format yyyyMMdd-HHmmss
 $stage=Join-Path $root ("_dms-stage-"+$stamp)
@@ -39,6 +39,7 @@ try{
   Need 'G:\NMC-Data\NEW_BC02.xlsx'
   Need 'G:\NMC-Data\Cautruc.xlsx'
   Need 'G:\NMC-Data\NEW_KPI04_2026.xlsx'
+  Need 'G:\NMC-Data\Doanhso.xlsx'
   Need 'G:\NMC-Data\83An Giang_SaoViet2026TT.xlsx'
   if(!@(Get-ChildItem 'G:\NMC-Data\APM01 Agents_*.xlsx' -File -ErrorAction SilentlyContinue).Count){
     throw 'Khong thay APM01 Agents_*.xlsx o o G:'
@@ -67,6 +68,7 @@ try{
   $ct='G:\NMC-Data\Cautruc.xlsx'
   $sv='G:\NMC-Data\83An Giang_SaoViet2026TT.xlsx'
   $kpi04='G:\NMC-Data\NEW_KPI04_2026.xlsx'
+  $doanhso='G:\NMC-Data\Doanhso.xlsx'
   foreach($s in @(
     @{id='structure-tvv';kind='structure';transform='apm01-tvv';min=1000},
     @{id='structure-leaders';kind='structure';transform='apm01-leaders';min=20},
@@ -106,6 +108,8 @@ try{
   Field $history 'kpi04Transform' 'history'
   Field $history 'apmFile' $apm
   Field $history 'structureReferenceFile' $ct
+  Field $history 'legacyAdReferenceFile' $doanhso
+  Field $history 'legacyAdThroughMonth' 10
   Field $history 'minRows' 1000
   Field $history 'allowEmpty' $false
   $history.PSObject.Properties.Remove('sheet')
