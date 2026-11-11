@@ -213,6 +213,34 @@ function kpi04Rows(book){
     return result;
   }).filter(row=>clean(row['Hợp đồng'])||clean(row['Mã đại lý']));
 }
+function legacyAdByContract(book,{throughMonth}={}){
+  if(!Number.isInteger(throughMonth)||throughMonth<1||throughMonth>12){
+    throw Error('Thiếu tháng chốt AD lịch sử từ Doanhso');
+  }
+  const result=new Map();
+  const contractHeader=canonicalHeader('Số hợp đồng'),adHeader=canonicalHeader('AD');
+  for(const name of book.SheetNames){
+    const month=Number(name);
+    if(!/^\d{1,2}$/.test(name)||month<1||month>throughMonth)continue;
+    const values=matrix(book,name);
+    const headerRow=values.findIndex(row=>{
+      const headers=row.map(canonicalHeader);
+      return headers.includes(contractHeader)&&headers.includes(adHeader);
+    });
+    if(headerRow<0)throw Error('Doanhso Sheet '+name+' thiếu tiêu đề Số hợp đồng/AD');
+    const headers=values[headerRow].map(canonicalHeader);
+    const contractIndex=headers.indexOf(contractHeader),adIndex=headers.indexOf(adHeader);
+    for(const row of values.slice(headerRow+1)){
+      const contract=clean(row[contractIndex]),ad=clean(row[adIndex]);
+      if(!contract||!ad)continue;
+      if(result.has(contract)&&result.get(contract)!==ad){
+        throw Error('Doanhso có AD mâu thuẫn cho Số hợp đồng '+contract);
+      }
+      result.set(contract,ad);
+    }
+  }
+  return result;
+}
 function parseKpi04Date(value){
   const text=clean(value);
   let match=text.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
@@ -270,7 +298,8 @@ function assignMonthlyRounds(rows){
   }
   return result.map((row,index)=>({...row,STT:index+1}));
 }
-function buildKpi04(source,apm,{adMap=new Map(),currentMonth,mode='history'}={}){
+function buildKpi04(source,apm,{adMap=new Map(),legacyAdMap=new Map(),legacyAdThroughMonth=0,
+  currentMonth,mode='history'}={}){
   if(!/^\d{4}-\d{2}$/.test(currentMonth||''))throw Error('Thiếu tháng Bangkok cho KPI04');
   required(source,['Mã đại lý','Tên đại lý','Hợp đồng','Ngày hiệu lực','Ngày phát hành','IP','AFYP'],'KPI04');
   const [currentYear,currentNumber]=currentMonth.split('-').map(Number);
@@ -279,6 +308,7 @@ function buildKpi04(source,apm,{adMap=new Map(),currentMonth,mode='history'}={})
   const {people,adoToAd}=peopleContext(apm,adMap);
   const seenContracts=new Set(),rows=[];
   const audit={sourceRows:source.length,selected:0,missingApm:0,missingAd:0,missingRecruiter:0,
+    legacyAdApplied:0,
     excludedNonPositiveIp:0,excludedEffectiveMonth:0,months:{}};
   for(const sourceRow of source){
     const issue=parseKpi04Date(sourceRow['Ngày phát hành']);
@@ -303,8 +333,12 @@ function buildKpi04(source,apm,{adMap=new Map(),currentMonth,mode='history'}={})
     // The KPI04 group can be matched directly to a Cautruc/APM group label even
     // when the historical agent is no longer present in the current APM01.
     // This is exact source evidence; never infer an AD from a similar name.
-    const ad=(agent?pick(agent,'AD'):'')||clean(adMap.get(group))||
+    const structuralAd=(agent?pick(agent,'AD'):'')||clean(adMap.get(group))||
       (agent?clean(adoToAd.get(ident(agent.ADO))):'');
+    const legacyAd=mode==='history'&&issue.month<=legacyAdThroughMonth
+      ? clean(legacyAdMap.get(contract)):'';
+    const ad=structuralAd||legacyAd;
+    if(!structuralAd&&legacyAd)audit.legacyAdApplied++;
     if(!ad)audit.missingAd++;
     const recruiter=agent?ident(agent['Mã TVV tuyển dụng']):'';
     if(!recruiter)audit.missingRecruiter++;
@@ -412,7 +446,8 @@ function buildTamthu(bc,apm,{adMap=new Map(),missingAdAllowed=new Set()}={}){
   return {sheet2,sheet4:filtered.map(r=>Object.fromEntries(HEADERS.map(h=>[h,r[h]??'']))),
     audit:{before:stats(sheet2),after:stats(filtered),removed:sheet2.length-filtered.length}};
 }
-export const testOnly={buildStructure,buildTamthu,buildKpi04,kpi04Rows,latestApm,apmRows,referenceAdMap};
+export const testOnly={buildStructure,buildTamthu,buildKpi04,kpi04Rows,legacyAdByContract,
+  latestApm,apmRows,referenceAdMap};
 export function isDmsSource(source){return TRANSFORMS.has(source?.dmsTransform);}
 export function isKpi04Source(source){return ['history','carryover'].includes(source?.kpi04Transform);}
 export async function readDmsSource(source){
@@ -467,8 +502,18 @@ export async function readKpi04Source(source){
   const reference=referenceAdMap(await workbook(source.structureReferenceFile||
     path.join(path.dirname(apmFile),'Cautruc.xlsx')));
   for(const [group,ad] of reference)if(!apm.ad.has(group))apm.ad.set(group,ad);
+  let legacyAdMap=new Map(),legacyAdThroughMonth=0;
+  if(source.legacyAdReferenceFile){
+    legacyAdThroughMonth=Number(source.legacyAdThroughMonth);
+    if(path.basename(source.legacyAdReferenceFile).toLocaleLowerCase('vi-VN')!=='doanhso.xlsx'){
+      throw Error('Tham chiếu AD lịch sử phải là Doanhso.xlsx');
+    }
+    legacyAdMap=legacyAdByContract(await workbook(source.legacyAdReferenceFile),{
+      throughMonth:legacyAdThroughMonth,
+    });
+  }
   const built=buildKpi04(kpi04Rows(await workbook(source.file)),apm.rows,{
-    adMap:apm.ad,currentMonth,mode:source.kpi04Transform,
+    adMap:apm.ad,legacyAdMap,legacyAdThroughMonth,currentMonth,mode:source.kpi04Transform,
   });
   const count=Math.max(0,built.input.csv.trim().split(/\r?\n/).length-1);
   if(source.kpi04Transform==='history'&&count<(source.minRows??1)){

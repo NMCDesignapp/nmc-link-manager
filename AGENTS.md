@@ -231,5 +231,6 @@ Không nói đã deploy, đã đồng bộ, đã active hoặc đã sửa dữ l
 
 - Doanh số tháng hiện tại = BC02 sheet 4; lịch sử = KPI04 phân theo Ngày phát hành.
 - KPI04 chỉ nhận HĐ có IP > 0. Nguồn riêng HĐ tồn tháng trước tiếp tục lọc Ngày phát hành trong tháng hiện tại và Ngày hiệu lực đúng tháng T-1; không đối chiếu loại theo BC02. Lưu snapshot theo tháng trong Setting nmc-carryover-contracts:YYYY-MM. Không ghi vào Contract/MonthlyRevenue hoặc cộng vào KPI/doanh thu/chính sách CLB.
+- Với lịch sử phát hành từ tháng 1 đến tháng 10/2026, `Doanhso.xlsx` chỉ là bảng tham chiếu AD dự phòng theo đúng Số hợp đồng khi KPI04/APM01/Cautruc chưa có AD. Không lấy hợp đồng, IP, AFYP, tháng hoặc mã tuyển dụng từ Doanhso. HĐ KPI04 có IP <= 0 vẫn bị loại trước khi tính lại lượt. Từ lịch sử tháng 11/2026 trở đi không tự lấy AD từ Doanhso; thiếu AD để trống chờ người dùng chỉ định.
 - Chỉ dùng HĐ tồn tại trang Thi đua và chương trình lưu khi có issueDate hoặc issueEndDate. Vẫn lọc ngày HL, ngày PH, đối tượng và các điều kiện khác; không suy diễn ngày PH. HĐ trùng Số HĐ giữa hai nguồn chỉ tính một lần sau lọc; nhận cả SO_HD_GOC.
 - Data Hub tự thêm nguồn revenue-carryover từ cấu hình revenue-history KPI04 và tự đổi tháng theo Bangkok. Cloud deploy không cập nhật process Data Hub trên Windows.

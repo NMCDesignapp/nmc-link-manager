@@ -175,6 +175,46 @@ test('KPI04 dùng đúng nhãn nhóm Cautruc để lấy AD khi TVV lịch sử 
  assert.equal(result.audit.missingAd,0);
 });
 
+test('KPI04 chỉ lấy AD Doanhso theo đúng Số hợp đồng và tháng chốt 1-10',async()=>{
+ const XLSX=(await import('xlsx')).default;
+ const result=testOnly.buildKpi04([
+  kpi04('OLD-1','05-10-2026',10,11,'OLD-CODE'),
+  kpi04('OLD-2','06-10-2026',20,22,'OLD-CODE'),
+  kpi04('CANCELLED','07-10-2026',0,99,'OLD-CODE'),
+ ],[],{currentMonth:'2026-11',mode:'history',legacyAdThroughMonth:10,
+  legacyAdMap:new Map([['OLD-1','AD Doanhso'],['CANCELLED','AD Doanhso']])});
+ const book=XLSX.read(result.input.csv,{type:'string'});
+ const rows=XLSX.utils.sheet_to_json(book.Sheets[book.SheetNames[0]],{defval:'',raw:false});
+ assert.equal(rows[0].AD,'AD Doanhso');
+ assert.equal(rows[1].AD,'');
+ assert.deepEqual(rows.map(row=>Number(row['TÍNH LƯỢT 3 tr'])),[30,0]);
+ assert.equal(result.audit.legacyAdApplied,1);
+ assert.equal(result.audit.missingAd,1);
+ assert.equal(result.audit.excludedNonPositiveIp,1);
+});
+
+test('KPI04 không dùng AD Doanhso cho tháng 11 trở đi hoặc HĐ tồn',async()=>{
+ const XLSX=(await import('xlsx')).default;
+ const map=new Map([['NOV-1','AD cũ']]);
+ const carry=testOnly.buildKpi04([
+  kpi04('NOV-1','03-11-2026',10,10,'OLD-CODE','31-10-2026'),
+ ],[],{currentMonth:'2026-11',mode:'carryover',legacyAdThroughMonth:10,legacyAdMap:map});
+ const book=XLSX.read(carry.input.csv,{type:'string'});
+ const rows=XLSX.utils.sheet_to_json(book.Sheets[book.SheetNames[0]],{defval:'',raw:false});
+ assert.equal(rows[0].AD,'');
+ assert.equal(carry.audit.legacyAdApplied,0);
+ assert.equal(carry.audit.missingAd,1);
+});
+
+test('Doanhso AD map chặn cùng Số hợp đồng có hai AD',async()=>{
+ const XLSX=(await import('xlsx')).default;
+ const book={SheetNames:['1','2'],Sheets:{
+  '1':XLSX.utils.aoa_to_sheet([['Số hợp đồng','AD'],['A','AD 1']]),
+  '2':XLSX.utils.aoa_to_sheet([['Số hợp đồng','AD'],['A','AD 2']]),
+ }};
+ assert.throws(()=>testOnly.legacyAdByContract(book,{throughMonth:10}),/AD mâu thuẫn/);
+});
+
 test('KPI04 tháng hiện tại chỉ giữ HĐ phát hành tháng T và hiệu lực tháng T-1',async()=>{
  const XLSX=(await import('xlsx')).default;
  const person={...agent('D002'),AD:'AD mẫu'};
