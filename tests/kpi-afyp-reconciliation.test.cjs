@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { loadKpiDashboard } = require('./helpers/load-kpi-dashboard.cjs');
@@ -27,15 +28,16 @@ for (const page of ['src/app/kpi/page.tsx', 'kpi-app/src/app/page.tsx']) {
     }
   });
 
-  test(`${page}: company equals regular plus Banca, matching period contract sum`, () => {
+  test(`${page}: company includes contracts without AD and matches period contract sum`, () => {
     const result = run([
       contract({ id: 'regular', maNhom: 'TEST_GROUP', ad: '#N/A' }),
       contract({ id: 'banca', ad: 'Banca - PA', afyp: 5_000_000 }),
+      contract({ id: 'blank-ad', ad: '', maNhom: '', nhom: '', afyp: 7_000_000 }),
     ]);
-    assert.equal(result.total.afyp, 15_000_000);
+    assert.equal(result.total.afyp, 22_000_000);
     assert.equal(result.total.afyp, result.periodContracts.reduce((sum, c) => sum + c.afyp, 0));
     assert.equal(result.phongs.filter(p => !p.noAds).reduce((sum, p) => sum + p.afyp, 0), 10_000_000);
-    assert.equal(result.total.slHD, 2);
+    assert.equal(result.total.slHD, 3);
   });
 
   test(`${page}: issue month, fallback, year and quarter filtering stay intact`, () => {

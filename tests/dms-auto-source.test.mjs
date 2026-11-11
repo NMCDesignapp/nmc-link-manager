@@ -143,7 +143,7 @@ test('KPI04 chia lịch sử theo Ngày phát hành và tính lượt theo TVV t
  const XLSX=(await import('xlsx')).default;
  const person={...agent('D002'),AD:'AD mẫu','Mã TVV tuyển dụng':'D009'};
  const result=testOnly.buildKpi04([
-  kpi04('JAN-1','05-01-2026',10,11),
+  kpi04('JAN-1','05-01-2026',10,11,'D002','31-12-2025'),
   kpi04('JAN-2','20-01-2026',20,22),
   kpi04('FEB-1','02-02-2026',30,33),
   kpi04('CANCELLED','03-02-2026',0,99),
@@ -156,6 +156,7 @@ test('KPI04 chia lịch sử theo Ngày phát hành và tính lượt theo TVV t
   '2026-06','2026-07','2026-08','2026-09','2026-10']);
  assert.deepEqual(rows.map(row=>row['Nguồn dữ liệu']),
   ['NMC_DOANHSO:2026-01','NMC_DOANHSO:2026-01','NMC_DOANHSO:2026-02']);
+ assert.equal(rows[0]['Ngày hiệu lực'],'31-12-2025');
  assert.deepEqual(rows.map(row=>Number(row['TÍNH LƯỢT 3 tr'])),[30,0,30]);
  assert.equal(rows[0].AD,'AD mẫu');
  assert.equal(rows[0]['MÃ ĐL TD'],'D009');
