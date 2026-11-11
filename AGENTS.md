@@ -229,7 +229,8 @@ Không nói đã deploy, đã đồng bộ, đã active hoặc đã sửa dữ l
 
 ### HĐ tồn tháng trước (bổ sung 2026-10-20)
 
-- Doanh số tháng hiện tại = BC02 sheet 4; lịch sử = KPI04 phân theo Ngày phát hành.
+- Doanh số tháng hiện tại = BC02 sheet 4; lịch sử = KPI04 phân tuyệt đối theo Ngày phát hành, không phân lại theo tháng Ngày hiệu lực. Ví dụ HĐ hiệu lực 12/2025 nhưng phát hành 01/2026 vẫn thuộc doanh số 01/2026.
+- Tổng Công ty của mỗi kỳ phải cộng đủ mọi HĐ thuộc kỳ, kể cả HĐ chưa ánh xạ được AD. AD chỉ dùng phân bổ doanh số xuống từng AD; AD trống không được làm giảm tổng Công ty.
 - KPI04 chỉ nhận HĐ có IP > 0. Nguồn riêng HĐ tồn tháng trước tiếp tục lọc Ngày phát hành trong tháng hiện tại và Ngày hiệu lực đúng tháng T-1; không đối chiếu loại theo BC02. Lưu snapshot theo tháng trong Setting nmc-carryover-contracts:YYYY-MM. Không ghi vào Contract/MonthlyRevenue hoặc cộng vào KPI/doanh thu/chính sách CLB.
 - Với lịch sử phát hành từ tháng 1 đến tháng 10/2026, `Doanhso.xlsx` chỉ là bảng tham chiếu AD dự phòng theo đúng Số hợp đồng khi KPI04/APM01/Cautruc chưa có AD. Không lấy hợp đồng, IP, AFYP, tháng hoặc mã tuyển dụng từ Doanhso. HĐ KPI04 có IP <= 0 vẫn bị loại trước khi tính lại lượt. Từ lịch sử tháng 11/2026 trở đi không tự lấy AD từ Doanhso; thiếu AD để trống chờ người dùng chỉ định.
 - Chỉ dùng HĐ tồn tại trang Thi đua và chương trình lưu khi có issueDate hoặc issueEndDate. Vẫn lọc ngày HL, ngày PH, đối tượng và các điều kiện khác; không suy diễn ngày PH. HĐ trùng Số HĐ giữa hai nguồn chỉ tính một lần sau lọc; nhận cả SO_HD_GOC.
