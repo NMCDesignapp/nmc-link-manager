@@ -276,6 +276,10 @@ function peopleContext(apm,adMap){
   }
   return {people,adoToAd};
 }
+function adoCode(value){
+  const match=clean(value).match(/\s-\s([A-Za-z]\d{6,})$/);
+  return match?ident(match[1]):'';
+}
 function assignMonthlyRounds(rows){
   const byMonth=new Map();
   for(const row of rows){
@@ -367,7 +371,7 @@ function buildKpi04(source,apm,{adMap=new Map(),legacyAdMap=new Map(),legacyAdTh
 function buildStructure(source,{officeRecruiters=false}={}){
   required(source,['Mã TVV','Tên TVV','Chức vụ TVV','Trạng thái TVV','Ngày bắt đầu làm việc',
     'Ngày hiệu lực chức vụ','Mã TVV tuyển dụng'],'APM01');
-  const seen=new Set(),tvv=[],leaders=[],recruiters=[];
+  const seen=new Set(),tvv=[],leaders=[],recruiters=[],groupAssignments=new Map();
   let missingGroup=0;
   for(const r of source){
     const code=ident(r['Mã TVV']);
@@ -379,11 +383,22 @@ function buildStructure(source,{officeRecruiters=false}={}){
     const banca=lower(r.Ban).startsWith('dso team')||(!rawGroup&&lower(r['Kênh'])==='kênh đối tác');
     const group=pick(r,'MÃ NHÓM')||(banca?'Banca':rawGroup);
     if(!group)missingGroup++;
+    const groupName=pick(r,'Nhóm','Ban');
+    // Cột O (ADO) có dạng "Tên ADO - Mã AD". Chỉ Kênh Đại lý được
+    // tự bổ sung vào Cấu trúc/Kế hoạch; nhóm đối tác tiếp tục theo luồng Banca.
+    const maAD=canonicalHeader(r['Kênh'])==='kenh dai ly'?adoCode(r.ADO):'';
+    if(maAD){
+      const current=groupAssignments.get(group);
+      if(current&&(current.maAD!==maAD||current.name!==groupName)){
+        throw Error('APM01 có ánh xạ Ban/Nhóm mâu thuẫn: '+group);
+      }
+      groupAssignments.set(group,{maAD,name:groupName});
+    }
     const name=clean(r['Tên TVV']),position=clean(r['Chức vụ TVV']);
     const joined=clean(r['Ngày bắt đầu làm việc']);
     tvv.push({'Mã TVV':code,'Tên TVV':name,'Mã Ban/Nhóm':group,'Chức vụ':position,
       'Ngày bắt đầu làm việc':joined,'Mã TVV TD':ident(r['Mã TVV tuyển dụng']),
-      'Trạng thái':clean(r['Trạng thái TVV'])});
+      'Trạng thái':clean(r['Trạng thái TVV']),'Tên Ban/Nhóm':groupName,'Mã AD':maAD});
     if(['trưởng nhóm','trưởng ban'].includes(lower(position))){
       leaders.push({'Mã số':code,'Họ tên':name,'Chức vụ':position,'Ban':clean(r.Ban),
         'Nhóm':pick(r,'Nhóm','Ban'),'Mã nhóm':group,'Tiền/tháng':'','SĐT':'',

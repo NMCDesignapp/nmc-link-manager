@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import XLSX from 'xlsx';
 import { isDmsSource, isKpi04Source, readDmsSource, readKpi04Source } from './dms-auto-source.mjs';
 
-const AGENT_VERSION = '2.5.0-20261110';
+const AGENT_VERSION = '2.6.0-20261112';
 const root = path.dirname(fileURLToPath(import.meta.url));
 const configPath = process.env.NMC_DATA_HUB_CONFIG || path.join(root, 'data-hub.config.json');
 const statePath = path.join(root, '.nmc-data-hub-state.json');

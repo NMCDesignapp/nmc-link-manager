@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { isAuthorizedDataHubRequest, isDataHubImport } from '@/lib/data-hub-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSyncSource } from '@/lib/sync-source';
+import { planApm01GroupSync } from '@/lib/apm01-group-sync';
 
 type Collection = 'tvv' | 'leaders' | 'recruiters' | 'clb-members' | 'tuyen-ngang';
 type Row = Record<string, unknown>;
@@ -68,11 +69,33 @@ export async function POST(request: NextRequest) {
       if (!rows.length) return NextResponse.json({ error: 'Không có TVV hợp lệ' }, { status: 400 });
       assertNoDuplicate(rows);
       const dbRows = rows.map(({ ghiChu: _ghiChu, ...row }) => row);
-      await db.$transaction([db.tVVStruct.deleteMany({}), db.tVVStruct.createMany({ data: dbRows })]);
+      const groupResult = await db.$transaction(async tx => {
+        const [ads, existingGroups] = await Promise.all([
+          tx.aD.findMany({ select: { maAD: true } }),
+          tx.banNhom.findMany({ select: { id: true, maBanNhom: true, tenBanNhom: true, maAD: true } }),
+        ]);
+        const plan = planApm01GroupSync(sourceRows, ads, existingGroups);
+
+        // Validate every group/AD relationship before replacing the TVV snapshot.
+        await tx.tVVStruct.deleteMany({});
+        await tx.tVVStruct.createMany({ data: dbRows });
+        if (plan.create.length) await tx.banNhom.createMany({ data: plan.create });
+        for (const group of plan.update) {
+          await tx.banNhom.update({
+            where: { id: group.id },
+            data: { tenBanNhom: group.tenBanNhom, maAD: group.maAD },
+          });
+        }
+        return {
+          groupsAdded: plan.create.length,
+          groupsUpdated: plan.update.length,
+          groupsConflicting: plan.conflicts.length,
+        };
+      });
       // APM01/Data Hub là nguồn chuẩn cho thông tin nhân sự, KHÔNG phải nguồn
       // của "ĐÁNH DẤU 2003". Giá trị này được lưu theo Mã TVV trong Setting
       // và hiển thị cùng bản ghi qua /api/structure/tvv; đồng bộ sẽ giữ nguyên.
-      return NextResponse.json({ collection, count: rows.length });
+      return NextResponse.json({ collection, count: rows.length, ...groupResult });
     }
 
     if (collection === 'leaders') {
