@@ -8,7 +8,8 @@ const agent=(id,role='Tư vấn tài chính')=>({
  'Mã TVV':id,'Tên TVV':'Nhân sự mẫu','Chức vụ TVV':role,
  'Trạng thái TVV':'Hoạt động','Ngày bắt đầu làm việc':'01/01/2026',
  'Ngày hiệu lực chức vụ':'05/01/2026','Mã TVV tuyển dụng':'D001',
- 'Mã nhóm':'N01','Ban':'Ban A','Nhóm':'Nhóm A','Ngày sinh (ngày)':'39000'
+ 'Mã nhóm':'N01','Ban':'Ban A','Nhóm':'Nhóm A','Kênh':'Kênh Đại lý',
+ ADO:'Quản lý mẫu - L1234567890','Ngày sinh (ngày)':'39000'
 });
 const contract=(state,ip,afyp)=>({
  'TÊN BAN':'Ban A','MÃ BAN':'B01','MÃ NHÓM':'N01','TÊN NHÓM':'Nhóm A',
@@ -33,6 +34,24 @@ test('APM sinh ba bảng tối thiểu, không đưa ngày sinh lên app',()=>{
  assert.equal(r.recruiters.length,1);
  assert.equal('Ghi chú' in r.tvv[0],false);
  assert.equal('Ngày sinh (ngày)' in r.tvv[0],false);
+ assert.equal(r.tvv[0]['Tên Ban/Nhóm'],'Nhóm A');
+ assert.equal(r.tvv[0]['Mã AD'],'L1234567890');
+});
+
+test('APM01 lấy Mã AD từ cuối cột O và không suy diễn nhóm đối tác',()=>{
+ const agency={...agent('D001'),'Mã nhóm':'U2611479530',Nhóm:'An Phát',
+  ADO:'Đàm Thị Hương Trang - L1905096997'};
+ const partner={...agent('D002'),'Mã nhóm':'A473DSO000',Nhóm:'DSO team - An Giang',
+  Kênh:'Kênh đối tác',ADO:'Nguyễn Thị Trí Huệ - L1410061423'};
+ const result=testOnly.buildStructure([agency,partner]);
+ assert.equal(result.tvv[0]['Mã AD'],'L1905096997');
+ assert.equal(result.tvv[1]['Mã AD'],'');
+});
+
+test('APM01 chặn cùng Mã nhóm ánh xạ đến hai Mã AD',()=>{
+ const a={...agent('D001'),ADO:'ADO Một - L1234567890'};
+ const b={...agent('D002'),ADO:'ADO Hai - L9999999999'};
+ assert.throws(()=>testOnly.buildStructure([a,b]),/ánh xạ Ban\/Nhóm mâu thuẫn/);
 });
 test('BC02 thành Sheet2; Sheet4 bỏ những dòng TRỪ HỦY=0 và tính lại lượt',()=>{
  const person={...agent('D002'),AD:'AD mẫu'};

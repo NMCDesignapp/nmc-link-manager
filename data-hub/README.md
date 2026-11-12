@@ -97,6 +97,7 @@ KPI04 bổ sung Chức vụ, Ngày bắt đầu, AD và Mã ĐL tuyển dụng b
 ## DMS APM01 / NEW_BC02 — kiểm tra trước đồng bộ
 
 - Mã nguồn có mô-đun `dms-auto-source.mjs`; **chỉ cập nhật GitHub/Vercel không tự cập nhật tiến trình Data Hub đang chạy trên Windows**. Phải cập nhật mã Data Hub local và giữ nguyên cấu hình/token/state.
+- Từ v2.6.0, nguồn `structure-tvv` còn tự bổ sung Ban/Nhóm Kênh Đại lý mới cho Cấu trúc/Kế hoạch. Mã và tên nhóm lấy từ APM01; Mã AD lấy ở cuối cột O (`ADO`). Chỉ thêm khi Mã AD đã tồn tại, không xóa nhóm cũ, không ghi đè mapping cũ và không áp dụng cho Kênh đối tác/Banca.
 - `--dms-shadow` kiểm tra các nguồn có `dmsTransform` mà **không gọi API ghi**. Hãy tạo **bản sao** `data-hub.config.json` để cấu hình đường dẫn DMS từ `dms-shadow-sources.example.json`, không dùng trực tiếp mẫu JSON rời này làm config đầy đủ.
 - DMS chỉ được ghi nếu **đồng thời** bật `enableDmsWrites: true` tại cấu hình gốc và `enableWrite: true` trên từng nguồn. Không bật khi chưa có báo cáo đối chiếu, sao lưu và nghiệm thu.
 - `bc02-sheet2` (Tamthu Sheet 2): lấy **toàn bộ hợp đồng trong BC02**, kể cả các trạng thái bị hủy/từ chối/trì hoãn; không lọc theo tháng hoặc ngày thu/hiệu lực/phát hành.

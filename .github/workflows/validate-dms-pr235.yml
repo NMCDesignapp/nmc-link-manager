@@ -4,6 +4,8 @@ on:
     paths:
       - 'data-hub/**'
       - 'tests/dms-auto-source.test.mjs'
+      - 'tests/apm01-group-sync.test.ts'
+      - 'src/lib/apm01-group-sync.ts'
       - 'tests/kpi-afyp-reconciliation.test.cjs'
       - 'tests/helpers/load-kpi-dashboard.cjs'
       - 'src/app/kpi/page.tsx'
@@ -22,6 +24,8 @@ on:
     paths:
       - 'data-hub/**'
       - 'tests/dms-auto-source.test.mjs'
+      - 'tests/apm01-group-sync.test.ts'
+      - 'src/lib/apm01-group-sync.ts'
       - 'tests/kpi-afyp-reconciliation.test.cjs'
       - 'tests/helpers/load-kpi-dashboard.cjs'
       - 'src/app/kpi/page.tsx'
@@ -49,6 +53,7 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: node --test tests/dms-auto-source.test.mjs
+      - run: node --experimental-strip-types --test tests/apm01-group-sync.test.ts
       - run: node --test tests/data-hub-single-g-source.test.mjs
       - run: node --test tests/kpi-afyp-reconciliation.test.cjs
       - run: node --experimental-strip-types --test tests/revenue-metadata.test.ts
