@@ -39,6 +39,7 @@ import { SaoVietBreakthrough } from '@/components/sao-viet-breakthrough';
 import { CarryoverContractsTable } from '@/components/carryover-contracts-table';
 import { TVVNotesExcelImport } from '@/components/tvv-notes-excel-import';
 import { calculateRevenueTVVmAFYP } from '@/lib/revenue-tvvm';
+import { getQuarterlyAwardCount } from '@/lib/quarterly-award-counts-2026';
 
 // nmc-sao-viet-exclude-chot-v1
 // Chuẩn hóa dấu và hoa/thường để "Chốt", "CHỐT" hoặc "Chot" đều được xem như nhau.
@@ -6980,22 +6981,9 @@ export default function QuanLyPage() {
       // Tiền thưởng = FYC * tỷ lệ tầng đạt được
       const tienThuong = achievedTier >= 0 ? fyc * (TIERS[achievedTier].rate / 100) : 0;
 
-      // Số lần đạt TQ = đếm số quý (từ Q1 đến quý hiện tại) TVV đạt FYP ≥ 24tr
-      let soLanDatTQ = 0;
-      for (let q = 1; q <= currentQuarter; q++) {
-        const qStart = (q - 1) * 3 + 1;
-        const qEnd = q * 3;
-        const qContracts = contracts.filter(c => {
-          if (c.agentCode !== tvv.agentCode) return false;
-          const d = getDoanhSoMonth(c);
-          if (isNaN(d.getTime())) return false;
-          if (d.getFullYear() !== currentYear) return false;
-          const m = d.getMonth() + 1;
-          return m >= qStart && m <= qEnd;
-        });
-        const qFYP = qContracts.reduce((s, c) => s + c.pdt10DT, 0);
-        if (qFYP >= TIERS[0].minFYP) soLanDatTQ++;
-      }
+      // Số lần đạt TQ dùng dữ liệu thống kê đã chốt trong file Excel,
+      // không tự suy ra lại từ doanh số trên ứng dụng.
+      const soLanDatTQ = getQuarterlyAwardCount(tvv.agentCode, 'tvv');
 
       // Quý TVV = chương trình TVV → allowPA=true
       const nhomName = resolveNhomName(tvv.agentCode, tvv.maBanNhom, banNhomList, contracts, leaders, { allowPA: true });
@@ -7034,7 +7022,7 @@ export default function QuanLyPage() {
     const totalFYPQuy = filteredRows.reduce((s, r) => s + r.tongFYPQuy, 0);
     const totalFYC = filteredRows.reduce((s, r) => s + r.fyc, 0);
     const totalTienThuong = filteredRows.reduce((s, r) => s + r.tienThuong, 0);
-    const totalSoLanDatTQ = filteredRows.reduce((s, r) => s + r.soLanDatTQ, 0);
+    const totalSoLanDatTQ = filteredRows.reduce((s, r) => s + (r.soLanDatTQ ?? 0), 0);
 
     // Count TVV đạt thưởng (achievedTier >= 0)
     const tvvDatThuong = filteredRows.filter(r => r.achievedTier >= 0).length;
@@ -7183,7 +7171,7 @@ export default function QuanLyPage() {
                     <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FFFFFF', color: '#047857', fontSize: '13px', fontWeight: 800 }}>
                       {renderThuongCellContent(row.tienThuong)}
                     </td>
-                    <td className="text-[11px] font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#ECFDF5', color: '#065F46' }}>{row.soLanDatTQ > 0 ? row.soLanDatTQ : '—'}</td>
+                    <td className="text-[11px] font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#ECFDF5', color: '#065F46' }}>{row.soLanDatTQ ?? '—'}</td>
                   </tr>
                 );
               })}
@@ -8114,6 +8102,7 @@ export default function QuanLyPage() {
       // Quý TN = chương trình dành cho nhóm (TN) → allowPA=false
       // Truyền candidateNhomName = tn.nhomName để validate trong DS TB/TN
       const nhomName = resolveNhomName(tn.agentCode, tn.maBanNhom, banNhomList, contracts, leaders, { allowPA: false, candidateNhomName: tn.nhomName });
+      const soLanDatTQ = getQuarterlyAwardCount(tn.agentCode, 'tbTn');
 
       return {
         stt: 0 as number,
@@ -8126,6 +8115,7 @@ export default function QuanLyPage() {
         achievedTier,
         tlThuong,
         tienThuong,
+        soLanDatTQ,
       };
     });
 
@@ -8209,6 +8199,7 @@ export default function QuanLyPage() {
                 <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#0F766E', backgroundColor: '#0F766E' }}>TVVm HĐC<br/><span className="text-[10px] italic font-normal normal-case">Quý {currentQuarter}</span></th>
                 <th colSpan={5} className="text-white font-bold uppercase text-[12px] px-2 text-center align-middle whitespace-nowrap" style={{ backgroundColor: TIER_GROUP_HEADER_BG, borderColor: TIER_GROUP_HEADER_BG, height: '26px', lineHeight: '1' }}>TỶ LỆ THƯỞNG</th>
                 <th rowSpan={3} className="text-white min-w-[100px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>TIỀN THƯỞNG</th>
+                <th rowSpan={3} className="text-white min-w-[70px] font-bold uppercase text-[11px] h-8 px-2 text-center align-middle whitespace-nowrap" style={{ borderColor: '#047857' }}>SỐ LẦN<br/>ĐẠT TQ</th>
               </tr>
               {/* Row 2: FYP thresholds (compact) */}
               <tr style={{ backgroundColor: TIER_HEADER_BG }}>
@@ -8228,12 +8219,12 @@ export default function QuanLyPage() {
               </tr>
               {/* Row 4: Full-width separator */}
               <tr>
-                <th colSpan={12} style={{ height: '3px', padding: 0, margin: 0, backgroundColor: TIER_GROUP_HEADER_BG, borderBottom: 'none' }}></th>
+                <th colSpan={13} style={{ height: '3px', padding: 0, margin: 0, backgroundColor: TIER_GROUP_HEADER_BG, borderBottom: 'none' }}></th>
               </tr>
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
-                <tr><td colSpan={12} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">Chưa có TN nào đạt FYP trong quý {currentQuarter}.</td></tr>
+                <tr><td colSpan={13} className="text-center text-gray-400 py-8 italic text-xs bg-white p-2 align-middle">Chưa có TN nào đạt FYP trong quý {currentQuarter}.</td></tr>
               ) : filteredRows.map((row) => (
                 <tr key={row.maTN} className="bg-white hover:bg-emerald-50 transition-colors border-b border-gray-300" style={{ borderRadius: 0 }}>
                   <td className="text-center text-gray-400 text-[11px] p-2 align-middle whitespace-nowrap" style={{ borderColor: '#D1FAE5' }}>{row.stt}</td>
@@ -8276,6 +8267,7 @@ export default function QuanLyPage() {
                   <td className="text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#FFFFFF', color: '#047857', fontSize: '13px', fontWeight: 800 }}>
                     {renderThuongCellContent(row.tienThuong)}
                   </td>
+                  <td className="text-[11px] font-bold text-center whitespace-nowrap p-2 align-middle" style={{ borderColor: '#D1FAE5', backgroundColor: '#ECFDF5', color: '#065F46' }}>{row.soLanDatTQ ?? '—'}</td>
                 </tr>
               ))}
               {/* Total row đã chuyển xuống footer cố định — không render ở đây nữa */}
