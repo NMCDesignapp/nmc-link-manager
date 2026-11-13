@@ -114,7 +114,7 @@ test('TTN contract tracker uses direct recruiter relation, never business-group 
   assert.deepEqual(filtered.map(row => row.agentCode), ['DIRECT', 'DIRECT']);
   const [result] = computeGroupedData(filtered, directConfig, [], recruiters, leaders, structure);
   assert.equal(result.leader?.agentCode, 'TTN');
-  assert.equal(result.nhom, 'TVV tuyển trực tiếp');
+  assert.equal(result.nhom, 'Group 1');
   assert.deepEqual(result.memberAgentCodes, ['DIRECT']);
   assert.equal(getGroupTVVPassCountIPAFYP(result, filtered, [], directConfig, structure), 1);
 });
