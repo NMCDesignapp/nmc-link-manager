@@ -1343,7 +1343,9 @@ export function computeDirectTTNContractGroups(
       const contracts = memberAgentCodes.flatMap(code => contractsByAgent.get(normalizeAgentCode(code)) || []);
       return {
         maNhom: ttn.agentCode,
-        nhom: 'TVV tuyển trực tiếp',
+        // Chỉ dùng nhóm của TTN để hiển thị; phạm vi tính vẫn là các TVV
+        // có mã người tuyển dụng trùng mã TTN.
+        nhom: ttn.nhom || '—',
         leader: { agentCode: ttn.agentCode, agentName: ttn.agentName, position: ttn.position || 'Tiền trưởng nhóm' },
         totalFYP: contracts.reduce((sum, contract) => sum + contract.pdt10DT, 0),
         totalAFYP: contracts.reduce((sum, contract) => sum + contract.afyp, 0),
