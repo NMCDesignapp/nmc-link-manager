@@ -453,6 +453,7 @@ Giao diện tự refresh từ Supabase mỗi 60 giây không có nghĩa Excel lo
 
 Kết quả hiện cần tuân thủ:
 
+- `pass_count_contracts` khi thưởng cho TTN phải gom TVV theo `TVVStruct.maTVVTuyendung = mã TTN`, không theo `maBanNhom` hoặc tên nhóm kinh doanh; live, saved và Excel dùng chung mapping.
 - luôn liệt kê toàn bộ TVV đủ điều kiện, kể cả không có hợp đồng hoặc kết quả bằng 0;
 - chỉ ẩn nhóm chưa đạt khi người dùng bật “ẩn TVV chưa đạt”;
 - với kết quả 0, PA phải nằm sau non-PA;

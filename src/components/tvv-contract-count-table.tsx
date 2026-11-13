@@ -42,7 +42,7 @@ export function TVVContractCountTable({ groups, contracts, staff, structure, con
     `}</style>
   <Table id={tableId} data-nmc-tvv-contract-table="1">
     <TableHeader className="sticky top-0 z-10 bg-emerald-800">
-      <TableRow>{['STT', 'NHÓM', config.groupLeaderScope === 'ttn' ? 'MÃ TTN' : 'MÃ TN', config.groupLeaderScope === 'ttn' ? 'HỌ TÊN TTN' : 'HỌ TÊN TN', 'HỌ TÊN TVV HOẠT ĐỘNG', 'NGÀY HL', 'IP', 'AFYP', 'SL TVV HĐ', 'TIỀN THƯỞNG', 'GHI CHÚ'].map(label =>
+      <TableRow>{['STT', config.groupLeaderScope === 'ttn' ? 'PHẠM VI' : 'NHÓM', config.groupLeaderScope === 'ttn' ? 'MÃ TTN' : 'MÃ TN', config.groupLeaderScope === 'ttn' ? 'HỌ TÊN TTN' : 'HỌ TÊN TN', 'HỌ TÊN TVV HOẠT ĐỘNG', 'NGÀY HL', 'IP', 'AFYP', 'SL TVV HĐ', 'TIỀN THƯỞNG', 'GHI CHÚ'].map(label =>
         <TableHead key={label} scope="col" className="text-center text-xs font-bold text-yellow-100 whitespace-nowrap">{label}</TableHead>)}</TableRow>
     </TableHeader>
     <TableBody>

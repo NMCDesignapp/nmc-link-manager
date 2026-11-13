@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatTVVContractProgressNote, getTVVQualifyingContractMap, getGroupTVVContractDetails, getGroupTVVContractProgress, getGroupTVVPassCountIPAFYP, isTVVPassCountMode, parseContestConfig, computeContestStats, computeGroupedData } from '../src/lib/contest-calculator.ts';
+import { formatTVVContractProgressNote, getTVVQualifyingContractMap, getGroupTVVContractDetails, getGroupTVVContractProgress, getGroupTVVPassCountIPAFYP, isTVVPassCountMode, parseContestConfig, computeContestStats, computeGroupedData, filterDisplayContracts } from '../src/lib/contest-calculator.ts';
 import type { Contract, GroupData } from '../src/lib/contest-calculator.ts';
 
 function contract(agent: string, number: string, ip = 6, afyp = 12): Contract {
@@ -93,12 +93,28 @@ test('qualified TVV precede pending TVV; pending counts descend then Vietnamese 
   assert.equal(formatTVVContractProgressNote(3, true), '');
 });
 
-test('group contract tracker can name the Tiền trưởng nhóm as contest owner', () => {
-  const rows = [contract('A', '1'), contract('A', '2')];
+test('TTN contract tracker uses direct recruiter relation, never business-group membership', () => {
+  const rows = [
+    { ...contract('DIRECT', '1'), maNhom: 'OTHER-GROUP' },
+    { ...contract('DIRECT', '2'), maNhom: 'OTHER-GROUP' },
+    contract('SAME-GROUP-WRONG-RECRUITER', '3'),
+    contract('SAME-GROUP-WRONG-RECRUITER', '4'),
+  ];
   const leaders = [{ maNhom: 'G1', nhom: 'Group 1', agentCode: 'TN', agentName: 'Trưởng nhóm', position: 'Trưởng nhóm' }];
-  const recruiters = [{ id: 'ttn', nhom: 'Group 1', agentCode: 'TTN', agentName: 'Tiền trưởng nhóm', position: 'Tiền trưởng nhóm', startDate: null, ngayHieuLuc: null }];
-  const [result] = computeGroupedData(rows, { ...config, groupLeaderScope: 'ttn' }, [], recruiters, leaders, []);
+  const recruiters = [
+    { id: 'ttn', nhom: 'Group 1', agentCode: 'TTN', agentName: 'Tiền trưởng nhóm', position: 'Tiền trưởng nhóm', startDate: null, ngayHieuLuc: null },
+    { id: 'other', nhom: 'Group 1', agentCode: 'OTHER-TTN', agentName: 'TTN khác', position: 'Tiền trưởng nhóm', startDate: null, ngayHieuLuc: null },
+  ];
+  const structure = [
+    { id: 'direct', agentCode: 'DIRECT', agentName: 'TVV trực tiếp', maBanNhom: 'OTHER-GROUP', chucVu: 'TVV', ngayBatDau: null, maTVVTuyendung: 'TTN' },
+    { id: 'wrong', agentCode: 'SAME-GROUP-WRONG-RECRUITER', agentName: 'TVV khác', maBanNhom: 'G1', chucVu: 'TVV', ngayBatDau: null, maTVVTuyendung: 'OTHER-TTN' },
+  ];
+  const directConfig = { ...config, groupLeaderScope: 'ttn' as const, participants: ['TTN'] };
+  const filtered = filterDisplayContracts(rows, directConfig, [], recruiters, structure, leaders as never[]);
+  assert.deepEqual(filtered.map(row => row.agentCode), ['DIRECT', 'DIRECT']);
+  const [result] = computeGroupedData(filtered, directConfig, [], recruiters, leaders, structure);
   assert.equal(result.leader?.agentCode, 'TTN');
-  assert.equal(result.leader?.position, 'Tiền trưởng nhóm');
-  assert.equal(getGroupTVVPassCountIPAFYP(result, rows, [], { ...config, groupLeaderScope: 'ttn' }), 1);
+  assert.equal(result.nhom, 'TVV tuyển trực tiếp');
+  assert.deepEqual(result.memberAgentCodes, ['DIRECT']);
+  assert.equal(getGroupTVVPassCountIPAFYP(result, filtered, [], directConfig, structure), 1);
 });

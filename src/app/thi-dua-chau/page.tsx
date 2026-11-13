@@ -47,7 +47,7 @@ import {
 } from 'lucide-react';
 import { NeonDatePicker } from '@/components/neon-date-picker';
 import { TVVContractCountTable } from '@/components/tvv-contract-count-table';
-import { computeNYDData, filterNYDDisplayContracts, getNYDContributingContracts, getGroupTVVContractDetails, getGroupTVVContractProgress, formatTVVContractProgressNote } from '@/lib/contest-calculator';
+import { computeNYDData, filterNYDDisplayContracts, getNYDContributingContracts, getGroupTVVContractDetails, getGroupTVVContractProgress, formatTVVContractProgressNote, computeDirectTTNContractGroups } from '@/lib/contest-calculator';
 import { expandActivityExportDetails } from '@/lib/contest-export-details';
 import { buildCombinedTopRanking, passesCombinedTopEligibility, supportsCombinedTopRanking } from '@/lib/contest-combined-top-ranking';
 import {
@@ -934,10 +934,11 @@ function ThiDuaPageInner() {
 
   const visibleSubjectKeys = useMemo(() => {
     if (contestKind === 'recruitment') return new Set(['ttn', 'leader', 'ntd']);
+    if (conditionType === 'pass_count_contracts' && groupLeaderScope === 'ttn') return new Set(['ttn']);
     if (contestKind === 'pass_count' || targetType === 'nhom') return new Set(['nhom']);
     if (targetType === 'nyd') return new Set(['ttn', 'leader', 'ntd']);
     return new Set(['allTvv', 'tvvm', 'tvvCu']);
-  }, [contestKind, targetType]);
+  }, [contestKind, targetType, conditionType, groupLeaderScope]);
 
   const chooseContestKind = useCallback((kind: ContestKind) => {
     setShowConfig(true);
@@ -1351,8 +1352,11 @@ function ThiDuaPageInner() {
     const list = type.startsWith('phong_')
       ? (subjectLists.phongLists?.[type] || [])
       : (subjectLists as any)[type] || [];
-    const nextTarget: TargetType = type === 'nhom' ? 'nhom' : (type === 'ntd' || type === 'ttn' || type === 'leader') ? 'nyd' : 'tvv';
+    const directTTNScope = conditionType === 'pass_count_contracts' && type === 'ttn';
+    const nextTarget: TargetType = type === 'nhom' || directTTNScope ? 'nhom' : (type === 'ntd' || type === 'ttn' || type === 'leader') ? 'nyd' : 'tvv';
     setTargetType(nextTarget);
+    if (directTTNScope) setGroupLeaderScope('ttn');
+    else if (type === 'nhom' && conditionType === 'pass_count_contracts') setGroupLeaderScope('leader');
     if (nextTarget === 'nhom') {
       setIncludeIndividualTN(false); // mặc định không tính cá nhân trưởng nhóm
     }
@@ -1396,9 +1400,9 @@ function ThiDuaPageInner() {
   // Display contracts with subject filter applied
   // LOGIC: Dùng DS nguồn (Staff/Recruiter) làm chuẩn, ánh xạ HĐ vào
   const displayContracts = useMemo(() => filterDisplayContracts(filteredContracts, parseContestConfig({
-    targetType, participants: JSON.stringify(subjectCodes), includeIndividualNTD, recruitedAgentScope, recruitedAgentEffectiveDateFrom, filterByEffectiveDate,
+    conditionType, targetType, groupLeaderScope, participants: JSON.stringify(subjectCodes), includeIndividualNTD, recruitedAgentScope, recruitedAgentEffectiveDateFrom, filterByEffectiveDate,
   }), staffList, ntdCandidates, tvvStructList, leadersList),
-  [filteredContracts, subjectCodes, targetType, staffList, leadersList, ntdCandidates, filterByEffectiveDate, tvvStructList, includeIndividualNTD, recruitedAgentScope, recruitedAgentEffectiveDateFrom]);
+  [filteredContracts, subjectCodes, conditionType, targetType, groupLeaderScope, staffList, leadersList, ntdCandidates, filterByEffectiveDate, tvvStructList, includeIndividualNTD, recruitedAgentScope, recruitedAgentEffectiveDateFrom]);
 
   // Several contest summaries need every contract for the same agent. Build the
   // index once instead of scanning the full contract list again for every row.
@@ -1757,6 +1761,11 @@ function ThiDuaPageInner() {
   // Nhóm không có HĐ vẫn hiện với giá trị 0
   const groupedData: GroupData[] = useMemo(() => {
     if (targetType !== 'nhom') return [];
+    if (conditionType === 'pass_count_contracts' && groupLeaderScope === 'ttn') {
+      return computeDirectTTNContractGroups(displayContracts, parseContestConfig({
+        conditionType, targetType, groupLeaderScope, participants: JSON.stringify(subjectCodes),
+      }), recruiterList, tvvStructList);
+    }
     const map = new Map<string, GroupData>();
 
     // NGUỒN ĐÚNG: DS TB/TN (leadersList = /api/leaders) — 30 nhóm, mỗi nhóm có 1 TB hoặc TN
@@ -2867,7 +2876,7 @@ function ThiDuaPageInner() {
           ? ` (IP≥${vndToNgan(passCountIPMin)}k + AFYP≥${vndToNgan(passCountAFYPMin)}k)`
           : refContestLabel || ' (CTĐK)';
         const ownerLabel = groupLeaderScope === 'ttn' ? 'TTN' : 'TN';
-        headers = ['STT', 'Nhóm', `Mã ${ownerLabel}`, `Họ tên ${ownerLabel}`, `SL TVV đủ điều kiện${passCountCondLabel}${!includeTNInPassCount ? ` (KO tính ${ownerLabel})` : ''}`, ...extraMetricHeaders, 'Thưởng', 'Ghi chú'];
+        headers = ['STT', groupLeaderScope === 'ttn' ? 'Phạm vi' : 'Nhóm', `Mã ${ownerLabel}`, `Họ tên ${ownerLabel}`, `SL TVV đủ điều kiện${passCountCondLabel}${!includeTNInPassCount ? ` (KO tính ${ownerLabel})` : ''}`, ...extraMetricHeaders, 'Thưởng', 'Ghi chú'];
         rows = [];
         const sortedGroups = [...groupedData].map((g) => {
           const tvvPassCount = (conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts') ? getGroupTVVPassCountIPAFYP(g) : getGroupTVVPassCount(g);
@@ -4455,7 +4464,7 @@ function ThiDuaPageInner() {
                 {contestKind === 'recruitment' ? (
                   <div className="flex items-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/15 px-3 py-2 text-xs font-bold text-violet-100"><UserPlus className="h-4 w-4" /> Cá nhân người tuyển dụng (NTD)</div>
                 ) : contestKind === 'pass_count' ? (
-                  <div className="flex items-center gap-2 rounded-xl border border-indigo-400/30 bg-indigo-500/15 px-3 py-2 text-xs font-bold text-indigo-100"><Layers className="h-4 w-4" /> Nhóm kinh doanh</div>
+                  <div className="flex items-center gap-2 rounded-xl border border-indigo-400/30 bg-indigo-500/15 px-3 py-2 text-xs font-bold text-indigo-100"><Layers className="h-4 w-4" /> {conditionType === 'pass_count_contracts' && groupLeaderScope === 'ttn' ? 'TVV do từng TTN tuyển trực tiếp' : 'Nhóm kinh doanh'}</div>
                 ) : (
                 <div className="grid grid-cols-3 gap-1.5">
                   <button
@@ -4747,7 +4756,14 @@ function ThiDuaPageInner() {
                         <Label className="text-xs text-indigo-200">Đối tượng nhận thưởng của nhóm</Label>
                         <div className="grid grid-cols-2 gap-1.5">
                           {([['leader', 'TB/TN'], ['ttn', 'Tiền trưởng nhóm']] as const).map(([value, label]) => (
-                            <button key={value} type="button" onClick={() => setGroupLeaderScope(value)} aria-pressed={groupLeaderScope === value}
+                            <button key={value} type="button" onClick={() => {
+                              setGroupLeaderScope(value);
+                              setTargetType('nhom');
+                              const subjectType = value === 'ttn' ? 'ttn' : 'nhom';
+                              setSelectedSubjectTypes(new Set([subjectType]));
+                              setThiDuaSubjects((value === 'ttn' ? subjectLists.ttn : subjectLists.nhom).join('\n'));
+                              setIncludeTNInPassCount(false);
+                            }} aria-pressed={groupLeaderScope === value}
                               className={`rounded-lg border px-2 py-1.5 text-xs font-bold ${groupLeaderScope === value ? 'border-indigo-300 bg-indigo-600 text-white' : 'border-indigo-500/30 bg-gray-900 text-indigo-200'}`}>
                               {label}
                             </button>
