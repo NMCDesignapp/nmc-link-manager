@@ -62,6 +62,8 @@ export interface GroupData {
   activityRounds: number;
   contracts: Contract[];
   memberCount: number;
+  /** Mã TVV thuộc phạm vi xét riêng, ví dụ TVV do một TTN tuyển trực tiếp. */
+  memberAgentCodes?: string[];
 }
 
 export interface NYDData {
@@ -1194,7 +1196,7 @@ export function filterDisplayContracts(
   config: ContestConfig,
   staffList: StaffMember[],
   recruiterList: RecruiterMember[],
-  tvvStructList?: { agentCode: string; agentName?: string; ngayBatDau: string | null }[],
+  tvvStructList?: TVVStructMember[],
   leadersList?: StaffMember[]
 ): Contract[] {
   const subjectCodes = config.participants;
@@ -1204,6 +1206,29 @@ export function filterDisplayContracts(
       !norm(c.nhom || '').toLowerCase().includes('dso') &&
       !norm(c.maNhom || '').toLowerCase().includes('dso')
   );
+
+  if (isDirectTTNContractCountMode(config)) {
+    const isTTN = (position: string) => /TTN|TIEN TRUONG NHOM/u.test(
+      String(position || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase(),
+    );
+    const selectedRecruiters = new Set(
+      recruiterList
+        .filter(person => isTTN(person.position))
+        .filter((person) => !subjectCodes.length || subjectCodes.some(value =>
+          normalizeAgentCode(value) === normalizeAgentCode(person.agentCode) || norm(value) === norm(person.agentName)
+        ))
+        .map(person => normalizeAgentCode(person.agentCode))
+        .filter(Boolean),
+    );
+    const directMemberCodes = new Set(
+      (tvvStructList || [])
+        .filter(member => selectedRecruiters.has(normalizeAgentCode(member.maTVVTuyendung)))
+        .filter(member => String(member.ghiChu || member.note || '').trim().toLowerCase() !== 'x')
+        .map(member => normalizeAgentCode(member.agentCode))
+        .filter(Boolean),
+    );
+    return contractsNoDSO.filter(contract => directMemberCodes.has(normalizeAgentCode(contract.agentCode)));
+  }
 
   // Áp dụng filter "ngày hiệu lực chức vụ" cho NTD và Nhóm (theo yêu cầu user)
   if (config.filterByEffectiveDate && tvvStructList && (targetType === 'nyd' || targetType === 'nhom')) {
@@ -1266,6 +1291,72 @@ export function filterDisplayContracts(
   return contractsNoDSO;
 }
 
+export function isDirectTTNContractCountMode(
+  config: Pick<ContestConfig, 'conditionType' | 'targetType' | 'groupLeaderScope'>,
+): boolean {
+  return config.conditionType === 'pass_count_contracts'
+    && config.targetType === 'nhom'
+    && config.groupLeaderScope === 'ttn';
+}
+
+/**
+ * Chương trình TTN không dùng nhóm kinh doanh. Mỗi TTN sở hữu đúng tập TVV
+ * có Mã người tuyển dụng trùng Mã TTN trong Cấu trúc.
+ */
+export function computeDirectTTNContractGroups(
+  displayContracts: Contract[],
+  config: ContestConfig,
+  recruiterList: RecruiterMember[],
+  tvvStructList: TVVStructMember[] = [],
+): GroupData[] {
+  if (!isDirectTTNContractCountMode(config)) return [];
+  const selected = new Set(config.participants.map(normalizeAgentCode).filter(Boolean));
+  const selectedNames = new Set(config.participants.map(value => norm(value)).filter(Boolean));
+  const isTTN = (position: string) => /TTN|TIEN TRUONG NHOM/u.test(
+    String(position || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase(),
+  );
+  const membersByRecruiter = new Map<string, string[]>();
+  for (const member of tvvStructList) {
+    const recruiterCode = normalizeAgentCode(member.maTVVTuyendung);
+    const memberCode = normalizeAgentCode(member.agentCode);
+    if (!recruiterCode || !memberCode || String(member.ghiChu || member.note || '').trim().toLowerCase() === 'x') continue;
+    const members = membersByRecruiter.get(recruiterCode);
+    if (members) members.push(member.agentCode);
+    else membersByRecruiter.set(recruiterCode, [member.agentCode]);
+  }
+  const contractsByAgent = new Map<string, Contract[]>();
+  for (const contract of displayContracts) {
+    const code = normalizeAgentCode(contract.agentCode);
+    if (!code) continue;
+    const rows = contractsByAgent.get(code);
+    if (rows) rows.push(contract);
+    else contractsByAgent.set(code, [contract]);
+  }
+
+  return recruiterList
+    .filter(person => isTTN(person.position))
+    .filter(person => !selected.size || selected.has(normalizeAgentCode(person.agentCode)) || selectedNames.has(norm(person.agentName)))
+    .map((ttn) => {
+      const ttnCode = normalizeAgentCode(ttn.agentCode);
+      const memberAgentCodes = (membersByRecruiter.get(ttnCode) || [])
+        .filter(code => normalizeAgentCode(code) !== ttnCode);
+      const contracts = memberAgentCodes.flatMap(code => contractsByAgent.get(normalizeAgentCode(code)) || []);
+      return {
+        maNhom: ttn.agentCode,
+        nhom: 'TVV tuyển trực tiếp',
+        leader: { agentCode: ttn.agentCode, agentName: ttn.agentName, position: ttn.position || 'Tiền trưởng nhóm' },
+        totalFYP: contracts.reduce((sum, contract) => sum + contract.pdt10DT, 0),
+        totalAFYP: contracts.reduce((sum, contract) => sum + contract.afyp, 0),
+        contractCount: contracts.length,
+        activityRounds: 0,
+        contracts,
+        memberCount: memberAgentCodes.length,
+        memberAgentCodes,
+      };
+    })
+    .sort((a, b) => (a.leader?.agentName || '').localeCompare(b.leader?.agentName || '', 'vi', { sensitivity: 'base' }));
+}
+
 // ===== Grouped data (for targetType = nhom) =====
 export function computeGroupedData(
   displayContracts: Contract[],
@@ -1276,6 +1367,9 @@ export function computeGroupedData(
   tvvStructList?: TVVStructMember[]
 ): GroupData[] {
   if (config.targetType !== 'nhom') return [];
+  if (isDirectTTNContractCountMode(config)) {
+    return computeDirectTTNContractGroups(displayContracts, config, recruiterList, tvvStructList || []);
+  }
   const subjectCodes = config.participants;
   const conditionType = config.conditionType;
   const structureStartDates = buildStructureStartDateMap(tvvStructList);
@@ -2459,6 +2553,7 @@ export function getGroupTVVAgentCodes(
   staffList: StaffMember[],
   tvvStructList: TVVStructMember[] = []
 ): string[] {
+  if (group.memberAgentCodes) return [...group.memberAgentCodes];
   const sameGroup = (value?: string | null) =>
     norm(value || '').toLowerCase() === norm(group.maNhom || '').toLowerCase();
   const codes = new Set<string>();
