@@ -2876,7 +2876,7 @@ function ThiDuaPageInner() {
           ? ` (IP≥${vndToNgan(passCountIPMin)}k + AFYP≥${vndToNgan(passCountAFYPMin)}k)`
           : refContestLabel || ' (CTĐK)';
         const ownerLabel = groupLeaderScope === 'ttn' ? 'TTN' : 'TN';
-        headers = ['STT', groupLeaderScope === 'ttn' ? 'Phạm vi' : 'Nhóm', `Mã ${ownerLabel}`, `Họ tên ${ownerLabel}`, `SL TVV đủ điều kiện${passCountCondLabel}${!includeTNInPassCount ? ` (KO tính ${ownerLabel})` : ''}`, ...extraMetricHeaders, 'Thưởng', 'Ghi chú'];
+        headers = ['STT', 'Nhóm', `Mã ${ownerLabel}`, `Họ tên ${ownerLabel}`, `SL TVV đủ điều kiện${passCountCondLabel}${!includeTNInPassCount ? ` (KO tính ${ownerLabel})` : ''}`, ...extraMetricHeaders, 'Thưởng', 'Ghi chú'];
         rows = [];
         const sortedGroups = [...groupedData].map((g) => {
           const tvvPassCount = (conditionType === 'pass_count_ip_afyp' || conditionType === 'pass_count_contracts') ? getGroupTVVPassCountIPAFYP(g) : getGroupTVVPassCount(g);
