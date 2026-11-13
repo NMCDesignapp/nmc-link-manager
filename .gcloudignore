@@ -1,0 +1,20 @@
+# Protect source archive uploaded with gcloud run deploy --source .
+.gcloudignore
+.git
+.gitignore
+#!include:.gitignore
+**/node_modules
+**/.next
+**/.turbo
+**/.vercel
+**/.netlify
+**/coverage
+**/*.log
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*service-account*.json
+**/*credentials*.json
+**/data-hub.config.json
+**/.nmc-data-hub-state.json
