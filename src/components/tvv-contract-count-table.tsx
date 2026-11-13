@@ -56,11 +56,11 @@ export function TVVContractCountTable({ groups, contracts, staff, structure, con
           return <TableRow key={`${contract?.id || 'empty'}:${detailIndex}`} data-tvv-group-start={detailIndex === 0 ? '1' : undefined} className="border-b border-gray-200 bg-white text-gray-800">
           {detailIndex === 0 && <>
             <TableCell rowSpan={details.length} style={cellStyle} className="text-center align-middle">{index + 1}</TableCell>
-            <TableCell rowSpan={details.length} style={cellStyle} className="text-center align-middle font-semibold whitespace-nowrap">{row.group.nhom || '—'}</TableCell>
+            <TableCell rowSpan={details.length} style={cellStyle} className="text-left align-middle font-semibold whitespace-nowrap">{row.group.nhom || '—'}</TableCell>
             <TableCell rowSpan={details.length} style={cellStyle} className="text-center align-middle whitespace-nowrap">{row.group.leader?.agentCode || '—'}</TableCell>
-            <TableCell rowSpan={details.length} style={cellStyle} className="text-center align-middle whitespace-nowrap">{row.group.leader?.agentName || '—'}</TableCell>
+            <TableCell rowSpan={details.length} style={cellStyle} className="text-left align-middle whitespace-nowrap">{row.group.leader?.agentName || '—'}</TableCell>
           </>}
-          <TableCell style={cellStyle} className="whitespace-nowrap">
+          <TableCell style={cellStyle} className="text-left whitespace-nowrap">
             {contract?.agentName || '—'}
           </TableCell>
           <TableCell style={cellStyle} className="text-center whitespace-nowrap">{contract ? formatDate(contract.effectiveDate) : '—'}</TableCell>
