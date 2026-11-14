@@ -16,7 +16,7 @@ import { useAppData } from '@/lib/app-data-context';
 // Used by standalone kpi-app (angiang2026-nhom.vercel.app) to open /quan-ly sheets
 // in an iframe overlay (cross-origin to nc-link.vercel.app).
 // In main app (standalone=false), unused — iframe src uses relative '/quan-ly?sheet=xxx&admin=1'.
-const MAIN_APP_URL = 'https://nc-link.vercel.app';
+const MAIN_APP_URL = (process.env.NEXT_PUBLIC_MAIN_APP_URL || 'https://nc-link.vercel.app').replace(/\/+$/, '');
 const buildMainUrl = (path: string) => MAIN_APP_URL.endsWith('/') ? MAIN_APP_URL + path.replace(/^\//, '') : MAIN_APP_URL + path;
 
 // Kỳ đăng ký mục tiêu đang mở. Giữ đồng bộ với ACTIVE_TARGET_MONTH trong

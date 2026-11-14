@@ -6,9 +6,9 @@ import { KpiEmbeddedSyncBridge } from '@/components/kpi-embedded-sync-bridge'
 import { HonourSpacingFix } from '@/components/honour-spacing-fix'
 import { AppDataProvider } from '@/lib/app-data-context'
 
-// KPI standalone dùng domain Main production cố định. Tránh env migration cũ
-// làm CSS dùng chung trỏ tới deployment tạm đã bị gỡ alias.
-const MAIN_APP_URL = 'https://nc-link.vercel.app'
+// URL Main App được nhúng khi build KPI để có thể chuyển host độc lập.
+// Vercel chỉ là fallback trong giai đoạn chuyển tiếp.
+const MAIN_APP_URL = (process.env.NEXT_PUBLIC_MAIN_APP_URL || 'https://nc-link.vercel.app').replace(/\/+$/, '')
 
 export const metadata: Metadata = {
   title: 'KPI - N.M.C',

@@ -3,10 +3,14 @@ import { NextRequest } from 'next/server'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-// KPI standalone luôn proxy về domain production chuẩn của Main App.
-// Không đọc NEXT_PUBLIC_MAIN_APP_URL ở đây để env migration cũ không thể
-// trỏ API sang deployment đã bị gỡ alias và gây DEPLOYMENT_NOT_FOUND.
-const MAIN_APP_URL = 'https://nc-link.vercel.app'
+// Runtime URL dùng cho API proxy. NMC_MAIN_APP_URL là biến phía server;
+// NEXT_PUBLIC_MAIN_APP_URL giữ URL phía server và client đồng nhất khi triển khai.
+// Vercel là fallback tạm thời trong giai đoạn chuyển host.
+const MAIN_APP_URL = (
+  process.env.NMC_MAIN_APP_URL ||
+  process.env.NEXT_PUBLIC_MAIN_APP_URL ||
+  'https://nc-link.vercel.app'
+).replace(/\/+$/, '')
 
 function copyResponseHeaders(source: Headers) {
   const headers = new Headers()

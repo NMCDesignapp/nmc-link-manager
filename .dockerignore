@@ -1,0 +1,15 @@
+.git
+.github
+.next
+.open-next
+.vercel
+node_modules
+kpi-app/.next
+kpi-app/.open-next
+kpi-app/.wrangler
+kpi-app/node_modules
+data-hub/node_modules
+*.log
+.env*
+tool-results
+upload
