@@ -1,0 +1,54 @@
+name: Deploy standalone KPI to Cloudflare
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/app/kpi/**"
+      - "src/app/api/kpi-public/**"
+      - "src/components/**"
+      - "src/lib/**"
+      - "scripts/**"
+      - "kpi-app/**"
+      - ".github/workflows/deploy-kpi-cloudflare.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-kpi-cloudflare
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kpi-app
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      NEXT_PUBLIC_MAIN_APP_URL: ${{ vars.NEXT_PUBLIC_MAIN_APP_URL }}
+      NMC_MAIN_APP_URL: ${{ vars.NEXT_PUBLIC_MAIN_APP_URL }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: kpi-app/package-lock.json
+
+      - name: Install KPI dependencies
+        run: npm ci
+
+      - name: Verify KPI source synchronization
+        run: npm run sync:check
+
+      - name: Build and deploy Worker
+        run: npm run cf:deploy
