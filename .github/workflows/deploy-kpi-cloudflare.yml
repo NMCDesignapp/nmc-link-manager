@@ -1,18 +1,8 @@
 name: Deploy standalone KPI to Cloudflare
 
+# Kept manual until the Cloudflare CI credentials are configured in GitHub.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - "src/app/kpi/**"
-      - "src/app/api/kpi-public/**"
-      - "src/components/**"
-      - "src/lib/**"
-      - "scripts/**"
-      - "kpi-app/**"
-      - ".github/workflows/deploy-kpi-cloudflare.yml"
 
 permissions:
   contents: read
