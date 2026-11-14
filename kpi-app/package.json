@@ -6,6 +6,9 @@
     "dev": "node ../scripts/apply-kpi-contest-notice.js && node ../scripts/apply-kpi-main-action-widths.js && node ../scripts/apply-kpi-contest-notice-timing.js && node ../scripts/apply-kpi-contest-popup-compact.js && node ../scripts/sync-kpi-source.js && next dev -p 3100",
     "prebuild": "node ../scripts/apply-kpi-contest-notice.js && node ../scripts/apply-kpi-main-action-widths.js && node ../scripts/apply-kpi-contest-notice-timing.js && node ../scripts/apply-kpi-contest-popup-compact.js && node ../scripts/sync-kpi-source.js && node ../scripts/apply-kpi-performance-fixes.js && node ../scripts/apply-kpi-loader-icon.js && node ../scripts/prepare-kpi-standalone-api.js",
     "build": "next build",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "start": "next start",
     "lint": "eslint .",
     "postinstall": "node ../scripts/ensure-vercel-prisma-binary-target.js && prisma generate",
@@ -18,7 +21,7 @@
     "@prisma/adapter-neon": "^6.19.3",
     "@prisma/client": "^6.11.1",
     "lucide-react": "^0.544.0",
-    "next": "16.1.3",
+    "next": "16.1.5",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "tw-animate-css": "^1.3.5",
@@ -26,6 +29,7 @@
     "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "1.18.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24",
     "@types/react": "^19",
@@ -34,6 +38,7 @@
     "postcss": "^8.4.49",
     "prisma": "^6.11.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "4.65.0"
   }
 }

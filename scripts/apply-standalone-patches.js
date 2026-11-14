@@ -15,7 +15,7 @@
  *       iframe overlay src đã standalone-aware → không cần patch nav nữa.
  *  4. (REMOVED) floating "← App" button — user yêu cầu bỏ
  *  5. Default export → KPIDashboard standalone (true)
- *  6. MAIN_APP_URL → canonical production origin `https://nc-link.vercel.app`
+ *  6. MAIN_APP_URL → configurable Main App origin with a safe legacy fallback
  *
  * Usage:
  *   node scripts/apply-standalone-patches.js /path/to/kpi-app/src/app/page.tsx
@@ -38,12 +38,12 @@ const lineEnding = c.includes('\r\n') ? '\r\n' : '\n';
 const changed = [];
 
 // Patch 1: Insert MAIN_APP_URL + buildMainUrl helper if missing
-// KPI standalone luôn trỏ về domain production chuẩn để env cũ từ migration
-// không thể làm hỏng API/iframe sau khi alias Vercel được chuyển lại.
+// KPI standalone dùng biến build-time để có thể chuyển Main App sang host khác
+// mà không phải sửa mã nguồn. Vercel chỉ là fallback trong giai đoạn chuyển tiếp.
 if (!c.includes('MAIN_APP_URL')) {
   const constInsert = `
 // === KPI standalone app: link back to main nc-link app ===
-const MAIN_APP_URL = 'https://nc-link.vercel.app';
+const MAIN_APP_URL = (process.env.NEXT_PUBLIC_MAIN_APP_URL || 'https://nc-link.vercel.app').replace(/\\/+$/, '');
 const buildMainUrl = (path) => MAIN_APP_URL.endsWith('/') ? MAIN_APP_URL + path.replace(/^\\//, '') : MAIN_APP_URL + path;
 `;
   c = c.replace(/(\/\* ================= CSS ================= \*\/)/, constInsert + '\n$1');
@@ -108,15 +108,20 @@ if (c.match(/export default function KPIPage\(\)\s*\{\s*return <KPIDashboard\s+s
   changed.push('default export pattern not found (OK if main page changed)');
 }
 
-// Patch 6: KPI standalone phải luôn dùng canonical Main origin.
-// Không dùng NEXT_PUBLIC_MAIN_APP_URL ở đây vì biến cũ của project Vercel có thể
-// còn trỏ tới deployment migration đã bị gỡ alias và gây DEPLOYMENT_NOT_FOUND.
-const envMainUrlPattern = /const MAIN_APP_URL = \(typeof process !== 'undefined' && process\.env\.NEXT_PUBLIC_MAIN_APP_URL\) \|\| '(?:\/|https:\/\/nc-link\.vercel\.app)';/;
-if (envMainUrlPattern.test(c)) {
-  c = c.replace(envMainUrlPattern, "const MAIN_APP_URL = 'https://nc-link.vercel.app';");
-  changed.push('pinned MAIN_APP_URL → https://nc-link.vercel.app');
-} else if (c.includes("const MAIN_APP_URL = 'https://nc-link.vercel.app';")) {
-  changed.push('MAIN_APP_URL already pinned to canonical production URL');
+// Patch 6: Main origin phải cấu hình được cho Cloud Run/host thay thế.
+// NEXT_PUBLIC_* được nhúng vào bundle khi build KPI; fallback giữ bản cũ hoạt động
+// cho đến khi URL Cloud Run chính thức được cấu hình.
+const configurableMainUrl = "const MAIN_APP_URL = (process.env.NEXT_PUBLIC_MAIN_APP_URL || 'https://nc-link.vercel.app').replace(/\\/+$/, '');";
+const mainUrlPatterns = [
+  /const MAIN_APP_URL = 'https:\/\/nc-link\.vercel\.app';/,
+  /const MAIN_APP_URL = \(typeof process !== 'undefined' && process\.env\.NEXT_PUBLIC_MAIN_APP_URL\) \|\| '(?:\/|https:\/\/nc-link\.vercel\.app)';/,
+];
+const matchedMainUrlPattern = mainUrlPatterns.find((pattern) => pattern.test(c));
+if (matchedMainUrlPattern) {
+  c = c.replace(matchedMainUrlPattern, configurableMainUrl);
+  changed.push('made MAIN_APP_URL configurable via NEXT_PUBLIC_MAIN_APP_URL');
+} else if (c.includes(configurableMainUrl)) {
+  changed.push('MAIN_APP_URL already configurable');
 }
 
 if (!checkOnly) {
