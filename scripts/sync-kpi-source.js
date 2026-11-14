@@ -46,11 +46,6 @@ const sharedCopies = [
     label: 'kpi-app/public/kpi-blackwood-theme-v13.css',
   },
   {
-    source: path.join(root, 'src', 'app', 'api', 'contests', 'route.ts'),
-    target: path.join(root, 'kpi-app', 'src', 'app', 'api', 'contests', 'route.ts'),
-    label: 'kpi-app/src/app/api/contests/route.ts',
-  },
-  {
     source: path.join(root, 'src', 'lib', 'contest-poster.ts'),
     target: path.join(root, 'kpi-app', 'src', 'lib', 'contest-poster.ts'),
     label: 'kpi-app/src/lib/contest-poster.ts',
