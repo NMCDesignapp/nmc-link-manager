@@ -39,6 +39,6 @@
     "prisma": "^6.11.1",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "wrangler": "4.65.0"
+    "wrangler": "^4.162.0"
   }
 }

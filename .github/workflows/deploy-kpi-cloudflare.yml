@@ -40,5 +40,17 @@ jobs:
       - name: Verify KPI source synchronization
         run: npm run sync:check
 
-      - name: Build and deploy Worker
-        run: npm run cf:deploy
+      - name: Build Worker
+        run: npm run cf:build
+
+      - name: Upload Linux Worker bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: nmc-kpi-open-next
+          path: kpi-app/.open-next
+          include-hidden-files: true
+          retention-days: 1
+
+      - name: Deploy Worker
+        if: ${{ env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != '' }}
+        run: npx opennextjs-cloudflare deploy
