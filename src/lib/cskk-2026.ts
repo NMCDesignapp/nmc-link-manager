@@ -8,6 +8,7 @@ export interface CskkSourceContract {
   pdt10DT?: number;
   effectiveDate?: string | null;
   issueDate?: string | null;
+  nguonDuLieu?: string | null;
   maNhom?: string;
   nhom?: string;
 }
@@ -47,15 +48,28 @@ const isTbTn = (position: unknown) => {
   return normalized.includes('truong ban') || normalized.includes('truong nhom') || /(^|\W)(tb|tn)(\W|$)/.test(normalized);
 };
 
-const contractDate = (contract: CskkSourceContract) => {
-  const value = contract.effectiveDate || contract.issueDate;
-  const parsed = value ? new Date(value) : null;
-  return parsed && Number.isFinite(parsed.getTime()) ? parsed : null;
+// Đồng nhất kỳ doanh số với KPI/Quản lý:
+// - NMC_DOANHSO (sheet tháng) và NMC_TAMTHU (sheet 4 tháng hiện tại) ưu tiên tháng nguồn.
+// - Các nguồn còn lại lấy Ngày phát hành; chỉ fallback Ngày hiệu lực khi thiếu/không hợp lệ.
+// - Dùng UTC để tháng không đổi theo múi giờ trình duyệt.
+const contractDate = (contract: CskkSourceContract): Date | null => {
+  const sourceMonth = text(contract.nguonDuLieu).match(/^NMC_(?:TAMTHU|DOANHSO):(\d{4})-(\d{2})(?:\||$)/);
+  if (sourceMonth) {
+    const year = Number(sourceMonth[1]);
+    const month = Number(sourceMonth[2]);
+    if (month >= 1 && month <= 12) return new Date(Date.UTC(year, month - 1, 1));
+  }
+  for (const value of [contract.issueDate, contract.effectiveDate]) {
+    if (!value) continue;
+    const date = new Date(value);
+    if (Number.isFinite(date.getTime())) return date;
+  }
+  return null;
 };
 
 const inYearThrough = (contract: CskkSourceContract, year: number, now: Date) => {
   const date = contractDate(contract);
-  return Boolean(date && date.getFullYear() === year && date.getTime() <= now.getTime());
+  return Boolean(date && date.getUTCFullYear() === year && date.getTime() <= now.getTime());
 };
 
 export function buildCskkRows(
@@ -98,7 +112,7 @@ export function buildCskkRows(
     if (resolvedGroup) fypByGroup.set(resolvedGroup, (fypByGroup.get(resolvedGroup) || 0) + fyp);
     if (agentCode) {
       fypByAgent.set(agentCode, (fypByAgent.get(agentCode) || 0) + fyp);
-      const month = contractDate(contract)?.getMonth();
+      const month = contractDate(contract)?.getUTCMonth();
       if (month !== undefined) {
         const monthly = monthlyIpByAgent.get(agentCode) || new Map<number, number>();
         monthly.set(month, (monthly.get(month) || 0) + Number(contract.pdt10DT || 0));
