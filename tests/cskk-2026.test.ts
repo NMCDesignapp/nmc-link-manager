@@ -51,7 +51,7 @@ test('CSKK excludes Banca TVV and sorts equal FYP by the role-specific condition
     [
       { agentCode: 'TVV-A', maNhom: 'G1', fyp: 50_000_000, pdt10DT: 12_000_000, tinhLuot3tr: 12_000_000, nguonDuLieu: 'NMC_DOANHSO:2026-01|sheet1', issueDate: '2026-01-10', effectiveDate: '2026-01-10' },
       { agentCode: 'TVV-A', maNhom: 'G1', fyp: 50_000_000, pdt10DT: 12_000_000, tinhLuot3tr: 12_000_000, nguonDuLieu: 'NMC_DOANHSO:2026-02|sheet2', issueDate: '2026-02-10', effectiveDate: '2026-02-10' },
-      { agentCode: 'TVV-B', maNhom: 'G2', fyp: 100_000_000, pdt10DT: 12_000_000, issueDate: '2026-01-10', effectiveDate: '2026-01-10' },
+      { agentCode: 'TVV-B', maNhom: 'G2', fyp: 100_000_000, pdt10DT: 12_000_000, tinhLuot3tr: 12_000_000, nguonDuLieu: 'NMC_DOANHSO:2026-01|sheet1', issueDate: '2026-01-10', effectiveDate: '2026-01-10' },
       { agentCode: 'BANCA-1', maNhom: 'A473DSO000', fyp: 900_000_000, pdt10DT: 99_000_000, issueDate: '2026-01-10', effectiveDate: '2026-01-10' },
       { agentCode: 'SALE-G1', maNhom: 'G1', fyp: 100_000_000, issueDate: '2026-03-10', effectiveDate: '2026-03-10' },
       { agentCode: 'SALE-G2', maNhom: 'G2', fyp: 100_000_000, issueDate: '2026-03-10', effectiveDate: '2026-03-10' },
