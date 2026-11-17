@@ -3624,6 +3624,94 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   }
 }
 
+
+/* KPI region actions: one button design, separate blue/green palettes. */
+.kpi-app .region-divider.is-collapse-btn {
+  align-items: stretch;
+  cursor: default;
+}
+.kpi-app .region-divider.is-collapse-btn:hover { opacity: 1; }
+.kpi-app .region-divider.is-collapse-btn .region-divider-title,
+.kpi-app .region-divider.is-collapse-btn .cskk-region-btn {
+  box-sizing: border-box;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-width: 0 !important;
+  min-height: 46px !important;
+  padding: 8px 10px !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-radius: 9px !important;
+  font-family: inherit;
+  font-size: 10.5px !important;
+  font-weight: 900 !important;
+  line-height: 1.25 !important;
+  letter-spacing: .01em !important;
+  white-space: normal !important;
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow: 0 1px 4px rgba(0,0,0,.25) !important;
+  box-shadow: 0 5px 15px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.12) !important;
+  cursor: pointer;
+  transition: background .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.kpi-app .region-divider.is-collapse-btn .region-divider-title {
+  background: linear-gradient(135deg, #0a4663, #126b89) !important;
+  border-color: #3fb0d1 !important;
+  color: #edfbff !important;
+}
+.kpi-app .region-divider.is-collapse-btn .region-divider-title:hover {
+  background: linear-gradient(135deg, #0b5675, #1881a0) !important;
+  border-color: #8be8ff !important;
+}
+.kpi-app .region-divider.is-collapse-btn .cskk-region-btn {
+  background: linear-gradient(135deg, #075b50, #0b7860) !important;
+  border-color: #2aae92 !important;
+  color: #ecfff8 !important;
+}
+.kpi-app .region-divider.is-collapse-btn .cskk-region-btn:hover {
+  background: linear-gradient(135deg, #08705f, #149379) !important;
+  border-color: #6ef0ca !important;
+}
+.kpi-app .region-divider.is-collapse-btn .region-divider-title:focus-visible {
+  outline: 2px solid #a3e9ff;
+  outline-offset: 2px;
+}
+.kpi-app .region-divider.is-collapse-btn .region-chevron {
+  display: inline-block;
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: rotate(-45deg);
+  transition: transform .2s ease;
+}
+.kpi-app .region-divider.is-collapse-btn:not(.collapsed) .region-chevron {
+  transform: rotate(45deg);
+}
+@media (max-width: 899px) {
+  .kpi-app .region-divider.mobile-only.is-collapse-btn .region-divider-title,
+  .kpi-app .region-divider.mobile-only.is-collapse-btn .cskk-region-btn {
+    flex: 1 1 0 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 46px !important;
+    padding: 7px 6px !important;
+    font-size: 10px !important;
+  }
+}
+@media (min-width: 900px) {
+  .kpi-app .region-divider.is-collapse-btn:not(.mobile-only) .region-divider-title,
+  .kpi-app .region-divider.is-collapse-btn:not(.mobile-only) .cskk-region-btn {
+    flex: 0 1 226px !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+}
+
 `;
 
 /* ================= TYPES ================= */
@@ -6300,14 +6388,11 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               {/* Region Divider - Mobile (clickable to collapse) */}
               <div
                 className={`region-divider mobile-only is-collapse-btn${khuVucCollapsed ? ' collapsed' : ''}`}
-                onClick={requestKhuVucToggle}
-                role="button"
-                aria-expanded={!khuVucCollapsed}
               >
-                <span className="region-divider-title">
-                  <span className="collapse-icon" />
-                  Tiến Độ Khu Vực
-                </span>
+                <button type="button" className="region-divider-title" onClick={requestKhuVucToggle} aria-expanded={!khuVucCollapsed} aria-controls="kpi-region-mobile">
+                  <span className="region-chevron" aria-hidden="true" />
+                  TIẾN ĐỘ KHU VỰC
+                </button>
                 <button type="button" className="cskk-region-btn" onClick={(event) => { event.stopPropagation(); openKpiSheet('cskk-2026'); }} aria-label="Mở Chính sách khuyến khích 2026">
                   CHÍNH SÁCH KHUYẾN KHÍCH 2026
                 </button>
@@ -6319,7 +6404,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               {/* Mobile Region - Redesign as table-style cards (collapsible)
                   User fix: chỉ thu gọn cards (incl. Banca card), KHÔNG ẩn banca-imgs-section
                   và target-reg-section ở dưới. */}
-              <div className={`khuvuc-region mobile-only${khuVucCollapsed ? ' collapsed' : ''}`}>
+              <div className={`khuvuc-region mobile-only${khuVucCollapsed ? ' collapsed' : ''}`} id="kpi-region-mobile">
               <div className="rg-wrap mobile-only">
                 {dashboard.phongs.map((phong, pi) => {
                   const pPct = phong.kh ? (phong.afyp / phong.kh * 100) : 0;
@@ -6721,14 +6806,11 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <div
                   className={`region-divider is-collapse-btn${khuVucCollapsed ? ' collapsed' : ''}`}
                   style={{ gridColumn: '1 / -1', marginTop: 24, marginBottom: 4 }}
-                  onClick={requestKhuVucToggle}
-                  role="button"
-                  aria-expanded={!khuVucCollapsed}
                 >
-                  <span className="region-divider-title">
-                    <span className="collapse-icon" />
-                    Tiến Độ Khu Vực
-                  </span>
+                  <button type="button" className="region-divider-title" onClick={requestKhuVucToggle} aria-expanded={!khuVucCollapsed} aria-controls="kpi-region-desktop">
+                  <span className="region-chevron" aria-hidden="true" />
+                  TIẾN ĐỘ KHU VỰC
+                </button>
                   <button type="button" className="cskk-region-btn" onClick={(event) => { event.stopPropagation(); openKpiSheet('cskk-2026'); }} aria-label="Mở Chính sách khuyến khích 2026">
                     CHÍNH SÁCH KHUYẾN KHÍCH 2026
                   </button>
@@ -6757,7 +6839,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <KpiContestNotice />
                 {/* Desktop: only split-right (cards) is collapsible.
                     Banca images + target reg button stay visible below. */}
-                <div className={`khuvuc-region${khuVucCollapsed ? ' collapsed' : ''}`} style={{ gridColumn: '2 / 3' }}>
+                <div className={`khuvuc-region${khuVucCollapsed ? ' collapsed' : ''}`} style={{ gridColumn: '2 / 3' }} id="kpi-region-desktop">
                 <div className="split-right" id="split-depts">
                     {dashboard.phongs.map((phong, pi) => {
                       const pPct = phong.kh ? (phong.afyp / phong.kh * 100) : 0;
