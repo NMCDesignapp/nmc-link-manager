@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Award, BookOpen, ChevronDown, ChevronLeft, Download, ImageIcon, Search, ShieldCheck, Shirt, Users, X } from 'lucide-react';
+import { Award, BookOpen, ChevronDown, ChevronLeft, Download, Search, ShieldCheck, Shirt, Users, X } from 'lucide-react';
 import { buildCskkRows, CSKK_THRESHOLDS, getCskkStatus, type CskkKind, type CskkRow } from '@/lib/cskk-2026';
 
 type Props = { contracts: any[]; leaders: any[]; tvvMembers: any[]; groups: any[] };
@@ -16,9 +16,9 @@ const labels: Record<CskkKind, string[]> = {
   tvv: ['≥ 100tr', '≥ 250tr', '≥ 500tr', '≥ 750tr'],
 };
 
-const programInfo: Record<CskkKind, { label: string; desc: string; color: string; icon: typeof Users }> = {
-  leader: { label: 'CSKK DÀNH CHO TB/TN', desc: 'Theo dõi FYP nhóm trực tiếp, danh hiệu và chế độ đồng phục năm 2026', color: '#F59E0B', icon: Users },
-  tvv: { label: 'CSKK DÀNH CHO TVV', desc: 'Theo dõi FYP cá nhân, danh hiệu và chế độ đồng phục năm 2026', color: '#06B6D4', icon: Award },
+const programInfo: Record<CskkKind, { label: string; desc: string; color: string; icon: typeof Users; poster: string }> = {
+  leader: { label: 'CSKK DÀNH CHO TB/TN', desc: 'Theo dõi FYP nhóm trực tiếp, danh hiệu và chế độ đồng phục năm 2026', color: '#F59E0B', icon: Users, poster: '/cskk-2026/cskk-tb-tn-2026.png' },
+  tvv: { label: 'CSKK DÀNH CHO TVV', desc: 'Theo dõi FYP cá nhân, danh hiệu và chế độ đồng phục năm 2026', color: '#06B6D4', icon: Award, poster: '/cskk-2026/cskk-tvv-2026.png' },
 };
 
 function MilestoneCell({ row, kind, index }: { row: CskkRow; kind: CskkKind; index: number }) {
@@ -93,7 +93,8 @@ export function Cskk2026({ contracts, leaders, tvvMembers, groups }: Props) {
             return (
               <button key={itemKind} onClick={() => openProgram(itemKind)} className="group overflow-hidden rounded-lg border-2 bg-slate-900 text-left shadow-lg transition hover:-translate-y-1 hover:scale-[1.01] hover:shadow-2xl active:scale-95" style={{ borderColor: `${item.color}AA` }}>
                 <div className="relative flex aspect-video items-center justify-center overflow-hidden bg-slate-950">
-                  <div className="flex flex-col items-center gap-2 text-center"><span className="grid h-14 w-14 place-items-center rounded-full border-2 border-dashed" style={{ borderColor: `${item.color}88`, backgroundColor: `${item.color}18` }}><ImageIcon className="h-7 w-7" style={{ color: item.color }} /></span><span className="text-[10px] italic text-slate-500">Ảnh poster sẽ được bổ sung sau</span></div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={item.poster} alt={`Poster ${item.label}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
                   <span className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-current to-transparent opacity-80" style={{ color: item.color }} />
                 </div>
                 <div className="border-t px-3 py-3" style={{ borderColor: `${item.color}44` }}><div className="flex items-center gap-2"><Icon className="h-4 w-4" style={{ color: item.color }} /><h3 className="text-sm font-black" style={{ color: item.color }}>{item.label}</h3></div><p className="mt-1 text-[11px] text-slate-400">{item.desc}</p></div>
@@ -101,7 +102,7 @@ export function Cskk2026({ contracts, leaders, tvvMembers, groups }: Props) {
             );
           })}
         </div>
-        <div className="mt-3 rounded-xl border-2 border-emerald-500/20 bg-emerald-500/5 p-2.5 text-[11px] text-emerald-200/70"><strong className="text-emerald-300">Ghi chú:</strong> Bấm vào một chính sách để xem chi tiết. Ảnh poster sẽ được cập nhật khi bạn gửi.</div>
+        <div className="mt-3 rounded-xl border-2 border-emerald-500/20 bg-emerald-500/5 p-2.5 text-[11px] text-emerald-200/70"><strong className="text-emerald-300">Ghi chú:</strong> Bấm vào một chính sách để xem chi tiết, lọc dữ liệu và tải file Excel.</div>
       </section>
     );
   }
@@ -110,7 +111,7 @@ export function Cskk2026({ contracts, leaders, tvvMembers, groups }: Props) {
   return (
     <section className="flex h-full min-h-0 flex-col gap-2 bg-slate-950 p-2 text-slate-900" data-cskk-2026>
       <div className="grid flex-shrink-0 gap-2 md:grid-cols-2">
-        <div className="relative hidden aspect-video max-h-[160px] items-center justify-center overflow-hidden border border-slate-600 bg-slate-900 md:flex"><div className="flex flex-col items-center gap-1 text-slate-500"><ImageIcon className="h-8 w-8" /><span className="text-[10px] italic">Ảnh poster sẽ được bổ sung sau</span></div><button onClick={downloadExcel} className="absolute right-1 top-1 grid h-8 w-8 place-items-center rounded-md bg-emerald-600 text-white shadow-lg hover:bg-emerald-500" title="Tải file Excel"><Download className="h-4 w-4" /></button></div>
+        <div className="relative hidden h-[160px] items-center justify-center overflow-hidden border border-slate-600 bg-slate-900 md:flex">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={item.poster} alt={`Poster ${item.label}`} className="h-full w-full object-fill" /><button onClick={downloadExcel} className="absolute right-1 top-1 grid h-8 w-8 place-items-center rounded-md bg-emerald-600 text-white shadow-lg hover:bg-emerald-500" title="Tải file Excel"><Download className="h-4 w-4" /></button></div>
         <div className="flex min-h-[120px] flex-col gap-2 rounded-lg border border-slate-500 bg-slate-300 p-2 shadow-xl">
           <div className="grid grid-cols-2 gap-2"><div className="rounded bg-emerald-600 px-3 py-2 text-center text-white shadow"><div className="text-[9px] font-bold uppercase">Đạt chính sách</div><div className="text-xl font-black">{achievedCount}</div></div><div className="rounded bg-amber-600 px-3 py-2 text-center text-white shadow"><div className="text-[9px] font-bold uppercase">Tổng đối tượng</div><div className="text-xl font-black">{filtered.length}</div></div></div>
           <div className="flex min-w-0 gap-2">
