@@ -25,22 +25,22 @@ test('CSKK rows total 2026 FYP and expose quarterly awards or standard activity 
     [
       { agentCode: 'TVV01', maNhom: 'N01', fyp: 120_000_000, pdt10DT: 12_000_000, effectiveDate: '2026-01-10' },
       { agentCode: 'TVV01', maNhom: 'N01', fyp: 80_000_000, pdt10DT: 13_000_000, effectiveDate: '2026-02-10' },
+      { agentCode: 'D104102154', maNhom: 'N01', fyp: 50_000_000, pdt10DT: 12_000_000, effectiveDate: '2026-03-10' },
       { agentCode: 'TVV01', maNhom: 'N01', fyp: 999_000_000, pdt10DT: 99_000_000, effectiveDate: '2025-12-31' },
       { agentCode: 'TVV01', maNhom: 'N01', fyp: 999_000_000, pdt10DT: 99_000_000, effectiveDate: '2026-12-01' },
     ],
     [{ agentCode: 'D104102154', agentName: 'Trưởng nhóm A', position: 'Trưởng nhóm', maNhom: 'N01', nhom: 'Nhóm 1' }],
     [
-      { agentCode: 'TVV01', agentName: 'TVV A', maBanNhom: 'N01', nhom: 'Nhóm 1', chucVu: 'TVV' },
-      { agentCode: 'D104102154', agentName: 'Trưởng nhóm A', maBanNhom: 'N01', nhom: 'Nhóm 1', chucVu: 'Trưởng nhóm' },
-      { agentCode: 'TTN01', agentName: 'Tiền trưởng nhóm', maBanNhom: 'N01', nhom: 'Nhóm 1', chucVu: 'TTN' },
+      { agentCode: 'TVV01', agentName: 'TVV A', maBanNhom: 'N01', nhom: 'Nhóm 1' },
+      { agentCode: 'D104102154', agentName: 'Trưởng nhóm A', maBanNhom: 'N01', nhom: 'Nhóm 1' },
     ],
     [{ maBanNhom: 'N01', tenBanNhom: 'Nhóm 1' }],
     new Date('2026-11-17T12:00:00+07:00'),
   );
 
-  assert.equal(result.leaders[0].totalFyp, 200_000_000);
+  assert.equal(result.leaders[0].totalFyp, 250_000_000);
   assert.equal(result.leaders[0].alternateCount, 3);
   assert.equal(result.tvv[0].totalFyp, 200_000_000);
   assert.equal(result.tvv[0].alternateCount, 2);
-  assert.deepEqual(result.tvv.map(row => row.agentCode), ['TVV01']);
+  assert.equal(result.tvv.find(row => row.agentCode === 'D104102154')?.totalFyp, 50_000_000);
 });
