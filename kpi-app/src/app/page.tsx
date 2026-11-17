@@ -3588,6 +3588,42 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .ctrl-bar.has-notice .ctrl-sync-slot { right: 5px; }
 }
 
+/* CSKK 2026: link beside region progress; its click must not collapse progress. */
+.kpi-app .cskk-region-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 1 226px; min-width: 0; min-height: 44px; padding: 5px 10px;
+  border: 1px solid #2aae92; border-radius: 9px;
+  background: linear-gradient(135deg, #075b50, #0b7860); color: #ecfff8;
+  font: inherit; font-size: 10.5px; font-weight: 900; line-height: 1.25;
+  text-align: center; letter-spacing: .01em; cursor: pointer;
+  box-shadow: 0 5px 15px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.12);
+}
+.kpi-app .cskk-region-btn:hover { background: linear-gradient(135deg, #08705f, #149379); border-color: #6ef0ca; }
+.kpi-app .cskk-region-btn:focus-visible { outline: 2px solid #a7ffe0; outline-offset: 2px; }
+@media (max-width: 899px) {
+  .kpi-app .region-divider.mobile-only.is-collapse-btn { gap: 8px !important; }
+  .kpi-app .region-divider.mobile-only.is-collapse-btn .region-divider-title {
+    width: auto !important; min-width: 0; flex: 1 1 50% !important;
+    padding: 0 5px 0 34px !important; font-size: 10px !important;
+    letter-spacing: 0 !important; white-space: nowrap;
+  }
+  .kpi-app .region-divider.mobile-only.is-collapse-btn .cskk-region-btn {
+    flex: 1 1 50%; font-size: 10px; padding: 5px 6px;
+  }
+}
+@media (min-width: 900px) {
+  .kpi-app .region-divider.is-collapse-btn:not(.mobile-only) { gap: 8px !important; }
+  .kpi-app .region-divider.is-collapse-btn:not(.mobile-only) .region-divider-title {
+    width: auto !important; flex: 1 1 155px !important; min-width: 135px;
+  }
+  .kpi-app .region-divider.is-collapse-btn:not(.mobile-only) .cskk-region-btn {
+    flex: 0 1 226px; min-width: 185px;
+  }
+  .kpi-app .region-divider.is-collapse-btn:not(.mobile-only) .desktop-target-inline {
+    padding-left: 10px; padding-right: 10px; font-size: 10px;
+  }
+}
+
 `;
 
 /* ================= TYPES ================= */
@@ -4085,7 +4121,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   // sẽ được mở NGAY TRONG KPI app bằng iframe overlay đến /quan-ly?sheet=xxx&from=kpi.
   // /quan-ly đã có logic ẩn sidebar + nút Cài đặt khi from=kpi → user chỉ xem đúng sheet đó.
   // State default 'home' để tránh hydration mismatch (SSR cũng render 'home').
-  const [kpiSheet, setKpiSheet] = useState<'home' | 'saoviet' | 'report' | 'clb-saoviet'>('home');
+  const [kpiSheet, setKpiSheet] = useState<'home' | 'saoviet' | 'report' | 'clb-saoviet' | 'cskk-2026'>('home');
   // Cache-buster timestamp — mỗi lần mở sheet sẽ sinh timestamp mới để iframe
   // luôn fetch HTML mới nhất, tránh bị SW cache hoặc HTTP cache serving stale content.
   const kpiIframeRef = useRef<HTMLIFrameElement>(null);
@@ -4095,7 +4131,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const kpiEmbedReadyTimerRef = useRef<number | null>(null);
 
   // KPI tách hoạt động như một app độc lập: mỗi màn hình nhúng có một history entry riêng.
-  const openKpiSheet = useCallback((sheet: 'saoviet' | 'report' | 'clb-saoviet') => {
+  const openKpiSheet = useCallback((sheet: 'saoviet' | 'report' | 'clb-saoviet' | 'cskk-2026') => {
     setKpiEmbeddedCanGoBack(false);
     setKpiEmbedLoading(true);
     kpiEmbedStartedAtRef.current = Date.now();
@@ -6048,6 +6084,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             <div className="kpi-embed-title">
               {kpiSheet === 'saoviet' && (<><Flag size={16} /> <span>Thi đua</span></>)}
               {kpiSheet === 'report' && (<><BookOpen size={16} /> <span>Chính Sách 2026</span></>)}
+               {kpiSheet === 'cskk-2026' && (<><BookOpen size={16} /> <span>Chính Sách Khuyến Khích 2026</span></>)}
               {kpiSheet === 'clb-saoviet' && (<><Star size={16} /> <span>CLB Sao Việt</span></>)}
             </div>
             {/* Nút "Mở trong tab mới": chỉ hiện ở KPI0 (admin).
@@ -6079,7 +6116,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               src={standalone
                 ? `${buildMainUrl('/quan-ly?sheet=' + kpiSheet + '&from=kpi')}`
                 : `/quan-ly?sheet=${kpiSheet}&admin=1&from=kpi`}
-              title={kpiSheet === 'saoviet' ? 'Thi đua' : kpiSheet === 'report' ? 'Chính Sách 2026' : 'CLB Sao Việt'}
+              title={kpiSheet === 'saoviet' ? 'Thi đua' : kpiSheet === 'report' ? 'Chính Sách 2026' : kpiSheet === 'cskk-2026' ? 'Chính Sách Khuyến Khích 2026' : 'CLB Sao Việt'}
               className="kpi-embed-iframe"
               loading="eager"
               allow="fullscreen"
@@ -6271,6 +6308,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   <span className="collapse-icon" />
                   Tiến Độ Khu Vực
                 </span>
+                <button type="button" className="cskk-region-btn" onClick={(event) => { event.stopPropagation(); openKpiSheet('cskk-2026'); }} aria-label="Mở Chính sách khuyến khích 2026">
+                  CHÍNH SÁCH KHUYẾN KHÍCH 2026
+                </button>
               </div>
               <div className="mobile-only">
                 <KpiContestNotice />
@@ -6689,6 +6729,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     <span className="collapse-icon" />
                     Tiến Độ Khu Vực
                   </span>
+                  <button type="button" className="cskk-region-btn" onClick={(event) => { event.stopPropagation(); openKpiSheet('cskk-2026'); }} aria-label="Mở Chính sách khuyến khích 2026">
+                    CHÍNH SÁCH KHUYẾN KHÍCH 2026
+                  </button>
                   <button
                     type="button"
                     className="desktop-target-inline"
