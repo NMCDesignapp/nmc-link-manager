@@ -124,3 +124,38 @@ test('CSKK HĐC uses month tab source rather than issue/effective dates or pdt10
   assert.equal(result.tvv.find(row => row.agentCode === 'TVV-02')?.alternateCount, 3);
   assert.equal(result.tvv.find(row => row.agentCode === 'TVV-03')?.alternateCount, 1);
 });
+
+test('CSKK TVV hides only unresolved A-group codes and displays unresolved U104 as PA', () => {
+  const result = buildCskkRows(
+    [],
+    [{ agentCode: 'LEADER-01', agentName: 'TN', position: 'Trưởng nhóm', maNhom: 'A104101006', nhom: 'TB/TN Group' }],
+    [
+      { agentCode: 'TVV-RAW-A', agentName: 'TVV mã nhóm A', maBanNhom: 'A104101006' },
+      { agentCode: 'TVV-OTHER-A', agentName: 'TVV mã A473', maBanNhom: 'A473PGB08E' },
+      { agentCode: 'TVV-NAMED-A', agentName: 'TVV Hiệp Tiến', maBanNhom: 'A104103002' },
+      { agentCode: 'TVV-NAMED-A2', agentName: 'TVV Sao An Phú', maBanNhom: 'A1041A16Z5' },
+      { agentCode: 'TVV-PA', agentName: 'TVV PA', maBanNhom: 'U104101014' },
+      { agentCode: 'TVV-NAMED-U', agentName: 'TVV An Khang', maBanNhom: 'U1041A3L6F' },
+      { agentCode: 'TVV-OTHER', agentName: 'TVV Bình thường', maBanNhom: 'U2510175986' },
+    ],
+    [
+      { maBanNhom: 'A104101006', tenBanNhom: 'A104101006' },
+      { maBanNhom: 'A104103002', tenBanNhom: 'Hiệp Tiến' },
+      { maBanNhom: 'A1041A16Z5', tenBanNhom: 'Sao An Phú' },
+      { maBanNhom: 'U104101014', tenBanNhom: 'U104101014' },
+      { maBanNhom: 'U1041A3L6F', tenBanNhom: 'An Khang' },
+      { maBanNhom: 'U2510175986', tenBanNhom: 'An Kiên Phát' },
+    ],
+    new Date('2026-11-17T12:00:00+07:00'),
+  );
+  const displayed = new Map(result.tvv.map(row => [row.agentCode, row.nhom]));
+  assert.deepEqual([...displayed.keys()].sort(), [
+    'TVV-NAMED-A', 'TVV-NAMED-A2', 'TVV-NAMED-U', 'TVV-OTHER', 'TVV-PA',
+  ].sort());
+  assert.equal(displayed.get('TVV-PA'), 'PA');
+  assert.equal(displayed.get('TVV-NAMED-A'), 'Hiệp Tiến');
+  assert.equal(displayed.get('TVV-NAMED-A2'), 'Sao An Phú');
+  assert.equal(displayed.get('TVV-NAMED-U'), 'An Khang');
+  assert.equal(displayed.get('TVV-OTHER'), 'An Kiên Phát');
+  assert.equal(result.leaders.length, 1); // Không đổi danh sách CSKK TB/TN
+});
