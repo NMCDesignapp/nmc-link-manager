@@ -135,17 +135,19 @@ Tạo PR vào `main`, xem preview/build, rồi mới merge.
 
 ## 6. Kiểm tra deployment
 
-Sau khi merge `main`, cả hai Vercel project có thể được kích hoạt:
+Kiến trúc production chính thức:
 
-- Main App `my-project`;
-- KPI tách `kpi-nc-link` với Root Directory `kpi-app`.
+- Main App: Vercel project `nc-link`, URL `https://nc-link.vercel.app`;
+- KPI tách: Cloudflare Worker `nmc-kpi`, URL `https://nmc-kpi.chaunm2312.workers.dev`.
+
+Không deploy KPI production lên các project/alias Vercel cũ. Với thay đổi KPI, build từ `kpi-app`, triển khai Worker Cloudflare và giữ proxy về Main App.
 
 Kiểm tra:
 
-1. deployment trạng thái READY;
+1. Main App Vercel trạng thái READY;
 2. `https://nc-link.vercel.app` trả HTTP 200;
 3. `https://nc-link.vercel.app/kpi` mở được;
-4. `https://angiang2026.vercel.app` mở được;
+4. `https://nmc-kpi.chaunm2312.workers.dev` mở được và tải dữ liệu từ Main App;
 5. tính năng vừa sửa hoạt động ở breakpoint yêu cầu;
 6. không có lỗi console/network quan trọng;
 7. standalone không lộ admin.
@@ -264,7 +266,7 @@ Codex phải dừng và báo trước khi:
 Dùng prompt sau trong phiên mới:
 
 ```text
-Tiếp quản dự án NMC Link Manager. Đọc AGENTS.md và toàn bộ docs/CODEX_*.md trước. Mã hiện tại là nguồn chuẩn. Main App nc-link.vercel.app là bản quản trị; KPI tách trong kpi-app là công khai chỉ đọc. Production DB là Supabase qua POSTGRES_PRISMA_URL. Data Hub và Google là hai nguồn độc quyền qua nmc-sync-source. Mọi sửa KPI phải sync bằng scripts/sync-kpi-app.sh và build cả hai. Kiểm tra git status trước, không sửa hoặc deploy khi chưa báo kế hoạch.
+Tiếp quản dự án NMC Link Manager. Đọc AGENTS.md và toàn bộ docs/CODEX_*.md trước. Mã hiện tại là nguồn chuẩn. Main App nc-link.vercel.app chạy production trên Vercel; KPI tách nmc-kpi.chaunm2312.workers.dev chạy production trên Cloudflare Workers và là công khai chỉ đọc. Production DB là Supabase qua POSTGRES_PRISMA_URL. Data Hub và Google là hai nguồn độc quyền qua nmc-sync-source. Mọi sửa KPI phải sync bằng scripts/sync-kpi-app.sh, build cả hai và kiểm tra đúng hai nền tảng production. Kiểm tra git status trước, không sửa hoặc deploy khi chưa báo kế hoạch.
 ```
 
 ## 12. Cập nhật kiến thức sau mỗi nhiệm vụ lớn

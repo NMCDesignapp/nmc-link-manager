@@ -19,9 +19,9 @@ Trao đổi với người dùng bằng tiếng Việt, trực tiếp, nêu rõ 
 - Repository: `NMCDesignapp/nmc-link-manager`.
 - Main App production: `https://nc-link.vercel.app`.
 - KPI trong Main App: `https://nc-link.vercel.app/kpi`.
-- KPI tách production: `https://angiang2026.vercel.app` và `https://angiang2026-nhom.vercel.app`.
-- Vercel Main App dùng project `my-project`.
-- Vercel KPI tách dùng project `kpi-nc-link`, Root Directory là `kpi-app`.
+- KPI tách production chính thức: Cloudflare Worker `nmc-kpi`, URL `https://nmc-kpi.chaunm2312.workers.dev`.
+- Vercel Main App dùng project `nc-link`, team `thanhhung070826-6875`.
+- KPI tách không còn deploy production trên Vercel. Các URL `angiang2026.vercel.app` và `angiang2026-nhom.vercel.app` chỉ là dấu vết lịch sử, không dùng làm đích sửa, kiểm tra hoặc triển khai mới.
 - Main App là nơi quản trị và nguồn điều khiển chính.
 - KPI tách là bản công khai, chỉ đọc; không được làm lộ chức năng quản trị, sidebar, API ghi hoặc luồng điều hướng nội bộ của Main App.
 
@@ -184,7 +184,7 @@ main mới nhất
   -> xem diff
   -> PR
   -> merge main
-  -> kiểm tra cả hai deployment production
+  -> kiểm tra Main App trên Vercel và KPI tách trên Cloudflare
 ```
 
 Không force-push `main`. Không ghi đè thay đổi chưa rõ nguồn gốc. Không sửa file generated/build artifact nếu source tương ứng tồn tại.

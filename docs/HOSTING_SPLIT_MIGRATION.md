@@ -1,14 +1,16 @@
-# Tách nền tảng NC-Link và KPI
+# Kiến trúc production NC-Link và KPI
 
-## Kiến trúc đích
+## Trạng thái chính thức từ 17/11/2026
 
-- **NC-Link Main App:** Google Cloud Run, build từ `Dockerfile` ở thư mục gốc.
-- **KPI standalone:** Cloudflare Workers, build từ thư mục `kpi-app` bằng OpenNext.
+- **NC-Link Main App:** Vercel project `nc-link`, URL `https://nc-link.vercel.app`.
+- **KPI standalone:** Cloudflare Worker `nmc-kpi`, URL `https://nmc-kpi.chaunm2312.workers.dev`, build từ thư mục `kpi-app` bằng OpenNext.
 - Hai trang dùng chung một kho GitHub nhưng triển khai độc lập. KPI không giữ thông tin kết nối cơ sở dữ liệu; API được chuyển tiếp đến NC-Link.
+- Đây là kiến trúc production chính thức, không phải thử nghiệm hay kế hoạch chuyển đổi.
+- Không dùng lại hai alias KPI Vercel cũ làm đích production.
 
 ## Biến môi trường
 
-### NC-Link / Cloud Run
+### NC-Link / Vercel
 
 Giữ nguyên các biến production hiện tại, tối thiểu gồm:
 
@@ -23,7 +25,7 @@ Không ghi giá trị bí mật vào GitHub.
 
 ### KPI / Cloudflare Workers
 
-- `NEXT_PUBLIC_MAIN_APP_URL`: URL HTTPS chính thức của NC-Link trên Cloud Run. Biến này phải có ngay lúc build.
+- `NEXT_PUBLIC_MAIN_APP_URL`: `https://nc-link.vercel.app`. Biến này phải có ngay lúc build.
 - `NMC_MAIN_APP_URL`: cùng URL trên, dùng bởi API proxy phía server.
 
 KPI không được cấu hình `POSTGRES_PRISMA_URL` hoặc các bí mật của Main App.
@@ -41,8 +43,8 @@ npx wrangler deploy --dry-run
 
 ## Kiểm tra sau khi triển khai
 
-1. NC-Link: `/`, `/kpi`, `/quan-ly` và `/api/health` phản hồi đúng.
-2. KPI: trang chính mở được, dữ liệu đọc từ NC-Link và các trang Chính sách/Thi đua/CLB tải đúng.
+1. NC-Link trên Vercel: `/`, `/kpi`, `/quan-ly` và `/api/health` phản hồi đúng.
+2. KPI trên Cloudflare: trang chính mở được, dữ liệu đọc từ NC-Link và các trang Chính sách/Thi đua/CLB tải đúng.
 3. Thử ghi Kế hoạch khung và đăng ký mục tiêu; các API ghi khác từ KPI phải bị từ chối.
-4. Chỉ chuyển tên miền/alias sau khi cả hai bản đã qua kiểm tra trực tiếp.
+4. Không chuyển KPI về Vercel hoặc đổi Worker/URL production nếu chưa có yêu cầu mới rõ ràng của người dùng.
 

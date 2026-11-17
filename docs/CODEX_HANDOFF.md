@@ -46,18 +46,21 @@ README gốc phản ánh giai đoạn đầu và còn ghi Neon. Không dùng REA
 
 ### Main App
 
-- Vercel project: `my-project`.
+- Nền tảng production: Vercel.
+- Vercel project: `nc-link`.
+- Vercel team: `thanhhung070826-6875`.
 - Production: `https://nc-link.vercel.app`.
 - KPI trong Main App: `https://nc-link.vercel.app/kpi`.
 - Main App chứa chức năng quản trị, nguồn điều khiển cấu hình và các API ghi.
 
 ### KPI tách
 
-- Vercel project: `kpi-nc-link`.
-- Root Directory: `kpi-app`.
-- Production aliases:
-  - `https://angiang2026.vercel.app`
-  - `https://angiang2026-nhom.vercel.app`
+- Nền tảng production chính thức: Cloudflare Workers.
+- Worker: `nmc-kpi`.
+- Production: `https://nmc-kpi.chaunm2312.workers.dev`.
+- Source/build root: `kpi-app`; build bằng OpenNext for Cloudflare.
+- KPI đọc dữ liệu và proxy API cần thiết về Main App tại `https://nc-link.vercel.app`.
+- Không còn giai đoạn thử nghiệm hoặc đích production KPI trên Vercel. Hai URL Vercel cũ `angiang2026.vercel.app` và `angiang2026-nhom.vercel.app` chỉ là lịch sử, không dùng cho thay đổi về sau.
 - Đây là bản công khai, chỉ đọc.
 - Không được lộ nút quản trị, sidebar, mật khẩu quản trị, API ghi hoặc luồng nội bộ Main App.
 
@@ -104,7 +107,7 @@ Không duy trì hai bản bằng cách sửa tay song song.
 - Tailwind CSS 4 và nhiều CSS nội tuyến/chuyên biệt cho KPI.
 - Prisma 6.
 - PostgreSQL production.
-- Vercel cho hosting/deployment.
+- Vercel cho Main App; Cloudflare Workers cho KPI standalone.
 - Supabase PostgreSQL là database production hiện hành.
 - Vercel Blob cho một số file/ảnh.
 - XLSX/xlsx-js-style cho import/export Excel.
@@ -618,7 +621,7 @@ Một thay đổi chỉ được xem là hoàn tất khi có bằng chứng phù
 - diff đúng phạm vi;
 - lint/build/test pass hoặc nêu rõ lỗi có sẵn;
 - KPI sync check pass nếu liên quan;
-- deployment Vercel READY nếu đã merge production;
+- Main App Vercel READY và Worker KPI Cloudflare ở trạng thái production nếu đã triển khai;
 - URL production trả 200;
 - giao diện trực quan đã kiểm tra nếu là CSS/layout;
 - source/heartbeat đã kiểm tra nếu là dữ liệu;

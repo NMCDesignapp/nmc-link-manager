@@ -1,0 +1,13 @@
+---
+description: Đích hosting production chính thức của NC-Link và KPI
+alwaysApply: true
+---
+
+# Production hosting
+
+- NC-Link Main App chạy trên Vercel project `nc-link`, team `thanhhung070826-6875`, tại `https://nc-link.vercel.app`.
+- KPI standalone chạy chính thức trên Cloudflare Worker `nmc-kpi` tại `https://nmc-kpi.chaunm2312.workers.dev`.
+- KPI Cloudflare là production, không phải thử nghiệm. Không dùng `angiang2026.vercel.app` hoặc `angiang2026-nhom.vercel.app` làm đích triển khai hay kiểm tra mới.
+- Thay đổi Main App phải kiểm tra Vercel; thay đổi KPI phải đồng bộ source và kiểm tra Worker Cloudflare.
+- Không tự đổi project, Worker, URL production, mật khẩu hoặc secret. Chỉ thay đổi khi người dùng yêu cầu rõ ràng.
+- Không đưa secret database/admin vào KPI Worker; Worker dùng Main App tại `https://nc-link.vercel.app` cho dữ liệu/API được phép.
