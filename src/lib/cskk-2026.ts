@@ -48,23 +48,14 @@ const isTbTn = (position: unknown) => {
   return normalized.includes('truong ban') || normalized.includes('truong nhom') || /(^|\W)(tb|tn)(\W|$)/.test(normalized);
 };
 
-// Đồng nhất kỳ doanh số với KPI/Quản lý:
-// - NMC_DOANHSO (sheet tháng) và NMC_TAMTHU (sheet 4 tháng hiện tại) ưu tiên tháng nguồn.
-// - Các nguồn còn lại lấy Ngày phát hành; chỉ fallback Ngày hiệu lực khi thiếu/không hợp lệ.
-// - Dùng UTC để tháng không đổi theo múi giờ trình duyệt.
+// CSKK TVV: kỳ doanh số và tháng HĐC được chốt DUY NHẤT theo Ngày phát hành (Ngày PH).
+// Không dùng Ngày hiệu lực hay nhãn tháng sheet để chuyển hợp đồng sang tháng khác.
+// Một tháng HĐC = tổng IP (pdt10DT) của cùng mã TVV trong tháng PH >= 12 triệu.
+// Cột "TÍNH LƯỢT" là chỉ tiêu cấp hợp đồng, không thể dùng làm số tháng HĐC.
 const contractDate = (contract: CskkSourceContract): Date | null => {
-  const sourceMonth = text(contract.nguonDuLieu).match(/^NMC_(?:TAMTHU|DOANHSO):(\d{4})-(\d{2})(?:\||$)/);
-  if (sourceMonth) {
-    const year = Number(sourceMonth[1]);
-    const month = Number(sourceMonth[2]);
-    if (month >= 1 && month <= 12) return new Date(Date.UTC(year, month - 1, 1));
-  }
-  for (const value of [contract.issueDate, contract.effectiveDate]) {
-    if (!value) continue;
-    const date = new Date(value);
-    if (Number.isFinite(date.getTime())) return date;
-  }
-  return null;
+  if (!contract.issueDate) return null;
+  const date = new Date(contract.issueDate);
+  return Number.isFinite(date.getTime()) ? date : null;
 };
 
 const inYearThrough = (contract: CskkSourceContract, year: number, now: Date) => {
