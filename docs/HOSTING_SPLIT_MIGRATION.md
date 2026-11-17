@@ -6,7 +6,7 @@
 - **KPI standalone:** Cloudflare Worker `kpi-nc-link`, URL `https://kpi-nc-link.chaunm2312.workers.dev`, build từ thư mục `kpi-app` bằng OpenNext.
 - Hai trang dùng chung một kho GitHub nhưng triển khai độc lập. KPI không giữ thông tin kết nối cơ sở dữ liệu; API được chuyển tiếp đến NC-Link.
 - Đây là kiến trúc production chính thức, không phải thử nghiệm hay kế hoạch chuyển đổi.
-- Không dùng lại hai alias KPI Vercel cũ làm đích production.
+- Giữ project Vercel `kpi-redirect` và hai alias KPI Vercel cũ làm lớp chuyển hướng sang Cloudflare; không dùng chúng để chạy nội dung KPI production và không xóa chúng.
 
 ## Biến môi trường
 
@@ -46,5 +46,5 @@ npx wrangler deploy --dry-run
 1. NC-Link trên Vercel: `/`, `/kpi`, `/quan-ly` và `/api/health` phản hồi đúng.
 2. KPI trên Cloudflare: trang chính mở được, dữ liệu đọc từ NC-Link và các trang Chính sách/Thi đua/CLB tải đúng.
 3. Thử ghi Kế hoạch khung và đăng ký mục tiêu; các API ghi khác từ KPI phải bị từ chối.
-4. Không chuyển KPI về Vercel hoặc đổi Worker/URL production nếu chưa có yêu cầu mới rõ ràng của người dùng.
+4. Không chuyển nội dung KPI về Vercel hoặc đổi Worker/URL production nếu chưa có yêu cầu mới rõ ràng của người dùng; luôn giữ `kpi-redirect` để chuyển hướng các URL Vercel cũ.
 
