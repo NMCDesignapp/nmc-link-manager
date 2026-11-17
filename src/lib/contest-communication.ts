@@ -2,6 +2,7 @@ import { type ContestConfig, type RecruitmentContestConfig } from './contest-cal
 
 export type CommunicationLine = { text: string; emphasis?: boolean; tone?: 'urgent' | 'title' };
 export type ContestCommunication = { lines: CommunicationLine[]; text: string };
+const MAIN_APP_ORIGIN = 'https://nc-link.vercel.app';
 const day = (value: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).format(value);
 const date = (value: string) => {
   const d = new Date(value);
@@ -28,7 +29,18 @@ export function successfulSyncTime(settings: Record<string, string>, now = new D
   return Number.isFinite(time) && time <= now.getTime() ? new Date(time).toISOString() : null;
 }
 
-export function buildContestCommunication(c: ContestConfig, settings: Record<string, string>, now = new Date(), _recruitment?: RecruitmentContestConfig): ContestCommunication {
+export function contestProgramUrl(origin: string, contestId?: string): string {
+  const url = new URL('/thi-dua-chau', origin || MAIN_APP_ORIGIN);
+  if (contestId) {
+    url.searchParams.set('embed', '1');
+    url.searchParams.set('contest', contestId);
+    url.searchParams.set('autocalc', '1');
+    url.searchParams.set('actions', '1');
+  }
+  return url.toString();
+}
+
+export function buildContestCommunication(c: ContestConfig, settings: Record<string, string>, now = new Date(), _recruitment?: RecruitmentContestConfig, programUrl = contestProgramUrl(MAIN_APP_ORIGIN)): ContestCommunication {
   const registered = c.registeredProgram;
   const scope = registered?.scope || c.targetType;
   const audience = scope === 'nhom' ? 'Nhóm' : scope === 'nyd' ? 'Nhà tuyển dụng' : c.conditionType.includes('tvvm') ? 'Tư vấn viên mới' : c.conditionType === 'activity_round_tvv90' ? `Tư vấn viên có thâm niên tối đa ${c.tvv90MaxMonths} tháng` : 'Tư vấn viên';
@@ -42,6 +54,6 @@ export function buildContestCommunication(c: ContestConfig, settings: Record<str
   ];
   const sync = successfulSyncTime(settings, now);
   lines.push({ text: sync ? `📊 Dữ liệu thi đua được cập nhật đến: ${new Date(sync).toLocaleString('vi-VN', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}.` : '📊 Chưa xác định được thời điểm đồng bộ thành công từ máy lên app.', emphasis: true });
-  lines.push({ text: '💐 Cảm ơn Anh/Chị đã nỗ lực và đồng hành. Cùng chinh phục mục tiêu thi đua!' });
+  lines.push({ text: `Xem chi tiết tại -> ${programUrl}` });
   return { lines, text: lines.map(line => line.text).join('\n\n') };
 }

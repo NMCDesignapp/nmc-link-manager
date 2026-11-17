@@ -1,6 +1,6 @@
 'use client';
 import { ContestCommunicationDialog } from '@/components/contest-communication-dialog';
-import { buildContestCommunication, type ContestCommunication } from '@/lib/contest-communication';
+import { buildContestCommunication, contestProgramUrl, type ContestCommunication } from '@/lib/contest-communication';
 import { useContestApprovals } from '@/hooks/use-contest-approvals';
 
 // nmc-contest-top-eligibility-v1
@@ -3405,7 +3405,7 @@ function ThiDuaPageInner() {
     tvvContractCountMin, referenceContestId, includeTNInPassCount,
     topN, topNMinIP, topNValueType, topRewardAmounts, topEligibilityType, topEligibilityMin,
     useTopRanking: supportsCombinedTopRanking(conditionType) && useTopRanking,
-  }, appData.settings || {}, new Date(), recruitmentConfig);
+  }, appData.settings || {}, new Date(), recruitmentConfig, contestProgramUrl(window.location.origin, selectedContestId));
 
   const handleDownloadImage = async () => {
     const communicationSnapshot = createCommunication();

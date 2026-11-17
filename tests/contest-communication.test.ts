@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildContestCommunication, closingNotice, successfulSyncTime } from '../src/lib/contest-communication.ts';
+import { buildContestCommunication, closingNotice, contestProgramUrl, successfulSyncTime } from '../src/lib/contest-communication.ts';
 import { parseContestConfig } from '../src/lib/contest-calculator.ts';
 
 const now = new Date('2026-10-28T08:00:00+07:00');
@@ -22,12 +22,16 @@ test('only acknowledged sync, never heartbeat/export time; missing, invalid and 
   assert.match(buildContestCommunication(config(),{},now).text,/Chưa xác định/);
 });
 test('communication keeps the progress essentials and omits contest mechanics', () => {
-  const result = buildContestCommunication(config(),settings,now);
+  const detailUrl = contestProgramUrl('https://nc-link.vercel.app', 'contest 42');
+  const result = buildContestCommunication(config(),settings,now,undefined,detailUrl);
   assert.match(result.text,/27\/10\/2026/);
   assert.match(result.text,/HÔM NAY VÀ NGÀY MAI/);
   assert.match(result.text,/CẬP NHẬT TIẾN ĐỘ THI ĐUA/);
   assert.doesNotMatch(result.text,/NỘI DUNG VÀ CƠ CHẾ THƯỞNG/);
   assert.doesNotMatch(result.text,/5% × IP|AFYP\/HĐ|Xét thưởng theo/);
+  assert.doesNotMatch(result.text,/Cảm ơn Anh\/Chị/);
+  assert.equal(result.lines.at(-1)?.text, `Xem chi tiết tại -> ${detailUrl}`);
+  assert.equal(detailUrl, 'https://nc-link.vercel.app/thi-dua-chau?embed=1&contest=contest+42&autocalc=1&actions=1');
   assert.equal(result.lines.find(x=>x.tone==='urgent')?.emphasis,true);
   assert.equal(result.text, result.lines.map(line => line.text).join('\n\n'));
 });
