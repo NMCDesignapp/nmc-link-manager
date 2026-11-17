@@ -8,6 +8,7 @@ export interface CskkSourceContract {
   pdt10DT?: number;
   effectiveDate?: string | null;
   issueDate?: string | null;
+  nguonDuLieu?: string | null;
   maNhom?: string;
   nhom?: string;
 }
@@ -47,15 +48,19 @@ const isTbTn = (position: unknown) => {
   return normalized.includes('truong ban') || normalized.includes('truong nhom') || /(^|\W)(tb|tn)(\W|$)/.test(normalized);
 };
 
-const contractDate = (contract: CskkSourceContract) => {
-  const value = contract.effectiveDate || contract.issueDate;
-  const parsed = value ? new Date(value) : null;
-  return parsed && Number.isFinite(parsed.getTime()) ? parsed : null;
+// CSKK TVV: kỳ doanh số và tháng HĐC được chốt DUY NHẤT theo Ngày phát hành (Ngày PH).
+// Không dùng Ngày hiệu lực hay nhãn tháng sheet để chuyển hợp đồng sang tháng khác.
+// Một tháng HĐC = tổng IP (pdt10DT) của cùng mã TVV trong tháng PH >= 12 triệu.
+// Cột "TÍNH LƯỢT" là chỉ tiêu cấp hợp đồng, không thể dùng làm số tháng HĐC.
+const contractDate = (contract: CskkSourceContract): Date | null => {
+  if (!contract.issueDate) return null;
+  const date = new Date(contract.issueDate);
+  return Number.isFinite(date.getTime()) ? date : null;
 };
 
 const inYearThrough = (contract: CskkSourceContract, year: number, now: Date) => {
   const date = contractDate(contract);
-  return Boolean(date && date.getFullYear() === year && date.getTime() <= now.getTime());
+  return Boolean(date && date.getUTCFullYear() === year && date.getTime() <= now.getTime());
 };
 
 export function buildCskkRows(
@@ -98,7 +103,7 @@ export function buildCskkRows(
     if (resolvedGroup) fypByGroup.set(resolvedGroup, (fypByGroup.get(resolvedGroup) || 0) + fyp);
     if (agentCode) {
       fypByAgent.set(agentCode, (fypByAgent.get(agentCode) || 0) + fyp);
-      const month = contractDate(contract)?.getMonth();
+      const month = contractDate(contract)?.getUTCMonth();
       if (month !== undefined) {
         const monthly = monthlyIpByAgent.get(agentCode) || new Map<number, number>();
         monthly.set(month, (monthly.get(month) || 0) + Number(contract.pdt10DT || 0));
