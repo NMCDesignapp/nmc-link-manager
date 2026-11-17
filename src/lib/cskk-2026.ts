@@ -118,7 +118,7 @@ export function buildCskkRows(
     if (resolvedGroup) fypByGroup.set(resolvedGroup, (fypByGroup.get(resolvedGroup) || 0) + fyp);
     if (agentCode) {
       fypByAgent.set(agentCode, (fypByAgent.get(agentCode) || 0) + fyp);
-     }
+    }
   }
 
   const leaderRows = new Map<string, CskkRow>();
