@@ -6,6 +6,7 @@ export interface CskkSourceContract {
   agentCode?: string;
   fyp?: number;
   pdt10DT?: number;
+  tinhLuot3tr?: number;
   effectiveDate?: string | null;
   issueDate?: string | null;
   nguonDuLieu?: string | null;
@@ -48,10 +49,11 @@ const isTbTn = (position: unknown) => {
   return normalized.includes('truong ban') || normalized.includes('truong nhom') || /(^|\W)(tb|tn)(\W|$)/.test(normalized);
 };
 
-// CSKK TVV: kỳ doanh số và tháng HĐC được chốt DUY NHẤT theo Ngày phát hành (Ngày PH).
-// Không dùng Ngày hiệu lực hay nhãn tháng sheet để chuyển hợp đồng sang tháng khác.
-// Một tháng HĐC = tổng IP (pdt10DT) của cùng mã TVV trong tháng PH >= 12 triệu.
-// Cột "TÍNH LƯỢT" là chỉ tiêu cấp hợp đồng, không thể dùng làm số tháng HĐC.
+// Kỳ tính TỔNG FYP giữ nguyên; số tháng HĐC tính riêng theo 12 bảng Doanh số.
+// Mỗi bảng tháng đã chuẩn hóa "TÍNH LƯỢT 3TR" (tinhLuot3tr):
+// một dòng chứa tổng IP của TVV trong tháng, các hợp đồng còn lại là 0.
+// Đếm tối đa một lần cho mỗi mã TVV trong mỗi tháng có giá trị >= 12 triệu.
+// KHÔNG xét Ngày phát hành, Ngày hiệu lực hoặc cộng lại pdt10DT cho chỉ tiêu HĐC.
 const contractDate = (contract: CskkSourceContract): Date | null => {
   if (!contract.issueDate) return null;
   const date = new Date(contract.issueDate);
@@ -91,7 +93,20 @@ export function buildCskkRows(
 
   const fypByGroup = new Map<string, number>();
   const fypByAgent = new Map<string, number>();
-  const monthlyIpByAgent = new Map<string, Map<number, number>>();
+  const standardMonthsByAgent = new Map<string, Set<number>>();
+  for (const contract of contracts) {
+    // Lấy đúng tháng mà dòng hợp đồng đang nằm trong mục Doanh số (01–12/2026).
+    // Tháng 11 hiện dùng snapshot Tạm thu; các tháng khác từ file Doanhso.
+    const monthMatch = text(contract.nguonDuLieu).match(/^NMC_(?:DOANHSO|TAMTHU):(\d{4})-(\d{2})(?:\||$)/);
+    if (!monthMatch || Number(monthMatch[1]) !== year) continue;
+    const month = Number(monthMatch[2]);
+    const agentCode = code(contract.agentCode);
+    if (!agentCode || month < 1 || month > 12 || Number(contract.tinhLuot3tr || 0) < 12_000_000) continue;
+    const qualifyingMonths = standardMonthsByAgent.get(agentCode) || new Set<number>();
+    qualifyingMonths.add(month);
+    standardMonthsByAgent.set(agentCode, qualifyingMonths);
+  }
+
   for (const contract of contracts) {
     if (!inYearThrough(contract, year, now)) continue;
     const agentCode = code(contract.agentCode);
@@ -103,13 +118,7 @@ export function buildCskkRows(
     if (resolvedGroup) fypByGroup.set(resolvedGroup, (fypByGroup.get(resolvedGroup) || 0) + fyp);
     if (agentCode) {
       fypByAgent.set(agentCode, (fypByAgent.get(agentCode) || 0) + fyp);
-      const month = contractDate(contract)?.getUTCMonth();
-      if (month !== undefined) {
-        const monthly = monthlyIpByAgent.get(agentCode) || new Map<number, number>();
-        monthly.set(month, (monthly.get(month) || 0) + Number(contract.pdt10DT || 0));
-        monthlyIpByAgent.set(agentCode, monthly);
-      }
-    }
+     }
   }
 
   const leaderRows = new Map<string, CskkRow>();
@@ -135,7 +144,7 @@ export function buildCskkRows(
     const resolvedGroup = groupKey(member.maBanNhom || member.maNhom, member.nhom);
     const isBanca = bancaGroupKeys.has(resolvedGroup) || [member.maBanNhom, member.maNhom, member.nhom].some(isBancaValue);
     if (!agentCode || isBanca || tvvRows.has(agentCode)) continue;
-    const standardMonths = [...(monthlyIpByAgent.get(agentCode)?.values() || [])].filter(value => value >= 12_000_000).length;
+    const standardMonths = standardMonthsByAgent.get(agentCode)?.size || 0;
     tvvRows.set(agentCode, {
       key: agentCode,
       nhom: text(member.nhom) || groupNameByKey.get(resolvedGroup) || text(member.maBanNhom || member.maNhom) || '—',
