@@ -22,7 +22,7 @@ import {
   Calendar, TrendingUp, Hash, Settings, Link2, ExternalLink,
   Merge, Split, Target, BarChart3, Building2, UserCog, Edit2, Percent,
   Menu, ChevronLeft, UserPlus, BookOpen, Award, UserCheck, Trophy, Gift,
-  Crown, Medal, Database,
+  Crown, Medal, Database, ShieldCheck,
   FileDown, Flag, Star, Image as ImageIcon,
 } from 'lucide-react';
 import { scrapePolicyTable, downloadPolicyExcel, downloadTableExcel, type ContractDetailRow } from './policy-excel-export';
@@ -40,6 +40,7 @@ import { CarryoverContractsTable } from '@/components/carryover-contracts-table'
 import { TVVNotesExcelImport } from '@/components/tvv-notes-excel-import';
 import { calculateRevenueTVVmAFYP } from '@/lib/revenue-tvvm';
 import { getQuarterlyAwardCount } from '@/lib/quarterly-award-counts-2026';
+import { Cskk2026 } from '@/components/cskk-2026';
 
 // nmc-sao-viet-exclude-chot-v1
 // Chuẩn hóa dấu và hoa/thường để "Chốt", "CHỐT" hoặc "Chot" đều được xem như nhau.
@@ -181,7 +182,7 @@ const KPI_COLORS: Record<string, string> = {
 };
 
 // ==================== CONSTANTS ====================
-type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'tuyen-ngang' | 'revenue' | 'report' | 'structure' | 'kehoach' | 'saoviet' | 'clb-saoviet' | 'vinh-danh';
+type SheetKey = 'overview' | 'leaders' | 'recruiters' | 'tuyen-ngang' | 'revenue' | 'report' | 'cskk-2026' | 'structure' | 'kehoach' | 'saoviet' | 'clb-saoviet' | 'vinh-danh';
 type RevenueSubKey = 'carryover' | 'all' | '01' | '02' | '03' | '04' | '05' | '06' | '07' | '08' | '09' | '10' | '11' | '12';
 // Sub-sheets within "Cấu trúc" section: leaders (DS TB/TN), recruiters (DS TTN), tuyen-ngang (DS TTN Tuyển Ngang)
 type StructureSubKey = 'leaders' | 'recruiters' | 'tuyen-ngang' | 'tvv' | 'clb-members';
@@ -343,6 +344,7 @@ const SHEETS: { key: SheetKey; label: string; icon: React.ElementType; synced: b
   { key: 'revenue', label: 'Doanh thu', icon: DollarSign, synced: false, hasSub: true },
   { key: 'kehoach', label: 'Kế hoạch', icon: Target, synced: false },
   { key: 'report', label: 'Chính sách đại lý', icon: BookOpen, synced: false, hasSub: true },
+  { key: 'cskk-2026', label: 'CHÍNH SÁCH KHUYẾN KHÍCH 2026', icon: ShieldCheck, synced: false },
   { key: 'structure', label: 'Cấu trúc', icon: Network, synced: false, hasSub: true },
 ];
 
@@ -379,6 +381,7 @@ const SHEET_MOBILE_COLORS: Partial<Record<SheetKey, string>> = {
   revenue: '#0891B2',
   kehoach: '#DC2626',
   report: '#2563EB',
+  'cskk-2026': '#047857',
   structure: '#0D9488',
   saoviet: '#7C3AED',
   'clb-saoviet': '#1E3A8A', // navy-900 — distinguish from saoviet (violet)
@@ -1737,7 +1740,7 @@ export default function QuanLyPage() {
       if (isKpiEmbedRequest && (!sheetParam || !allowedKpiSheets.includes(sheetParam as SheetKey))) {
         return 'report';
       }
-      const validSheets: SheetKey[] = ['overview', 'leaders', 'recruiters', 'tuyen-ngang', 'revenue', 'report', 'structure', 'kehoach', 'saoviet', 'clb-saoviet', 'vinh-danh'];
+      const validSheets: SheetKey[] = ['overview', 'leaders', 'recruiters', 'tuyen-ngang', 'revenue', 'report', 'cskk-2026', 'structure', 'kehoach', 'saoviet', 'clb-saoviet', 'vinh-danh'];
       if (sheetParam && validSheets.includes(sheetParam as SheetKey)) {
         // Giữ ?sheet= trong chế độ KPI nhúng để refresh vẫn trở lại đúng khu vực.
         if (!isKpiEmbedRequest) {
@@ -1918,7 +1921,7 @@ export default function QuanLyPage() {
           } catch {}
         }
         const sheetParam = params.get('sheet');
-        const validSheets: SheetKey[] = ['overview', 'leaders', 'recruiters', 'tuyen-ngang', 'revenue', 'report', 'structure', 'kehoach', 'saoviet', 'clb-saoviet', 'vinh-danh'];
+        const validSheets: SheetKey[] = ['overview', 'leaders', 'recruiters', 'tuyen-ngang', 'revenue', 'report', 'cskk-2026', 'structure', 'kehoach', 'saoviet', 'clb-saoviet', 'vinh-danh'];
         if (params.get('from') !== 'kpi' && sheetParam && validSheets.includes(sheetParam as SheetKey) && sheetParam !== activeSheet) {
           // Clear ?sheet= from URL so internal nav doesn't keep re-applying it
           const url = new URL(window.location.href);
@@ -3013,6 +3016,7 @@ export default function QuanLyPage() {
       revenue: async () => { await Promise.all([fetchRevenue(), fetchContracts()]); },
       kehoach: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTuyenNgang()]); },
       report: async () => { await Promise.all([fetchAllData(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTuyenNgang(), fetchRecruiters()]); },
+      'cskk-2026': async () => { await Promise.all([fetchAllData(), fetchTvvStruct(), fetchBanNhom(), fetchLeaders()]); },
       structure: async () => { await Promise.all([fetchLeaders(), fetchStaff(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchTvvStruct(), fetchRecruiters(), fetchTuyenNgang()]); },
       // Các trang này tính trực tiếp từ cấu trúc + doanh số, nên luôn lấy mới
       // khi người dùng mở để không giữ danh sách đối tượng cũ.
@@ -3039,7 +3043,7 @@ export default function QuanLyPage() {
   // CLB từ Cấu trúc sẽ tự phản ánh vào đúng đối tượng xét thưởng mà không cần
   // tải lại trang thủ công.
   useEffect(() => {
-    if (!['report', 'saoviet', 'clb-saoviet'].includes(activeSheet)) return;
+    if (!['report', 'cskk-2026', 'saoviet', 'clb-saoviet'].includes(activeSheet)) return;
     const refreshDynamicPrograms = () => {
       void Promise.all([
         fetchAllData(), fetchTvvStruct(), fetchPhong(), fetchAD(), fetchBanNhom(),
@@ -12748,6 +12752,7 @@ export default function QuanLyPage() {
       case 'revenue': return renderRevenue();
       case 'kehoach': return renderKeHoach();
       case 'report': return renderPolicy();
+      case 'cskk-2026': return <Cskk2026 contracts={contracts} leaders={leaders} tvvMembers={tvvStructList} groups={banNhomList} />;
       case 'saoviet': return renderSaoViet();
       case 'clb-saoviet': return renderCLBSaoViet();
       case 'vinh-danh': return renderVinhDanh();
@@ -12852,7 +12857,7 @@ export default function QuanLyPage() {
         ) : (
           <BackButton onClick={handleAppBack} size={20} title="Trở về thao tác trước" />
         )}
-        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Chính Sách Đại Lý') : activeSheet === 'saoviet' && saovietOpen ? (saovietOpen.startsWith('saved-') ? (savedContestsList.find(c => c.id === saovietOpen.slice(6))?.title || 'Chương trình thi đua') : (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'Thi đua')) : activeSheet === 'saoviet' ? 'THI ĐUA' : activeSheet === 'clb-saoviet' && clbsvOpen ? (clbsvOpen.startsWith('saved-') ? (savedContestsList.find(c => c.id === clbsvOpen.slice(6))?.title || 'Chương trình CLB Sao Việt') : clbsvOpen === 'bung-no-sao-viet' ? 'ĐỘT PHÁ SỐ LƯỢNG – BÙNG NỔ SAO VIỆT' : SAOVIET_ITEMS.find(i => i.clbKey === clbsvOpen)?.label || CLBSV_ITEMS.find(i => i.key === clbsvOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB SAO VIỆT' : activeSheet === 'vinh-danh' ? (VINH_DANH_SUBS.find(s => s.key === vinhdanhSub)?.label || 'TÔN VINH') : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : activeSheet === 'report' ? 'CHÍNH SÁCH ĐẠI LÝ' : 'Quản Lý Dữ Liệu'}</h1>
+        <h1 className="text-sm sm:text-lg font-extrabold text-emerald-400 drop-shadow-[0_0_10px_rgba(0,255,136,0.5)] drop-shadow-[0_0_30px_rgba(0,255,136,0.2)] flex-1 text-center md:text-left truncate">{activeSheet === 'report' && policyOpen ? (POLICY_ITEMS.find(i => i.key === policyOpen)?.label || 'Chính Sách Đại Lý') : activeSheet === 'saoviet' && saovietOpen ? (saovietOpen.startsWith('saved-') ? (savedContestsList.find(c => c.id === saovietOpen.slice(6))?.title || 'Chương trình thi đua') : (SAOVIET_ITEMS.find(i => i.key === saovietOpen)?.label || 'Thi đua')) : activeSheet === 'saoviet' ? 'THI ĐUA' : activeSheet === 'clb-saoviet' && clbsvOpen ? (clbsvOpen.startsWith('saved-') ? (savedContestsList.find(c => c.id === clbsvOpen.slice(6))?.title || 'Chương trình CLB Sao Việt') : clbsvOpen === 'bung-no-sao-viet' ? 'ĐỘT PHÁ SỐ LƯỢNG – BÙNG NỔ SAO VIỆT' : SAOVIET_ITEMS.find(i => i.clbKey === clbsvOpen)?.label || CLBSV_ITEMS.find(i => i.key === clbsvOpen)?.label || 'CLB Sao Việt') : activeSheet === 'clb-saoviet' ? 'CLB SAO VIỆT' : activeSheet === 'vinh-danh' ? (VINH_DANH_SUBS.find(s => s.key === vinhdanhSub)?.label || 'TÔN VINH') : activeSheet === 'cskk-2026' ? 'CHÍNH SÁCH KHUYẾN KHÍCH 2026' : activeSheet === 'revenue' ? 'Doanh Thu' : activeSheet === 'structure' ? (STRUCTURE_SUBS.find(s => s.key === structureSub)?.label || 'Cấu trúc') : activeSheet === 'report' ? 'CHÍNH SÁCH ĐẠI LÝ' : 'Quản Lý Dữ Liệu'}</h1>
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Nút Cài đặt đã được chuyển vào menu mobile (PHẦN 1) và sidebar — bỏ ở header để tránh trùng */}
           {/* Nút Tải lại — HIỆN cho cả end-user (đến từ /kpi-standalone) và admin */}
