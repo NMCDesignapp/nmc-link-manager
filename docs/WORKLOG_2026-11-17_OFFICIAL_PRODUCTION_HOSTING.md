@@ -10,7 +10,7 @@ Từ ngày 17/11/2026, kiến trúc dưới đây là trạng thái production c
 | KPI trong Main App | Vercel cùng NC-Link | `https://nc-link.vercel.app/kpi` | Bề mặt KPI nằm trong Main App |
 | KPI standalone | Cloudflare Workers | Worker `kpi-nc-link`, `https://kpi-nc-link.chaunm2312.workers.dev` | Bản KPI công khai, chỉ đọc |
 
-KPI standalone trên Cloudflare là production chính thức, không còn là thử nghiệm, preview hoặc bước chuyển tiếp. Hai alias Vercel cũ `angiang2026.vercel.app` và `angiang2026-nhom.vercel.app` không còn là đích production và không được dùng làm căn cứ cho thay đổi mới.
+KPI standalone trên Cloudflare là production chính thức, không còn là thử nghiệm, preview hoặc bước chuyển tiếp. Vercel project `kpi-redirect` cùng hai alias `angiang2026.vercel.app` và `angiang2026-nhom.vercel.app` vẫn là thành phần production bắt buộc để chuyển hướng người dùng sang Cloudflare; không được xóa hoặc dùng để chạy lại nội dung KPI.
 
 ## Nguyên tắc cho thay đổi sau này
 
@@ -20,6 +20,7 @@ KPI standalone trên Cloudflare là production chính thức, không còn là th
 4. KPI standalone luôn công khai, chỉ đọc; không lộ chức năng quản trị, sidebar, mật khẩu, token hoặc API ghi ngoài phạm vi đã duyệt.
 5. Không đổi nền tảng, project, Worker, URL production hoặc mật khẩu/secret chỉ vì triển khai hay migration. Mọi thay đổi các giá trị này cần yêu cầu rõ ràng của người dùng.
 6. Khi báo đã hoàn tất, phải kiểm tra riêng Main App trên Vercel và KPI standalone trên Cloudflare; không dùng trạng thái một nền tảng để suy ra nền tảng còn lại.
+7. Phải giữ project Vercel `kpi-redirect` và kiểm tra hai alias chuyển hướng sau thay đổi hosting; đây không phải project thừa.
 
 ## Bằng chứng kiểm kê ngày 17/11/2026
 
@@ -29,6 +30,7 @@ KPI standalone trên Cloudflare là production chính thức, không còn là th
 - `https://kpi-nc-link.chaunm2312.workers.dev/` trả HTTP 200 tại thời điểm kiểm tra.
 - `https://kpi-nc-link.chaunm2312.workers.dev/api/health` trả HTTP 200 tại thời điểm kiểm tra.
 - Worker lịch sử `nmc-kpi` trả HTTP 500 và không được dùng làm production hoặc căn cứ cho thay đổi mới.
+- Project Vercel `kpi-redirect` được xác nhận đang phục vụ hai alias cũ; HTML của cả hai alias trỏ tới `https://kpi-nc-link.chaunm2312.workers.dev/`.
 
 ## Tài liệu đã đồng bộ
 

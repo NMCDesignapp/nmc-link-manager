@@ -140,7 +140,7 @@ Kiến trúc production chính thức:
 - Main App: Vercel project `nc-link`, URL `https://nc-link.vercel.app`;
 - KPI tách: Cloudflare Worker `kpi-nc-link`, URL `https://kpi-nc-link.chaunm2312.workers.dev`.
 
-Không deploy KPI production lên các project/alias Vercel cũ. Với thay đổi KPI, build từ `kpi-app`, triển khai Worker Cloudflare và giữ proxy về Main App.
+Không deploy nội dung KPI production lên Vercel. Phải giữ project `kpi-redirect` và hai alias Vercel cũ để chuyển hướng sang Cloudflare. Với thay đổi KPI, build từ `kpi-app`, triển khai Worker Cloudflare và giữ proxy về Main App.
 
 Kiểm tra:
 
@@ -148,9 +148,10 @@ Kiểm tra:
 2. `https://nc-link.vercel.app` trả HTTP 200;
 3. `https://nc-link.vercel.app/kpi` mở được;
 4. `https://kpi-nc-link.chaunm2312.workers.dev` mở được và tải dữ liệu từ Main App;
-5. tính năng vừa sửa hoạt động ở breakpoint yêu cầu;
-6. không có lỗi console/network quan trọng;
-7. standalone không lộ admin.
+5. `https://angiang2026.vercel.app` và `https://angiang2026-nhom.vercel.app` vẫn chuyển người dùng đến KPI Cloudflare;
+6. tính năng vừa sửa hoạt động ở breakpoint yêu cầu;
+7. không có lỗi console/network quan trọng;
+8. standalone không lộ admin.
 
 Không chỉ nhìn trạng thái deployment. CSS/responsive cần kiểm tra trực quan.
 
