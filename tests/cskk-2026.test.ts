@@ -7,6 +7,7 @@ test('CSKK TB/TN follows the supplied insurance, title and uniform tiers', () =>
   assert.equal(getCskkStatus('leader', 2_500_000_000).title, 'TN Cao cấp');
   assert.equal(getCskkStatus('leader', 1_500_000_000).title, 'TN Ưu tú');
   assert.equal(getCskkStatus('leader', 500_000_000).reward, 'Healthcare – 100tr');
+  assert.equal(getCskkStatus('leader', 500_000_000).uniform, '02 sơ mi + 01 áo phông + phụ kiện');
   assert.equal(getCskkStatus('leader', 200_000_000).reward, 'BaoVietCare – 50tr');
   assert.equal(getCskkStatus('leader', 0, 1).reward, 'BaoVietCare – 50tr');
 });

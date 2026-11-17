@@ -150,7 +150,7 @@ export function getCskkStatus(kind: CskkKind, totalFyp: number, alternateCount =
     if (totalFyp >= 3_500_000_000) return { achievedIndex: 3, reward: 'Healthcare – 300tr', title: 'TN Ngoại hạng', uniform: '1 bộ đầy đủ + phụ kiện' };
     if (totalFyp >= 2_500_000_000) return { achievedIndex: 2, reward: 'Healthcare – 200tr', title: 'TN Cao cấp', uniform: '1 bộ đầy đủ + phụ kiện' };
     if (totalFyp >= 1_500_000_000) return { achievedIndex: 1, reward: 'Healthcare – 150tr', title: 'TN Ưu tú', uniform: '1 bộ đầy đủ + phụ kiện' };
-    if (totalFyp >= 500_000_000) return { achievedIndex: 0, reward: 'Healthcare – 100tr', title: '', uniform: '1 bộ đầy đủ + phụ kiện' };
+    if (totalFyp >= 500_000_000) return { achievedIndex: 0, reward: 'Healthcare – 100tr', title: '', uniform: '02 sơ mi + 01 áo phông + phụ kiện' };
     if (totalFyp >= 200_000_000 || alternateCount >= 1) return { achievedIndex: 0, reward: 'BaoVietCare – 50tr', title: '', uniform: '02 sơ mi + 01 áo phông + phụ kiện' };
     return { achievedIndex: -1, reward: '', title: '', uniform: '' };
   }
