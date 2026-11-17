@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Award, BookOpen, ChevronDown, ChevronLeft, Download, Search, Shirt, Users, X } from 'lucide-react';
 import { buildCskkRows, CSKK_THRESHOLDS, getCskkStatus, type CskkKind, type CskkRow } from '@/lib/cskk-2026';
 
@@ -31,6 +31,19 @@ function MilestoneCell({ row, kind, index }: { row: CskkRow; kind: CskkKind; ind
 
 export function Cskk2026({ contracts, leaders, tvvMembers, groups }: Props) {
   const [kind, setKind] = useState<CskkKind | null>(null);
+  // Nút Quay lại của KPI phải đi từ bảng chi tiết về tổng quan CSKK trước.
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.parent === window) return;
+    window.parent.postMessage({ type: 'nmc:kpi-embedded-navigation', canGoBack: kind !== null }, '*');
+  }, [kind]);
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.parent === window) return;
+    const handleKpiBack = (event: MessageEvent) => {
+      if (event.source === window.parent && event.data?.type === 'nmc:kpi-embedded-back' && kind !== null) setKind(null);
+    };
+    window.addEventListener('message', handleKpiBack);
+    return () => window.removeEventListener('message', handleKpiBack);
+  }, [kind]);
   const [query, setQuery] = useState('');
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [groupMenuOpen, setGroupMenuOpen] = useState(false);
