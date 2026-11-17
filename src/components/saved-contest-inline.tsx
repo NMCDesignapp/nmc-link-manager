@@ -36,6 +36,7 @@ import {
 import { Trophy, Search, ChevronDown, ChevronRight, X, Award, Gift, Percent, FileDown, Crown, Medal, LoaderCircle, Camera } from 'lucide-react';
 import { useAppData } from '@/lib/app-data-context';
 import { buildCombinedTopRanking, passesCombinedTopEligibility, supportsCombinedTopRanking } from '@/lib/contest-combined-top-ranking';
+import { achievedFirstThenIp, usesMienTayDaySongTvvOrder } from '@/lib/contest-result-order';
 import {
   ContestConfig,
   Contract,
@@ -876,8 +877,14 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
 
   // ===== Render: TVV total table (total_ip / total_afyp / activity_round*) =====
   const renderTVVTotalTable = () => {
-    const filteredRows = tvvTotalRows.filter((row) => {
-      const entityContracts = displayContracts.filter((contract) => contract.agentCode === row.agent.agentCode);
+    const contractsByAgent = new Map<string, Contract[]>();
+    for (const contract of displayContracts) {
+      const rows = contractsByAgent.get(contract.agentCode);
+      if (rows) rows.push(contract);
+      else contractsByAgent.set(contract.agentCode, [contract]);
+    }
+    let filteredRows = tvvTotalRows.filter((row) => {
+      const entityContracts = contractsByAgent.get(row.agent.agentCode) || [];
       const secondaryPassed = evaluateSecondaryConditions(entityContracts, config, tvvStructList).passed;
       if (hideNotAchieved && (!row.tier || !secondaryPassed)) return false;
       if (!row.agent.nhom && !row.agent.maNhom) return false;
@@ -885,6 +892,17 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
       if (q && !((row.agent.agentName || '').toLowerCase().includes(q) || (row.agent.agentCode || '').toLowerCase().includes(q))) return false;
       return true;
     });
+    if (usesMienTayDaySongTvvOrder(config.title, config.conditionType, config.targetType)) {
+      filteredRows = achievedFirstThenIp(
+        filteredRows,
+        row => Boolean(row.tier) && evaluateSecondaryConditions(
+          contractsByAgent.get(row.agent.agentCode) || [],
+          config,
+          tvvStructList,
+        ).passed,
+        row => row.value,
+      );
+    }
     const isActivity = isActivityRoundMode(config.conditionType);
     const isTopN = isTopNMode(config.conditionType);
     const isPassCount = isTVVPassCountMode(config.conditionType);
@@ -925,7 +943,7 @@ export const SavedContestInline: React.FC<SavedContestInlineProps> = ({ contest 
             </TableRow>
           ) : filteredRows.map((row, idx) => {
             // Secondary check
-            const agentContracts = displayContracts.filter((c) => c.agentCode === row.agent.agentCode);
+            const agentContracts = contractsByAgent.get(row.agent.agentCode) || [];
             const secondaryCheck = evaluateSecondaryConditions(agentContracts, config, tvvStructList);
             const secondaryPassed = secondaryCheck.passed;
             const effectiveTier = secondaryPassed ? row.tier : null;

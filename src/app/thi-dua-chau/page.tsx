@@ -49,6 +49,7 @@ import { NeonDatePicker } from '@/components/neon-date-picker';
 import { TVVContractCountTable } from '@/components/tvv-contract-count-table';
 import { computeNYDData, filterNYDDisplayContracts, getNYDContributingContracts, getGroupTVVContractDetails, getGroupTVVContractProgress, formatTVVContractProgressNote, computeDirectTTNContractGroups } from '@/lib/contest-calculator';
 import { expandActivityExportDetails } from '@/lib/contest-export-details';
+import { achievedFirstThenIp, usesMienTayDaySongTvvOrder } from '@/lib/contest-result-order';
 import { buildCombinedTopRanking, passesCombinedTopEligibility, supportsCombinedTopRanking } from '@/lib/contest-combined-top-ranking';
 import {
   createYearArchivePayload,
@@ -4148,10 +4149,15 @@ function ThiDuaPageInner() {
     () => hideNotAchieved ? perContractResultRows.filter(row => row.effectiveTier) : perContractResultRows,
     [hideNotAchieved, perContractResultRows],
   );
-  const filteredTvvTotalRows = useMemo(
-    () => tvvTotalRows.filter(row => (!hideNotAchieved || (row.tier && checkSecondaryTotalCondition(displayContractsByAgent.get(row.agent.agentCode) || []).passed)) && (row.agent.nhom || row.agent.maNhom)),
-    [hideNotAchieved, tvvTotalRows, checkSecondaryTotalCondition, displayContractsByAgent],
-  );
+  const filteredTvvTotalRows = useMemo(() => {
+    const rows = tvvTotalRows.filter(row => (!hideNotAchieved || (row.tier && checkSecondaryTotalCondition(displayContractsByAgent.get(row.agent.agentCode) || []).passed)) && (row.agent.nhom || row.agent.maNhom));
+    if (!usesMienTayDaySongTvvOrder(contestTitle, conditionType, targetType)) return rows;
+    return achievedFirstThenIp(
+      rows,
+      row => Boolean(row.tier) && checkSecondaryTotalCondition(displayContractsByAgent.get(row.agent.agentCode) || []).passed,
+      row => row.value,
+    );
+  }, [hideNotAchieved, tvvTotalRows, checkSecondaryTotalCondition, displayContractsByAgent, contestTitle, conditionType, targetType]);
   const paginatedResultTotal = targetType === 'tvv'
     ? (isPerContractMode(conditionType) ? filteredPerContractResultRows.length : filteredTvvTotalRows.length)
     : 0;
