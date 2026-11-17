@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "nmc-kpi",
+  "name": "kpi-nc-link",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-11-14",
   "compatibility_flags": ["nodejs_compat"],

@@ -138,7 +138,7 @@ Tạo PR vào `main`, xem preview/build, rồi mới merge.
 Kiến trúc production chính thức:
 
 - Main App: Vercel project `nc-link`, URL `https://nc-link.vercel.app`;
-- KPI tách: Cloudflare Worker `nmc-kpi`, URL `https://nmc-kpi.chaunm2312.workers.dev`.
+- KPI tách: Cloudflare Worker `kpi-nc-link`, URL `https://kpi-nc-link.chaunm2312.workers.dev`.
 
 Không deploy KPI production lên các project/alias Vercel cũ. Với thay đổi KPI, build từ `kpi-app`, triển khai Worker Cloudflare và giữ proxy về Main App.
 
@@ -147,7 +147,7 @@ Kiểm tra:
 1. Main App Vercel trạng thái READY;
 2. `https://nc-link.vercel.app` trả HTTP 200;
 3. `https://nc-link.vercel.app/kpi` mở được;
-4. `https://nmc-kpi.chaunm2312.workers.dev` mở được và tải dữ liệu từ Main App;
+4. `https://kpi-nc-link.chaunm2312.workers.dev` mở được và tải dữ liệu từ Main App;
 5. tính năng vừa sửa hoạt động ở breakpoint yêu cầu;
 6. không có lỗi console/network quan trọng;
 7. standalone không lộ admin.
@@ -266,7 +266,7 @@ Codex phải dừng và báo trước khi:
 Dùng prompt sau trong phiên mới:
 
 ```text
-Tiếp quản dự án NMC Link Manager. Đọc AGENTS.md và toàn bộ docs/CODEX_*.md trước. Mã hiện tại là nguồn chuẩn. Main App nc-link.vercel.app chạy production trên Vercel; KPI tách nmc-kpi.chaunm2312.workers.dev chạy production trên Cloudflare Workers và là công khai chỉ đọc. Production DB là Supabase qua POSTGRES_PRISMA_URL. Data Hub và Google là hai nguồn độc quyền qua nmc-sync-source. Mọi sửa KPI phải sync bằng scripts/sync-kpi-app.sh, build cả hai và kiểm tra đúng hai nền tảng production. Kiểm tra git status trước, không sửa hoặc deploy khi chưa báo kế hoạch.
+Tiếp quản dự án NMC Link Manager. Đọc AGENTS.md và toàn bộ docs/CODEX_*.md trước. Mã hiện tại là nguồn chuẩn. Main App nc-link.vercel.app chạy production trên Vercel; KPI tách kpi-nc-link.chaunm2312.workers.dev chạy production trên Cloudflare Workers và là công khai chỉ đọc. Production DB là Supabase qua POSTGRES_PRISMA_URL. Data Hub và Google là hai nguồn độc quyền qua nmc-sync-source. Mọi sửa KPI phải sync bằng scripts/sync-kpi-app.sh, build cả hai và kiểm tra đúng hai nền tảng production. Kiểm tra git status trước, không sửa hoặc deploy khi chưa báo kế hoạch.
 ```
 
 ## 12. Cập nhật kiến thức sau mỗi nhiệm vụ lớn

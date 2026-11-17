@@ -56,8 +56,8 @@ README gốc phản ánh giai đoạn đầu và còn ghi Neon. Không dùng REA
 ### KPI tách
 
 - Nền tảng production chính thức: Cloudflare Workers.
-- Worker: `nmc-kpi`.
-- Production: `https://nmc-kpi.chaunm2312.workers.dev`.
+- Worker: `kpi-nc-link`.
+- Production: `https://kpi-nc-link.chaunm2312.workers.dev`.
 - Source/build root: `kpi-app`; build bằng OpenNext for Cloudflare.
 - KPI đọc dữ liệu và proxy API cần thiết về Main App tại `https://nc-link.vercel.app`.
 - Không còn giai đoạn thử nghiệm hoặc đích production KPI trên Vercel. Hai URL Vercel cũ `angiang2026.vercel.app` và `angiang2026-nhom.vercel.app` chỉ là lịch sử, không dùng cho thay đổi về sau.

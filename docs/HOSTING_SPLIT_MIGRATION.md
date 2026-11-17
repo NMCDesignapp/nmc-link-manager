@@ -3,7 +3,7 @@
 ## Trạng thái chính thức từ 17/11/2026
 
 - **NC-Link Main App:** Vercel project `nc-link`, URL `https://nc-link.vercel.app`.
-- **KPI standalone:** Cloudflare Worker `nmc-kpi`, URL `https://nmc-kpi.chaunm2312.workers.dev`, build từ thư mục `kpi-app` bằng OpenNext.
+- **KPI standalone:** Cloudflare Worker `kpi-nc-link`, URL `https://kpi-nc-link.chaunm2312.workers.dev`, build từ thư mục `kpi-app` bằng OpenNext.
 - Hai trang dùng chung một kho GitHub nhưng triển khai độc lập. KPI không giữ thông tin kết nối cơ sở dữ liệu; API được chuyển tiếp đến NC-Link.
 - Đây là kiến trúc production chính thức, không phải thử nghiệm hay kế hoạch chuyển đổi.
 - Không dùng lại hai alias KPI Vercel cũ làm đích production.
