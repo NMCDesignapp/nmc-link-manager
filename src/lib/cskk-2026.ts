@@ -143,11 +143,18 @@ export function buildCskkRows(
     const agentCode = code(member.agentCode);
     const resolvedGroup = groupKey(member.maBanNhom || member.maNhom, member.nhom);
     const isBanca = bancaGroupKeys.has(resolvedGroup) || [member.maBanNhom, member.maNhom, member.nhom].some(isBancaValue);
-    if (!agentCode || isBanca || tvvRows.has(agentCode)) continue;
+    // Chỉ lọc các TVV có NHÓM thực tế hiển thị là mã A..., không loại
+    // nhóm có mã A... nhưng đã ánh xạ được tên hợp lệ (vd. Hiệp Tiến).
+    const displayGroup = text(member.nhom) || groupNameByKey.get(resolvedGroup) || text(member.maBanNhom || member.maNhom) || '—';
+    const unresolvedAGroup = /^A\d[A-Z0-9]*$/i.test(displayGroup);
+    if (!agentCode || isBanca || unresolvedAGroup || tvvRows.has(agentCode)) continue;
+    // Mã nhóm U104... chưa có tên: hiển thị chung là PA; tên nhóm
+    // đã ánh xạ từ cấu trúc (An Khang, Chợ Mới...) phải được giữ nguyên.
+    const groupLabel = /^U104[A-Z0-9]*$/i.test(displayGroup) ? 'PA' : displayGroup;
     const standardMonths = standardMonthsByAgent.get(agentCode)?.size || 0;
     tvvRows.set(agentCode, {
       key: agentCode,
-      nhom: text(member.nhom) || groupNameByKey.get(resolvedGroup) || text(member.maBanNhom || member.maNhom) || '—',
+      nhom: groupLabel,
       agentCode,
       agentName: text(member.agentName) || agentCode,
       totalFyp: fypByAgent.get(agentCode) || 0,
