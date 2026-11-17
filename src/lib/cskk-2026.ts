@@ -19,7 +19,6 @@ export interface CskkPerson {
   nhom?: string;
   maNhom?: string;
   maBanNhom?: string;
-  chucVu?: string;
 }
 
 export interface CskkRow {
@@ -46,15 +45,6 @@ const isTbTn = (position: unknown) => {
   const normalized = text(position).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   if (!normalized || normalized.includes('ttn') || normalized.includes('truong to nhom')) return false;
   return normalized.includes('truong ban') || normalized.includes('truong nhom') || /(^|\W)(tb|tn)(\W|$)/.test(normalized);
-};
-
-const isLeadershipRole = (position: unknown) => {
-  const normalized = text(position).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  if (!normalized) return false;
-  return normalized.includes('truong ban')
-    || normalized.includes('truong nhom')
-    || normalized.includes('truong to nhom')
-    || /(^|\W)(tb|tn|ttn)(\W|$)/.test(normalized);
 };
 
 const contractDate = (contract: CskkSourceContract) => {
@@ -128,12 +118,11 @@ export function buildCskkRows(
     });
   }
 
-  const leaderCodes = new Set(leaders.filter(item => isTbTn(item.position)).map(item => code(item.agentCode)).filter(Boolean));
   const tvvRows = new Map<string, CskkRow>();
   for (const member of tvvMembers) {
     const agentCode = code(member.agentCode);
     const resolvedGroup = groupKey(member.maBanNhom || member.maNhom, member.nhom);
-    if (!agentCode || leaderCodes.has(agentCode) || isLeadershipRole(member.chucVu || member.position) || tvvRows.has(agentCode)) continue;
+    if (!agentCode || tvvRows.has(agentCode)) continue;
     const standardMonths = [...(monthlyIpByAgent.get(agentCode)?.values() || [])].filter(value => value >= 12_000_000).length;
     tvvRows.set(agentCode, {
       key: agentCode,
