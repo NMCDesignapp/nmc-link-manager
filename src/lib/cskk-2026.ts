@@ -62,14 +62,20 @@ export function buildCskkRows(
   contracts: CskkSourceContract[],
   leaders: CskkPerson[],
   tvvMembers: CskkPerson[],
-  groups: Array<{ maBanNhom?: string; maNhom?: string; tenBanNhom?: string; nhom?: string }> = [],
+  groups: Array<{ maBanNhom?: string; maNhom?: string; tenBanNhom?: string; nhom?: string; maAD?: string }> = [],
   now = new Date(),
 ): { leaders: CskkRow[]; tvv: CskkRow[] } {
   const year = 2026;
   const groupNameByKey = new Map<string, string>();
+  const bancaGroupKeys = new Set<string>();
+  const isBancaValue = (value: unknown) => {
+    const normalized = code(value).replace(/[\s_-]+/g, '');
+    return normalized === 'A473DSO000' || normalized === 'BANCA' || normalized === 'DSO' || normalized.includes('BANCA');
+  };
   for (const group of groups) {
     const key = groupKey(group.maBanNhom || group.maNhom, group.tenBanNhom || group.nhom);
     if (key) groupNameByKey.set(key, text(group.tenBanNhom || group.nhom || group.maBanNhom || group.maNhom));
+    if (key && [group.maBanNhom, group.maNhom, group.tenBanNhom, group.nhom, group.maAD].some(isBancaValue)) bancaGroupKeys.add(key);
   }
 
   const memberByCode = new Map<string, CskkPerson>();
@@ -122,7 +128,8 @@ export function buildCskkRows(
   for (const member of tvvMembers) {
     const agentCode = code(member.agentCode);
     const resolvedGroup = groupKey(member.maBanNhom || member.maNhom, member.nhom);
-    if (!agentCode || tvvRows.has(agentCode)) continue;
+    const isBanca = bancaGroupKeys.has(resolvedGroup) || [member.maBanNhom, member.maNhom, member.nhom].some(isBancaValue);
+    if (!agentCode || isBanca || tvvRows.has(agentCode)) continue;
     const standardMonths = [...(monthlyIpByAgent.get(agentCode)?.values() || [])].filter(value => value >= 12_000_000).length;
     tvvRows.set(agentCode, {
       key: agentCode,
@@ -134,8 +141,8 @@ export function buildCskkRows(
     });
   }
 
-  const byFypThenName = (a: CskkRow, b: CskkRow) => b.totalFyp - a.totalFyp || a.agentName.localeCompare(b.agentName, 'vi');
-  return { leaders: [...leaderRows.values()].sort(byFypThenName), tvv: [...tvvRows.values()].sort(byFypThenName) };
+  const byFypThenConditionThenName = (a: CskkRow, b: CskkRow) => b.totalFyp - a.totalFyp || b.alternateCount - a.alternateCount || a.agentName.localeCompare(b.agentName, 'vi');
+  return { leaders: [...leaderRows.values()].sort(byFypThenConditionThenName), tvv: [...tvvRows.values()].sort(byFypThenConditionThenName) };
 }
 
 export function getCskkStatus(kind: CskkKind, totalFyp: number, alternateCount = 0): CskkStatus {
