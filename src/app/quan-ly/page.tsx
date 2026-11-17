@@ -1736,7 +1736,7 @@ export default function QuanLyPage() {
       const params = new URLSearchParams(window.location.search);
       const sheetParam = params.get('sheet');
       const isKpiEmbedRequest = params.get('from') === 'kpi';
-      const allowedKpiSheets: SheetKey[] = ['report', 'saoviet', 'clb-saoviet'];
+      const allowedKpiSheets: SheetKey[] = ['report', 'saoviet', 'clb-saoviet', 'cskk-2026'];
       if (isKpiEmbedRequest && (!sheetParam || !allowedKpiSheets.includes(sheetParam as SheetKey))) {
         return 'report';
       }
@@ -1874,7 +1874,7 @@ export default function QuanLyPage() {
         //    → clear kpi_embed/kpi_from_tach để force admin mode
         // 3. Admin truy cập trực tiếp /quan-ly: không có param → hiện sidebar (admin mode mặc định)
         if (params.get('from') === 'kpi') {
-          const allowedKpiSheets: SheetKey[] = ['report', 'saoviet', 'clb-saoviet'];
+          const allowedKpiSheets: SheetKey[] = ['report', 'saoviet', 'clb-saoviet', 'cskk-2026'];
           const requestedSheet = params.get('sheet') as SheetKey | null;
           const embeddedSheet: SheetKey = requestedSheet && allowedKpiSheets.includes(requestedSheet)
             ? requestedSheet
@@ -1915,7 +1915,7 @@ export default function QuanLyPage() {
               setIsEmbedded(true);
               setIsAdmin(false);
               const storedSheet = sessionStorage.getItem('kpi_embed_sheet') as SheetKey | null;
-              const allowedKpiSheets: SheetKey[] = ['report', 'saoviet', 'clb-saoviet'];
+              const allowedKpiSheets: SheetKey[] = ['report', 'saoviet', 'clb-saoviet', 'cskk-2026'];
               setActiveSheet(storedSheet && allowedKpiSheets.includes(storedSheet) ? storedSheet : 'report');
             }
           } catch {}
