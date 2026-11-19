@@ -32,10 +32,43 @@ export function isAdminRequest(request: NextRequest): boolean {
   return verifyAdminSession(request.cookies.get(ADMIN_COOKIE_NAME)?.value);
 }
 
+// Collect every host the proxy chain may report so a legitimate browser Origin
+// still matches behind Render/Cloudflare/other reverse proxies. The Origin value
+// itself always comes from the caller's browser, so CSRF protection is kept.
+function sameOriginCandidateHosts(request: NextRequest): Set<string> {
+  const candidates = new Set<string>();
+  const addHost = (value: string | null | undefined) => {
+    if (!value) return;
+    const trimmed = value.trim().replace(/,.*$/, '');
+    if (!trimmed) return;
+    candidates.add(trimmed);
+    const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    try { candidates.add(new URL(withScheme).host); } catch {}
+    const noPort = trimmed.replace(/:\d+$/, '');
+    if (noPort) candidates.add(noPort);
+  };
+  addHost(request.nextUrl.host);
+  addHost(request.headers.get('x-forwarded-host'));
+  addHost(request.headers.get('host'));
+  return candidates;
+}
+
 export function hasSameOrigin(request: NextRequest): boolean {
   const origin = request.headers.get('origin');
   if (!origin) return false;
-  try { return new URL(origin).host === request.nextUrl.host; } catch { return false; }
+  let originHost = '';
+  try { originHost = new URL(origin).host; } catch { return false; }
+  if (!originHost) return false;
+  const candidates = sameOriginCandidateHosts(request);
+  if (!candidates.has(originHost)) {
+    console.warn('[admin-session] same-origin mismatch', JSON.stringify({
+      originHost,
+      nextUrlHost: request.nextUrl.host,
+      xfh: request.headers.get('x-forwarded-host'),
+      host: request.headers.get('host'),
+    }));
+  }
+  return candidates.has(originHost);
 }
 
 export const adminCookieOptions = {
