@@ -4,6 +4,10 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-11-14",
   "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "NMC_MAIN_APP_URL": "https://nc-link.onrender.com",
+    "NEXT_PUBLIC_MAIN_APP_URL": "https://nc-link.onrender.com"
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
