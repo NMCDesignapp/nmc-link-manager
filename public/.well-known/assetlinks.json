@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.nmc.nclink",
+    "sha256_cert_fingerprints": [
+      "8a28a235c333367461872773cdd125cb22aa36477150c7c4f854b556a3d37a39"
+    ]
+  }
+}]
