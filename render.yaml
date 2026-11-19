@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: nc-link
+    runtime: docker
+    plan: free
+    region: singapore
+    autoDeploy: true
+    envVars:
+      - key: POSTGRES_PRISMA_URL
+        sync: false
+      - key: POSTGRES_URL_NON_POOLING
+        sync: false
+      - key: NEXT_PUBLIC_MAIN_APP_URL
+        sync: false
+      - key: NMC_ADMIN_PASSWORD
+        sync: false
+      - key: NMC_ADMIN_SESSION_SECRET
+        sync: false
+      - key: NMC_DATA_HUB_IMPORT_TOKEN
+        sync: false
