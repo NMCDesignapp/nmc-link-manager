@@ -1318,7 +1318,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   width: 100%; text-align: left; cursor: pointer;
   border-radius: 3px !important;
   padding: 5px 10px 5px !important;
-  gap: 2px !important;
+  gap: 14px !important;
 }
 .kpi-app .grp-head-line {
   display: flex; align-items: center; gap: 4px;
