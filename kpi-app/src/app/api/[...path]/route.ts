@@ -56,6 +56,7 @@ async function proxyRead(request: NextRequest, context: { params: Promise<{ path
 
 function isAllowedWritePath(normalizedPath: string) {
   return normalizedPath === 'calendar' ||
+    normalizedPath === 'poster-image' ||
     normalizedPath === 'kpi-target-registrations' ||
     normalizedPath.startsWith('kpi-target-registrations/')
 }

@@ -1356,6 +1356,38 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .grp-prog-fill { height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #4a9fd4, #7dc8f0); transition: width .9s cubic-bezier(.22,1,.36,1); will-change: width; }
 .kpi-app .grp-item.is-top .grp-prog-fill { background: linear-gradient(90deg, #2fbfa8, #4ee8cc); }
 
+/* --- Avatar nhóm tròn (trái) + đẩy nội dung thẻ sang phải (yêu cầu 19/11/2026) --- */
+.kpi-app .grp-item-flat { flex-direction: row; align-items: center; gap: 9px; }
+.kpi-app .grp-item-flat .grp-item-body { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; }
+.kpi-app .grp-avatar {
+  position: relative; flex: 0 0 auto; width: 46px; height: 46px;
+  border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle at 30% 25%, #3a5a7f, #16283e 78%);
+  border: 1.6px solid rgba(125, 200, 240, .55);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.25), inset 0 1px 3px rgba(255,255,255,.12);
+}
+.kpi-app .grp-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.kpi-app .grp-avatar-ph { font-size: 15px; font-weight: 900; letter-spacing: .02em; color: #9fd8f7; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+.kpi-app .grp-avatar-admin { position: absolute; right: -7px; bottom: -7px; display: flex; gap: 3px; z-index: 3; }
+.kpi-app .grp-avatar-edit {
+  width: 19px; height: 19px; border-radius: 50%; display: grid; place-items: center;
+  background: #0d4d4d; color: #f3ffff; border: 1px solid #008080; cursor: pointer; padding: 0;
+}
+.kpi-app .grp-avatar-edit.grp-avatar-del { background: #6b1d1d; border-color: #a03030; }
+.kpi-app .grp-avatar-updating { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(125,200,240,.3); border-top-color: #7dc8f0; animation: nmc-kpi-spin .8s linear infinite; }
+@keyframes nmc-kpi-spin { to { transform: rotate(360deg); } }
+/* --- Icon khóa quản trị KPI trên header trang chính --- */
+.kpi-app .kpi-admin-btn {
+  margin-left: auto; width: 30px; height: 30px; flex: 0 0 auto;
+  display: grid; place-items: center; cursor: pointer;
+  border-radius: 8px; padding: 0;
+  background: rgba(20, 34, 54, .55); color: #7a92b4;
+  border: 1px solid rgba(122, 146, 180, .35);
+  transition: all .2s;
+}
+.kpi-app .kpi-admin-btn:hover { color: #b8d2ee; border-color: rgba(160,190,220,.55); }
+.kpi-app .kpi-admin-btn.authed { color: #4ee8cc; background: rgba(13, 77, 77, .5); border-color: rgba(78, 232, 204, .55); box-shadow: 0 0 8px rgba(78,232,204,.25); }
+
 /* Detail View Hierarchy */
 .kpi-app .dt-phong { margin-top: 14px; border-radius: 10px; overflow: hidden; background: #0e1c30; border: 1px solid #1a3050; }
 .kpi-app .dt-phong-head { padding: 8px 12px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; color: #ffe0a0; background: linear-gradient(135deg, #c89828, #a87818); }
@@ -4042,6 +4074,18 @@ function circleStroke(radius: number, pct: number) {
 }
 function glowCls(pct: number): string { return pct >= 100 ? ' glow-full' : ''; }
 function pctClass(pct: number): string { return pct >= 100 ? 'green' : pct >= 75 ? 'gold' : 'red'; }
+// Mã quản trị KPI (icon khóa trên trang chính) — yêu cầu user 19/11/2026
+const KPI_ADMIN_PASSCODE = '0969774224';
+
+// Viết tắt tên nhóm cho placeholder ảnh đại diện: "An Phúc" → "AP"
+function grpAvatarInitials(name: string): string {
+  const clean = (name || '').replace(/^Nh[òo]m\s+/i, '').trim();
+  if (!clean) return '•';
+  const parts = clean.split(/[\s\-]+/).filter(Boolean);
+  if (parts.length === 1) return clean.slice(0, 2).toUpperCase();
+  return ((parts[0][0] || '') + (parts[1][0] || '')).toUpperCase();
+}
+
 function normKey(v: string): string {
   return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/Đ/g,'D').replace(/đ/g,'d').toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
@@ -4467,6 +4511,129 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       setBancaImages((prev) => {
         const next = { ...prev };
         delete next[key];
+        return next;
+      });
+    } catch (e: any) {
+      alert(`Lỗi xóa: ${e?.message || e}`);
+    }
+  };
+
+  // ===== QUẢN TRỊ KPI + ẢNH ĐẠI DIỆN NHÓM (yêu cầu 19/11/2026) =====
+  // Icon khóa nhỏ trên trang chính → nhập mã quản trị (mặc định 0969774224).
+  // Đã mở khóa: hiện nút cài/xóa ảnh đại diện trên từng thẻ nhóm ở CHI TIẾT NHÓM.
+  // Chưa mở khóa: các nút này ẩn hoàn toàn với người xem thường.
+  const [kpiAdminAuthed, setKpiAdminAuthed] = useState(false);
+  const [kpiAdminPromptOpen, setKpiAdminPromptOpen] = useState(false);
+  const [kpiAdminPass, setKpiAdminPass] = useState('');
+  const [kpiAdminError, setKpiAdminError] = useState(false);
+  const [groupAvatars, setGroupAvatars] = useState<Record<string, string>>({});
+  const [grpAvatarUploading, setGrpAvatarUploading] = useState<string | null>(null);
+  const grpAvatarFileRef = useRef<HTMLInputElement>(null);
+  const grpAvatarTargetRef = useRef<string>('');
+
+  // Khôi phục phiên quản trị trong cùng phiên trình duyệt
+  useEffect(() => {
+    try { if (sessionStorage.getItem('nmc-kpi-admin') === '1') setKpiAdminAuthed(true); } catch {}
+  }, []);
+
+  const unlockKpiAdmin = useCallback(() => {
+    if (kpiAdminPass === KPI_ADMIN_PASSCODE) {
+      setKpiAdminAuthed(true);
+      setKpiAdminPromptOpen(false);
+      setKpiAdminPass('');
+      setKpiAdminError(false);
+      try { sessionStorage.setItem('nmc-kpi-admin', '1'); } catch {}
+    } else {
+      setKpiAdminError(true);
+    }
+  }, [kpiAdminPass]);
+
+  const lockKpiAdmin = useCallback(() => {
+    setKpiAdminAuthed(false);
+    try { sessionStorage.removeItem('nmc-kpi-admin'); } catch {}
+  }, []);
+
+  // Manifest ảnh đại diện nhóm — key: kpi-nhom-img-<maBanNhom>
+  useEffect(() => {
+    let cancelled = false;
+    const loadGroupAvatars = async () => {
+      try {
+        const res = await fetch('/api/poster-image?prefix=kpi-nhom-img-', { cache: 'no-store' });
+        const data = res.ok ? await res.json() : { items: [] };
+        const imgs: Record<string, string> = {};
+        for (const item of data.items || []) {
+          if (item?.key) imgs[String(item.key).replace('kpi-nhom-img-', '')] = `/api/poster-image/${encodeURIComponent(item.key)}?v=${item.updatedAt || 0}`;
+        }
+        if (!cancelled) setGroupAvatars(imgs);
+      } catch {
+        if (!cancelled) setGroupAvatars({});
+      }
+    };
+    loadGroupAvatars();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Nén ảnh về ô vuông 256px (JPEG ~0.82) trước khi upload — avatar tròn nhỏ, gọn DB
+  const compressGroupAvatar = async (file: File): Promise<string> => {
+    const dataUrl: string = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    return await new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const size = 256;
+          const canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) { resolve(dataUrl); return; }
+          const side = Math.min(img.width, img.height);
+          const sx = (img.width - side) / 2;
+          const sy = (img.height - side) / 2;
+          ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        } catch { resolve(dataUrl); }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  };
+
+  const uploadGroupAvatar = async (maBanNhom: string, file: File) => {
+    const key = `kpi-nhom-img-${maBanNhom}`;
+    setGrpAvatarUploading(maBanNhom);
+    try {
+      const dataBase64 = await compressGroupAvatar(file);
+      const res = await fetch('/api/poster-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, dataBase64 }),
+      });
+      if (res.ok) {
+        setGroupAvatars((prev) => ({ ...prev, [maBanNhom]: `/api/poster-image/${encodeURIComponent(key)}?t=${Date.now()}` }));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Lỗi upload ảnh nhóm: ${err.error || res.status}`);
+      }
+    } catch (e: any) {
+      alert(`Lỗi: ${e?.message || e}`);
+    } finally {
+      setGrpAvatarUploading(null);
+    }
+  };
+
+  const deleteGroupAvatar = async (maBanNhom: string) => {
+    if (!confirm('Xóa ảnh đại diện nhóm này?')) return;
+    const key = `kpi-nhom-img-${maBanNhom}`;
+    try {
+      await fetch(`/api/poster-image?key=${encodeURIComponent(key)}`, { method: 'DELETE' });
+      setGroupAvatars((prev) => {
+        const next = { ...prev };
+        delete next[maBanNhom];
         return next;
       });
     } catch (e: any) {
@@ -5772,16 +5939,23 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       return a.agentName.localeCompare(b.agentName, 'vi');
     });
 
-    // IP per month per TVV — tính trực tiếp trong đúng kỳ đang xem
-    // theo agentCode, KHÔNG lọc qua finalContracts. Lý do: dữ liệu hợp đồng đôi khi
-    // thiếu maBanNhom (trống) → nếu lọc qua finalContracts thì IP của TVV sẽ bị thiếu.
+    // IP per month per TVV — CỘT CỐ ĐỊNH T6→T12 (yêu cầu 19/11/2026): bảng chi tiết
+    // luôn hiển thị 7 cột IP tháng 6→12, tính theo agentCode, KHÔNG lọc qua
+    // finalContracts (dữ liệu đôi khi thiếu maBanNhom) và KHÔNG phụ thuộc kỳ đang
+    // xem (lấy hợp đồng cả năm, lọc tháng doanh số 6→12). Metrics nhóm (AFYP/KH/TLHT)
+    // phía trên vẫn theo đúng kỳ của thẻ để không lệch số với card.
     // IP = sum của contract.pdt10DT theo tháng doanh số (issueDate, fallback effectiveDate).
     // Nếu pdt10DT = 0 → để 0 (không fallback sang fyp hay số khác).
-    const months37 = popupMonths;
+    const IP_MONTHS_FIXED = [6, 7, 8, 9, 10, 11, 12];
+    const ipYearContracts = rawData.contracts.filter(c => {
+      const d = getDoanhSoMonth(c);
+      return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR && IP_MONTHS_FIXED.includes(d.getMonth() + 1);
+    });
+    const months37 = IP_MONTHS_FIXED;
     const tvvTable = sortedTvv.map((t, idx) => {
       const ipByMonth: Record<number, number> = {};
       months37.forEach(m => {
-        ipByMonth[m] = popupYearContracts
+        ipByMonth[m] = ipYearContracts
           .filter(c => c.agentCode === t.agentCode)
           .filter(c => {
             const d = getDoanhSoMonth(c);
@@ -6301,6 +6475,19 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <h1 className="hero-title">Tiến Độ Kinh Doanh</h1>
                 <p className="hero-sub">Bảo Việt Nhân Thọ An Giang</p>
               </div>
+              {/* Icon khóa quản trị KPI (nhỏ, góc phải trang chính) — mở khóa → hiện nút cài ảnh đại diện nhóm */}
+              <button
+                type="button"
+                className={`kpi-admin-btn${kpiAdminAuthed ? ' authed' : ''}`}
+                onClick={() => {
+                  if (kpiAdminAuthed) { lockKpiAdmin(); }
+                  else { setKpiAdminPass(''); setKpiAdminError(false); setKpiAdminPromptOpen(true); }
+                }}
+                title={kpiAdminAuthed ? 'Quản trị: đang mở khóa (bấm để khóa lại)' : 'Đăng nhập quản trị'}
+                aria-label="Quản trị KPI"
+              >
+                <LockKeyhole size={15} />
+              </button>
             </div>
             <div className={`ctrl-bar${noticeEnabled && noticeContent ? ' has-notice' : ''}`}>
               <span className="ctrl-hint">Chọn thời gian xem</span>
@@ -7235,20 +7422,55 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       aria-label={`Xem chi tiết nhóm ${item.name}`}
                     >
                       <div className="grp-fill" style={{ width: `${fill}%` }} />
-                      {/* Single-line header: Nhóm ... - TN ... - TLHT ... */}
-                      <div className="grp-head-line">
-                        <span className="grp-name">Nhóm {item.name}</span>
-                        {item.tnName && <span className="grp-tn-inline"> - TN: {item.tnName}</span>}
-                        <span className="grp-pct" style={{ color: pc }}><AnimPct value={item.pct} dec={1} /></span>
-                      </div>
-                      {/* Body: TH/KH + progress bar (unchanged) */}
-                      <div className="grp-bot-row">
-                        <span className="grp-stats-inline">
-                          <span className="grp-stat-main">TH: <AnimNum value={item.afyp} />trđ</span>
-                          <span className="grp-stat-kh">/ KH: {fmt(item.kh)}trđ</span>
-                        </span>
-                      </div>
-                      <div className="grp-prog-row"><div className="grp-prog"><div className="grp-prog-fill" style={{ width: `${fill}%` }} /></div></div>
+                      {/* Ảnh đại diện nhóm (trái) — nội dung thẻ đẩy sang phải (yêu cầu 19/11/2026).
+                          Nút cài/xóa chỉ hiện khi đã mở khóa quản trị KPI (icon khóa trên trang chính). */}
+                      <span className="grp-avatar" aria-hidden={!kpiAdminAuthed}>
+                        {groupAvatars[item.maBanNhom] ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={groupAvatars[item.maBanNhom]} alt="" />
+                        ) : (
+                          <span className="grp-avatar-ph">{grpAvatarInitials(item.name)}</span>
+                        )}
+                        {grpAvatarUploading === item.maBanNhom && <span className="grp-avatar-updating" />}
+                        {kpiAdminAuthed && (
+                          <span className="grp-avatar-admin">
+                            <button
+                              type="button"
+                              className="grp-avatar-edit"
+                              title="Cài ảnh đại diện nhóm"
+                              onClick={(e) => { e.stopPropagation(); grpAvatarTargetRef.current = item.maBanNhom; grpAvatarFileRef.current?.click(); }}
+                            >
+                              <Settings size={11} />
+                            </button>
+                            {groupAvatars[item.maBanNhom] && (
+                              <button
+                                type="button"
+                                className="grp-avatar-edit grp-avatar-del"
+                                title="Xóa ảnh đại diện nhóm"
+                                onClick={(e) => { e.stopPropagation(); void deleteGroupAvatar(item.maBanNhom); }}
+                              >
+                                <X size={11} />
+                              </button>
+                            )}
+                          </span>
+                        )}
+                      </span>
+                      <span className="grp-item-body">
+                        {/* Single-line header: Nhóm ... - TN ... - TLHT ... */}
+                        <div className="grp-head-line">
+                          <span className="grp-name">Nhóm {item.name}</span>
+                          {item.tnName && <span className="grp-tn-inline"> - TN: {item.tnName}</span>}
+                          <span className="grp-pct" style={{ color: pc }}><AnimPct value={item.pct} dec={1} /></span>
+                        </div>
+                        {/* Body: TH/KH + progress bar */}
+                        <div className="grp-bot-row">
+                          <span className="grp-stats-inline">
+                            <span className="grp-stat-main">TH: <AnimNum value={item.afyp} />trđ</span>
+                            <span className="grp-stat-kh">/ KH: {fmt(item.kh)}trđ</span>
+                          </span>
+                        </div>
+                        <div className="grp-prog-row"><div className="grp-prog"><div className="grp-prog-fill" style={{ width: `${fill}%` }} /></div></div>
+                      </span>
                     </button>
                   </div>
                 );
@@ -7650,6 +7872,45 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
           </div>
         </div>
       )}
+
+      {/* ===== MODAL ĐĂNG NHẬP QUẢN TRỊ KPI + FILE INPUT ẢNH NHÓM ===== */}
+      {kpiAdminPromptOpen && (
+        <div className="region-lock-modal" role="dialog" aria-modal="true" aria-labelledby="kpi-admin-lock-title" onMouseDown={() => setKpiAdminPromptOpen(false)}>
+          <div className="region-lock-card" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="region-lock-icon"><LockKeyhole size={20} /></div>
+            <div className="region-lock-title" id="kpi-admin-lock-title">Quản trị KPI</div>
+            <div className="region-lock-note">Nhập mã quản trị để cài đặt ảnh đại diện nhóm.</div>
+            <input
+              className="region-lock-input"
+              type="password"
+              inputMode="numeric"
+              maxLength={10}
+              autoFocus
+              value={kpiAdminPass}
+              onChange={(event) => { setKpiAdminPass(event.target.value.replace(/\D/g, '')); setKpiAdminError(false); }}
+              onKeyDown={(event) => { if (event.key === 'Enter') unlockKpiAdmin(); }}
+              aria-label="Mã quản trị KPI"
+            />
+            <div className="region-lock-error">{kpiAdminError ? 'Mã quản trị chưa đúng. Vui lòng thử lại.' : ''}</div>
+            <div className="region-lock-actions">
+              <button type="button" className="region-lock-cancel" onClick={() => setKpiAdminPromptOpen(false)}>Hủy</button>
+              <button type="button" className="region-lock-submit" onClick={unlockKpiAdmin}>Mở quản trị</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <input
+        ref={grpAvatarFileRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          const target = grpAvatarTargetRef.current;
+          event.target.value = '';
+          if (file && target) void uploadGroupAvatar(target, file);
+        }}
+      />
 
       {regionLockOpen && (
         <div className="region-lock-modal" role="dialog" aria-modal="true" aria-labelledby="region-lock-title" onMouseDown={() => setRegionLockOpen(false)}>
