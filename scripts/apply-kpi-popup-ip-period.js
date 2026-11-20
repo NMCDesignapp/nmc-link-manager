@@ -6,19 +6,13 @@ let source = fs.readFileSync(filePath, 'utf8');
 const eol = source.includes('\r\n') ? '\r\n' : '\n';
 source = source.replace(/\r\n/g, '\n');
 
-const oldMonths = 'const months37 = [3, 4, 5, 6, 7, 8, 9];';
-const newMonths = 'const months37 = [6, 7, 8, 9, 10, 11, 12];';
-const oldCount = source.split(oldMonths).length - 1;
-const newCount = source.split(newMonths).length - 1;
-
-if (oldCount > 0) source = source.split(oldMonths).join(newMonths);
-
-source = source.replaceAll('months 3-9', 'months 6-12');
-
-const finalCount = source.split(newMonths).length - 1;
-if (finalCount !== 2 || (oldCount === 0 && newCount !== 2)) {
-  throw new Error(`[KPI popup] Kỳ tháng không đồng nhất: mong đợi 2 bảng tháng 6-12, thực tế ${finalCount}.`);
+// The popup now follows the selected month/quarter/year dynamically. Keep this
+// guard focused on the two popup data builders instead of enforcing one fixed
+// month range, otherwise every build would revert/flag the dynamic behaviour.
+const popupBuilderCount = (source.match(/const popupMonths = view === 'detail'/g) || []).length;
+if (popupBuilderCount !== 2) {
+  throw new Error(`[KPI popup] Không tìm thấy đủ 2 bộ dữ liệu kỳ động, thực tế ${popupBuilderCount}.`);
 }
 
 fs.writeFileSync(filePath, eol === '\r\n' ? source.replace(/\n/g, '\r\n') : source, 'utf8');
-console.log('✓ KPI popup: giữ TLHT = AFYP/KH và hiển thị IP tháng 6-12.');
+console.log('✓ KPI popup: kỳ xem động theo tháng/quý/năm và TLHT theo đúng KH kỳ.');

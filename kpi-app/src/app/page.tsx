@@ -3787,8 +3787,13 @@ function CalDatePicker({ value, onChange }: { value: string; onChange: (v: strin
     if (!open && value) {
       const d = new Date(value);
       if (!isNaN(d.getTime())) {
-        setViewYear(d.getFullYear());
-        setViewMonth(d.getMonth());
+        const nextYear = d.getFullYear();
+        const nextMonth = d.getMonth();
+        const frame = requestAnimationFrame(() => {
+          setViewYear(nextYear);
+          setViewMonth(nextMonth);
+        });
+        return () => cancelAnimationFrame(frame);
       }
     }
   }, [value, open]);
@@ -4086,6 +4091,27 @@ function getPeriodLabel(period: string): string {
   if (period === 'h2') return 'H2';
   if (period === 'year') return 'Cả năm';
   return period;
+}
+
+// Popup bảng chi tiết phải dùng đúng phạm vi kỳ đang xem trên màn hình mở nó.
+// Giữ mapping riêng cho bộ nút T1..T12 / 6T / Q1..Q4 / Năm của màn chi tiết.
+function getDetailPeriodMonths(period: string): number[] {
+  if (period === 'H1') return [1, 2, 3, 4, 5, 6];
+  if (period === 'Q1') return [1, 2, 3];
+  if (period === 'Q2') return [4, 5, 6];
+  if (period === 'Q3') return [7, 8, 9];
+  if (period === 'Q4') return [10, 11, 12];
+  if (period === 'Y') return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  const month = parseInt(period, 10);
+  return month >= 1 && month <= 12 ? [month] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+}
+
+function getDetailPeriodLabel(period: string): string {
+  if (period === 'H1') return '6T đầu';
+  if (period === 'Y') return 'Cả năm';
+  if (period.startsWith('Q')) return period;
+  const month = parseInt(period, 10);
+  return month >= 1 && month <= 12 ? `T${month}` : 'Cả năm';
 }
 
 /* ================= ANIMATION HOOKS ================= */
@@ -5670,12 +5696,20 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       : adBannhoms[0].maBanNhom;
     const selectedBN = adBannhoms.find(bn => bn.maBanNhom === selectedMaBN) || adBannhoms[0];
 
-    // IMPORTANT: Use ALL year contracts (NOT dashboard.periodContracts which is
-    // filtered by the user's selected overviewPeriod on the dashboard). The popup
-    // must show IP for all months 6-12 regardless of what period is selected.
+    // The popup must reconcile with the card that opened it. On the main view,
+    // use the dashboard period; on the detail view, use the selected T/Q/H1/Y.
+    // Previously this popup always used all year contracts and months 6-12,
+    // causing a group card such as 102tr / 68tr = 148.5% to open as
+    // 215.605tr / 720tr = 29.9%.
+    const popupMonths = view === 'detail'
+      ? getDetailPeriodMonths(detailMonth)
+      : getPeriodMonths(overviewPeriod);
+    const popupPeriodLabel = view === 'detail'
+      ? getDetailPeriodLabel(detailMonth)
+      : getPeriodLabel(overviewPeriod);
     const popupYearContracts = rawData.contracts.filter(c => {
       const d = getDoanhSoMonth(c);
-      return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR;
+      return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR && popupMonths.includes(d.getMonth() + 1);
     });
 
     // Contracts của nhóm đang chọn — match bằng maBanNhom || maNhom (đồng bộ với dashboard).
@@ -5693,9 +5727,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     const nangSuat = lhd > 0 ? slHD / lhd : 0;
     const doLonHD = slHD > 0 ? afyp / slHD : 0;
 
-    // Annual KH 2026
+    // KH for the same period as the card (annual KH × monthly ratios).
     const annualKh = parseFloat(onlineSettings[`nmc-kh-nhom-${selectedBN.maBanNhom}`] || '0') || 0;
-    const tlht = annualKh > 0 ? (afyp / annualKh * 100) : 0;
+    const periodKh = popupMonths.reduce((sum, month) => {
+      const mm = String(month).padStart(2, '0');
+      const ratio = parseFloat(onlineSettings[`nmc-kh-ratio-${mm}`] || '0') || 0;
+      return sum + (ratio > 0 ? annualKh * ratio / 100 : 0);
+    }, 0);
+    const tlht = periodKh > 0 ? (afyp / periodKh * 100) : 0;
 
     // TVV of nhóm
     const allTvv = tvvStructList.filter(t => t.maBanNhom === selectedBN.maBanNhom);
@@ -5733,12 +5772,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       return a.agentName.localeCompare(b.agentName, 'vi');
     });
 
-    // IP per month per TVV (months 6-12) — tính trực tiếp từ TẤT CẢ hợp đồng trong năm
+    // IP per month per TVV — tính trực tiếp trong đúng kỳ đang xem
     // theo agentCode, KHÔNG lọc qua finalContracts. Lý do: dữ liệu hợp đồng đôi khi
     // thiếu maBanNhom (trống) → nếu lọc qua finalContracts thì IP của TVV sẽ bị thiếu.
     // IP = sum của contract.pdt10DT theo tháng doanh số (issueDate, fallback effectiveDate).
     // Nếu pdt10DT = 0 → để 0 (không fallback sang fyp hay số khác).
-    const months37 = [6, 7, 8, 9, 10, 11, 12];
+    const months37 = popupMonths;
     const tvvTable = sortedTvv.map((t, idx) => {
       const ipByMonth: Record<number, number> = {};
       months37.forEach(m => {
@@ -5764,8 +5803,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       ad: adPopup,
       bannhoms: adBannhoms,
       selectedBN,
+      periodLabel: popupPeriodLabel,
       groupInfo: {
-        annualKh,
+        periodKh,
         afyp,
         tlht,
         lhd,
@@ -5782,7 +5822,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       tvvTable,
       months37,
     };
-  }, [adPopup, adPopupNhom, dashboard, rawData, banNhomStructList, tvvStructList, onlineSettings, CUR_YEAR]);
+  }, [adPopup, adPopupNhom, dashboard, rawData, banNhomStructList, tvvStructList, onlineSettings, CUR_YEAR, view, detailMonth, overviewPeriod]);
 
 
   /* ============= BANCA-PA detail popup data ============= */
@@ -5830,13 +5870,16 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       return a.agentName.localeCompare(b.agentName, 'vi');
     });
 
-    // Use ALL year contracts (months 6-12) — same approach as AD popup
+    // Reconcile the Banca/PA table with the same period as the card that opened it.
+    const popupMonths = view === 'detail'
+      ? getDetailPeriodMonths(detailMonth)
+      : getPeriodMonths(overviewPeriod);
     const popupYearContracts = rawData.contracts.filter(c => {
       const d = getDoanhSoMonth(c);
-      return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR;
+      return !isNaN(d.getTime()) && d.getFullYear() === CUR_YEAR && popupMonths.includes(d.getMonth() + 1);
     });
 
-    const months37 = [6, 7, 8, 9, 10, 11, 12];
+    const months37 = popupMonths;
     const tvvTable = sortedTvv.map((t, idx) => {
       const ipByMonth: Record<number, number> = {};
       months37.forEach(m => {
@@ -5863,7 +5906,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       months37,
       totalTvv: sortedTvv.length,
     };
-  }, [dashboard, rawData, tvvStructList, CUR_YEAR]);
+  }, [dashboard, rawData, tvvStructList, CUR_YEAR, view, detailMonth, overviewPeriod]);
 
 
   /* Monthly AFYP chart data */
@@ -7510,11 +7553,11 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                   </div>}
 
                   <div className="adp-block">
-                    <div className="adp-section-label">Thông tin nhóm: <span className="adp-section-name">{adPopupData.selectedBN.tenBanNhom}</span></div>
+                    <div className="adp-section-label">Thông tin nhóm: <span className="adp-section-name">{adPopupData.selectedBN.tenBanNhom}</span> <span style={{ color: '#7dd3fc', fontSize: 10, fontWeight: 700 }}>({adPopupData.periodLabel})</span></div>
                     <div className="adp-info-grid">
                       <div className="adp-info-row">
                         <span className="adp-info-key" title="Kế hoạch AFYP">KH AFYP</span>
-                        <span className="adp-info-val">{(adPopupData.groupInfo.annualKh / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</span>
+                        <span className="adp-info-val">{(adPopupData.groupInfo.periodKh / 1000000).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}</span>
                       </div>
                       <div className="adp-info-row">
                         <span className="adp-info-key" title="Thực hiện">THỰC HIỆN</span>
