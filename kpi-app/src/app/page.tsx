@@ -1357,7 +1357,11 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .grp-item.is-top .grp-prog-fill { background: linear-gradient(90deg, #2fbfa8, #4ee8cc); }
 
 /* --- Avatar nhóm tròn (trái) + đẩy nội dung thẻ sang phải (yêu cầu 19/11/2026) --- */
-.kpi-app .grp-item-flat { flex-direction: row; align-items: center; gap: 9px; }
+/* grp-fill phải giữ absolute: rule .grp-item > * (specificity bằng, đứng sau) từng ghi đè
+   position thành relative → fill thành flex item in-flow chiếm width 100% → avatar
+   bị đẩy lệch giữa/thẻ, không thẳng lề trái (lỗi ảnh chụp 21/11/2026). */
+.kpi-app .grp-item-flat .grp-fill { position: absolute !important; inset: 0 auto 0 0 !important; }
+.kpi-app .grp-item-flat { flex-direction: row; align-items: center; justify-content: flex-start; gap: 9px; }
 .kpi-app .grp-item-flat .grp-item-body { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; }
 .kpi-app .grp-avatar {
   position: relative; flex: 0 0 auto; width: 46px; height: 46px;
