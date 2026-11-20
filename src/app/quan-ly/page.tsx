@@ -9081,7 +9081,7 @@ export default function QuanLyPage() {
     return (
       <div className="flex flex-col h-full p-2 relative" data-nmc-kpi-detail-shell="policy" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,255,136,0.10)' }}>
         {/* ====== MOBILE LAYOUT: poster -> compact filters -> table -> footer ====== */}
-        <div className="md:hidden flex flex-col flex-1 min-h-0 relative" data-nmc-kpi-detail-stack style={{ backgroundColor: '#0F172A' }}>
+        <div className="md:hidden flex flex-col flex-1 min-h-0 relative" data-nmc-kpi-detail-stack data-nmc-kpi-detail-mobile style={{ backgroundColor: '#0F172A' }}>
           {/* Poster — full width 16:9 + program name overlay + Excel download button */}
           <div className="relative flex-shrink-0 w-full" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
             {imageLink ? (
@@ -9229,7 +9229,7 @@ export default function QuanLyPage() {
         </div>
 
         {/* ====== DESKTOP LAYOUT (existing): 160px banner (image + summary cards + filters) -> table -> footer ====== */}
-        <div className="hidden md:flex flex-col h-full" style={{ backgroundColor: '#0F172A' }}>
+        <div className="hidden md:flex flex-col h-full" data-nmc-kpi-detail-desktop style={{ backgroundColor: '#0F172A' }}>
           {/* Top: ảnh trái + tổng hợp/filter phải — MÀU BẠC ĐẶC (#C0C0C0), ô bọc đổ bóng, không dùng rgba */}
           <div className="flex flex-shrink-0 border mb-1.5" style={{ height: '160px', backgroundColor: '#C0C0C0', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
             {/* Left: Image + Excel button overlay */}
@@ -9350,7 +9350,7 @@ export default function QuanLyPage() {
 
           {/* Middle: bảng chi tiết */}
           <div
-            className="flex-1 min-h-0 overflow-auto border bg-white policy-detail-table-wrapper"
+            className="flex-none overflow-auto border bg-white policy-detail-table-wrapper"
             style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
             data-policy-table={policyOpen}
             onClick={(e) => {
@@ -10638,7 +10638,7 @@ export default function QuanLyPage() {
     // Shared table block
     const tableBlock = (
       <div
-        className="flex-1 min-h-0 overflow-auto border bg-white saoviet-detail-table-wrapper"
+         className="flex-none overflow-auto border bg-white saoviet-detail-table-wrapper"
         style={{ borderColor: '#9CA3AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
         data-saoviet-table={program}
         onClick={(e) => {
@@ -10710,7 +10710,7 @@ export default function QuanLyPage() {
       <div className="flex flex-col h-full gap-2" data-saoviet-table={program} data-nmc-kpi-detail-shell="contest">
         <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(245, 158, 11, 0.10)' }}>
           {/* ====== MOBILE LAYOUT: poster -> compact filters -> table -> footer ====== */}
-          <div className="md:hidden flex flex-col flex-1 min-h-0" data-nmc-kpi-detail-stack>
+          <div className="md:hidden flex flex-col flex-1 min-h-0" data-nmc-kpi-detail-stack data-nmc-kpi-detail-mobile>
             {/* Poster — full width 16:9 + program name overlay + Excel download button */}
             <div className="relative flex-shrink-0 w-full" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
               {posterUrl ? (
@@ -10751,7 +10751,7 @@ export default function QuanLyPage() {
           </div>
 
           {/* ====== DESKTOP LAYOUT: 160px banner (poster trái + filter phải) -> table -> footer ====== */}
-          <div className="hidden md:flex flex-col flex-1 min-h-0">
+          <div className="hidden md:flex flex-col flex-1 min-h-0" data-nmc-kpi-detail-desktop>
             <div className="flex flex-shrink-0 border mb-1.5" style={{ height: '160px', backgroundColor: '#C0C0C0', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
               {/* Left: poster + Excel button overlay */}
               <div className="relative w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
@@ -11353,7 +11353,7 @@ export default function QuanLyPage() {
     // Shared table block (mobile + desktop)
     const tableBlock = (
       <div
-        className="flex-1 min-h-0 overflow-auto border bg-white clbsv-detail-table-wrapper"
+         className="flex-none overflow-auto border bg-white clbsv-detail-table-wrapper"
         style={{ borderColor: '#3B82F6' }}
         onClick={(e) => {
           const row = (e.target as HTMLElement).closest<HTMLTableRowElement>('tbody tr');
@@ -11413,7 +11413,7 @@ export default function QuanLyPage() {
       <div className="flex flex-col h-full gap-2" data-clb-saoviet-table={program} data-nmc-kpi-detail-shell="club">
         <div className="flex-1 min-h-0 flex flex-col relative" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(30, 58, 138, 0.18)' }}>
           {/* ====== MOBILE LAYOUT: poster -> compact filters -> table -> footer ====== */}
-          <div className="md:hidden flex flex-col flex-1 min-h-0" data-nmc-kpi-detail-stack>
+          <div className="md:hidden flex flex-col flex-1 min-h-0" data-nmc-kpi-detail-stack data-nmc-kpi-detail-mobile>
             {/* Poster — full width 16:9, chỉ hiển thị (quản lý trong Cài đặt) + Excel button */}
             <div className="relative flex-shrink-0 w-full" style={{ aspectRatio: '16 / 9', backgroundColor: '#0F1729' }}>
               {posterUrl ? (
@@ -11457,33 +11457,36 @@ export default function QuanLyPage() {
             {footerBlock}
           </div>
 
-          {/* ====== DESKTOP LAYOUT: title bar -> 2-col filter bar -> table -> footer ====== */}
-          <div className="hidden md:flex flex-col flex-1 min-h-0">
-            {/* Top bar: title + "Chỉ tiêu tháng hiện tại" badge + Excel download */}
-            <div className="flex flex-shrink-0 items-center justify-between px-3 py-2 border-b-2" style={{ backgroundColor: '#1E3A8A', borderColor: '#1E40AF' }}>
-              <div className="flex items-center gap-2 text-white">
-                <Award className="w-4 h-4 flex-shrink-0" />
-                <h2 className="text-sm font-extrabold uppercase tracking-wider truncate">{item.label}</h2>
-              </div>
-              <div className="flex items-center gap-2 text-white text-[11px]">
-                <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-                <span className="font-bold">Chỉ tiêu {clbsvThresholdMonthLabel}</span>
-                {/* Excel download button — bên cạnh badge chỉ tiêu */}
+          {/* ====== DESKTOP LAYOUT: poster trái + bộ lọc phải -> bảng -> footer ====== */}
+          <div className="hidden md:flex flex-col flex-1 min-h-0" data-nmc-kpi-detail-desktop>
+            <div className="flex flex-shrink-0 border mb-1.5" style={{ height: '160px', backgroundColor: '#C0C0C0', borderColor: '#1E40AF', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}>
+              <div className="relative w-1/2 overflow-hidden flex-shrink-0" style={{ backgroundColor: '#0F1729' }}>
+                {posterUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={posterUrl} alt={item.label} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'fill' }} />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-white/60 text-[10px] text-center p-3 gap-1">
+                    <Award className="w-5 h-5 text-amber-300/70" />
+                    <span>Chưa có poster</span>
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => handleDownloadSubPageExcel('clb-saoviet', program, item.label)}
                   title={`Tải Excel ${item.label}`}
                   aria-label={`Tải Excel ${item.label}`}
-                  className="ml-1 flex items-center justify-center w-7 h-7 rounded-md bg-emerald-600/90 hover:bg-emerald-500 active:scale-95 transition-all shadow-lg"
+                  className="absolute top-1 right-1 z-10 flex items-center justify-center w-7 h-7 rounded-md bg-emerald-600/90 hover:bg-emerald-500 active:scale-95 transition-all shadow-lg"
                 >
                   <FileDown className="w-4 h-4 text-white" />
                 </button>
               </div>
-            </div>
-
-            {/* Filter bar: nhóm + tên (BLUE theme) */}
-            <div className="flex flex-shrink-0 items-center gap-2 px-2 py-1.5 border-b" style={{ backgroundColor: '#BFDBFE', borderColor: '#1E40AF' }}>
-              {filterRowJsx}
+              <div className="w-1/2 flex flex-col justify-center gap-1.5 p-2 overflow-visible relative z-[200] border-l-2" style={{ backgroundColor: '#BFDBFE', borderColor: '#1E40AF' }}>
+                <div className="flex items-center justify-between gap-2 text-[10px] font-black uppercase text-blue-950">
+                  <span className="flex items-center gap-1"><Award className="w-3.5 h-3.5" />{item.label}</span>
+                  <span className="flex items-center gap-1 whitespace-nowrap"><Calendar className="w-3 h-3" />Chỉ tiêu {clbsvThresholdMonthLabel}</span>
+                </div>
+                <div className="flex flex-col gap-1.5">{filterRowJsx}</div>
+              </div>
             </div>
 
             {/* Table */}
