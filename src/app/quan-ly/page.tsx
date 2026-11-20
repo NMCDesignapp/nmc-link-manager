@@ -13078,7 +13078,7 @@ export default function QuanLyPage() {
         )}
 
         {/* Main content */}
-        <main className="nmc-management-content flex-1 overflow-y-auto p-3 sm:p-4 relative">
+        <main className={`nmc-management-content flex-1 min-h-0 ${isInIframe ? 'overflow-hidden p-0 md:p-2' : 'overflow-y-auto p-3 sm:p-4'} relative`}>
           {['revenue', 'structure', 'saoviet', 'leaders', 'recruiters', 'tuyen-ngang'].includes(activeSheet) && (
             <div
               className={`mb-2 min-h-7 px-2.5 py-1 rounded-md border flex items-center gap-2 text-[10px] sm:text-[11px] ${
