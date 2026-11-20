@@ -7,6 +7,7 @@
  * exceptions are proxied to Main App without giving standalone database credentials:
  * - /api/calendar for Kế hoạch khung
  * - /api/kpi-target-registrations for KPI monthly target registration
+ * - /api/poster-image for ảnh đại diện nhóm (kpi-nhom-img-) + ảnh Banca (yêu cầu 19/11/2026)
  */
 
 const fs = require('fs')
@@ -78,6 +79,7 @@ async function proxyRead(request: NextRequest, context: { params: Promise<{ path
 
 function isAllowedWritePath(normalizedPath: string) {
   return normalizedPath === 'calendar' ||
+    normalizedPath === 'poster-image' ||
     normalizedPath === 'kpi-target-registrations' ||
     normalizedPath.startsWith('kpi-target-registrations/')
 }
@@ -144,4 +146,4 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
 `
 
 fs.writeFileSync(routeFile, route, 'utf8')
-console.log('Standalone KPI API prepared: read proxy + calendar/target-registration write proxy.')
+console.log('Standalone KPI API prepared: read proxy + calendar/poster-image/target-registration write proxy.')
