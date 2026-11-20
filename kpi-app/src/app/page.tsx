@@ -1360,8 +1360,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 /* grp-fill phải giữ absolute: rule .grp-item > * (specificity bằng, đứng sau) từng ghi đè
    position thành relative → fill thành flex item in-flow chiếm width 100% → avatar
    bị đẩy lệch giữa/thẻ, không thẳng lề trái (lỗi ảnh chụp 21/11/2026). */
-.kpi-app .grp-item-flat .grp-fill { position: absolute !important; inset: 0 auto 0 0 !important; }
-.kpi-app .grp-item-flat { flex-direction: row; align-items: center; justify-content: flex-start; gap: 9px; }
+.kpi-app .grp-item-flat .grp-fill { position: absolute !important; inset: 0 auto 0 0 !important; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 12px), transparent 100%); mask-image: linear-gradient(90deg, #000 calc(100% - 12px), transparent 100%); }
+.kpi-app .grp-item-flat { flex-direction: row; align-items: center; justify-content: flex-start; gap: 14px; }
 .kpi-app .grp-item-flat .grp-item-body { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; }
 .kpi-app .grp-avatar {
   position: relative; flex: 0 0 auto; width: 46px; height: 46px;
@@ -1434,6 +1434,33 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .t3-bronze .top3-rank-num { background: linear-gradient(145deg, #f4dbc5, #ba7340 72%, #8b4d25); color: #3d1f10; }
 .kpi-app .t3-bronze .top3-bar { background: linear-gradient(90deg, transparent, rgba(112,55,23,.82), transparent); }
 .kpi-app .t3-bronze .top3-name, .kpi-app .t3-bronze .top3-val, .kpi-app .t3-bronze .top3-pct { color: #3d1f10; text-shadow: none; }
+
+/* Podium 1/2/3: ảnh tròn nhóm + khung hạng vàng/bạc/đồng (yêu cầu 21/11/2026) */
+.kpi-app .top3-avatar-frame {
+  width: 52px; height: 52px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  overflow: hidden; flex: 0 0 auto;
+}
+.kpi-app .top3-avatar-frame img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+.kpi-app .top3-avatar-ph { font-size: 17px; font-weight: 900; letter-spacing: .02em; }
+.kpi-app .top3-avatar-frame.rank-1 {
+  border: 3px solid transparent;
+  background: linear-gradient(#f7df89, #c9942f) padding-box, linear-gradient(145deg, #fff3c5, #d6a22d 60%, #8f6410) border-box;
+  box-shadow: 0 0 16px rgba(230, 190, 70, .65);
+}
+.kpi-app .top3-avatar-frame.rank-2 {
+  border: 3px solid transparent;
+  background: linear-gradient(#eef2f7, #9ca9b6) padding-box, linear-gradient(145deg, #ffffff, #b8c2cc 60%, #6e7b89) border-box;
+  box-shadow: 0 0 12px rgba(200, 215, 230, .55);
+}
+.kpi-app .top3-avatar-frame.rank-3 {
+  border: 3px solid transparent;
+  background: linear-gradient(#f4dbc5, #ba7340) padding-box, linear-gradient(145deg, #f4dbc5, #ba7340 60%, #7a3d1c) border-box;
+  box-shadow: 0 0 12px rgba(220, 150, 90, .55);
+}
+.kpi-app .top3-avatar-frame.rank-1 .top3-avatar-ph { color: #4a3005; }
+.kpi-app .top3-avatar-frame.rank-2 .top3-avatar-ph { color: #23303e; }
+.kpi-app .top3-avatar-frame.rank-3 .top3-avatar-ph { color: #3d1f10; }
 
 /* Calendar View */
 .kpi-app .sub-header { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0; position: sticky; top: 0; z-index: 50; }
@@ -7364,7 +7391,15 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     return (
                       <div className={`top3-card ${isF ? 'top3-first ' : ''}${cls3[i]}`} key={i} style={{ animationDelay: `${i * 80}ms` }}>
                         {isF && <div className="top3-crown">{crowns[i]}</div>}
-                        <div className="top3-rank"><span className="top3-rank-num">{i === 0 ? '2' : i === 1 ? '1' : '3'}</span></div>
+                        {/* Ảnh tròn nhóm thay cho số hạng — khung vàng/bạc/đồng phân biệt hạng (yêu cầu 21/11/2026) */}
+                        <div className="top3-rank">
+                          <span className={`top3-avatar-frame rank-${i === 1 ? '1' : i === 0 ? '2' : '3'}`}>
+                            {groupAvatars[item.maBanNhom]
+                              ? // eslint-disable-next-line @next/next/no-img-element
+                                <img src={groupAvatars[item.maBanNhom]} alt="" />
+                              : <span className="top3-avatar-ph">{grpAvatarInitials(item.name)}</span>}
+                          </span>
+                        </div>
                         <div className="top3-name">{item.name}</div>
                         <div className="top3-val"><AnimNum value={item.afyp} />trđ</div>
                         <div className="top3-bar" />
