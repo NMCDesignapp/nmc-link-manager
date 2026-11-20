@@ -21,7 +21,13 @@ body.nmc-kpi-linked-page .nmc-kpi-embedded-internal-loader {
 @media (min-width: 768px) {
   html[data-kpi-embed='1'],
   html[data-kpi-embed='1'] body {
+    height: 100% !important;
     overflow: hidden !important;
+  }
+
+  html[data-kpi-embed='1'] body > div:first-child {
+    height: 100% !important;
+    min-height: 0 !important;
   }
 
   html[data-kpi-embed='1'] .nmc-management-skin {
@@ -30,6 +36,8 @@ body.nmc-kpi-linked-page .nmc-kpi-embedded-internal-loader {
   }
 
   html[data-kpi-embed='1'] .nmc-management-content {
+    flex: 1 1 0% !important;
+    height: 100% !important;
     min-height: 0 !important;
     overflow: hidden !important;
     padding: 8px !important;
@@ -41,6 +49,7 @@ body.nmc-kpi-linked-page .nmc-kpi-embedded-internal-loader {
   }
 
   html[data-kpi-embed='1'] [data-nmc-kpi-detail-shell] > div {
+    height: 100% !important;
     min-height: 0 !important;
   }
 
@@ -51,6 +60,9 @@ body.nmc-kpi-linked-page .nmc-kpi-embedded-internal-loader {
     overflow: auto !important;
     overscroll-behavior: contain;
     scrollbar-gutter: stable both-edges;
+    position: relative;
+    isolation: isolate;
+    contain: paint;
     border-radius: 4px;
   }
 
