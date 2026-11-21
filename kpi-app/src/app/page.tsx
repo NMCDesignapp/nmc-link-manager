@@ -4108,6 +4108,10 @@ function pctClass(pct: number): string { return pct >= 100 ? 'green' : pct >= 75
 // Mã quản trị KPI (icon khóa trên trang chính) — yêu cầu user 19/11/2026
 const KPI_ADMIN_PASSCODE = '0969774224';
 
+// SHA của bản build đang chạy (Render/CI gắn lúc build qua scripts/inject-kpi-build-sha.js).
+// Trang KPI so SHA này với /api/health → khác bản → tự reload đúng 1 lần (hết chuyện bản cũ).
+const KPI_BUILD_SHA = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_KPI_BUILD_SHA) || '';
+
 // Viết tắt tên nhóm cho placeholder ảnh đại diện: "An Phúc" → "AP"
 function grpAvatarInitials(name: string): string {
   const clean = (name || '').replace(/^Nh[òo]m\s+/i, '').trim();
@@ -4348,6 +4352,56 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     setKpiSheet('home');
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'auto' });
   }, [kpiEmbeddedCanGoBack]);
+
+  // ===== CUỘN LÊN ĐẦU TRANG KHI CHUYỂN MÀN HÌNH (yêu cầu 21/11/2026) =====
+  // Gom về MỘT chỗ duy nhất: view (main/detail/calendar/tamthu/...) hoặc sheet nhúng
+  // (Thi đua / Chính sách / CLB Sao Việt) thay đổi → trang PHẢI ở vị trí đầu.
+  // Chạy lại sau khi React render xong (rAF + timeout) để điện thoại không kịp
+  // phục hồi vị trí cuộn cũ — không phụ thuộc từng nút bấm nữa.
+  useEffect(() => {
+    const scrollToTop = () => {
+      try {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      } catch {
+        window.scrollTo(0, 0);
+      }
+    };
+    scrollToTop();
+    const raf = requestAnimationFrame(() => { scrollToTop(); requestAnimationFrame(scrollToTop); });
+    const timer = setTimeout(scrollToTop, 180);
+    return () => { cancelAnimationFrame(raf); clearTimeout(timer); };
+  }, [view, kpiSheet]);
+
+  // ===== TỰ CẬP NHẬT BẢN MỚI (dứt điểm chuyện người dùng kẹt ở bản cũ) =====
+  // Định kỳ (90s + khi quay lại app) so SHA bản ĐANG CHẠY với /api/health.
+  // Khác bản → tự reload đúng 1 lần/phiên trình duyệt (guard sessionStorage).
+  useEffect(() => {
+    if (!KPI_BUILD_SHA) return;
+    let stopped = false;
+    const checkBuild = async () => {
+      if (stopped || document.visibilityState !== 'visible') return;
+      try {
+        const res = await fetch('/api/health', { cache: 'no-store' });
+        if (!res.ok || stopped) return;
+        const data = await res.json().catch(() => null);
+        const remoteBuild = typeof data?.build === 'string' ? data.build : '';
+        if (!remoteBuild || remoteBuild === KPI_BUILD_SHA) return;
+        const guardKey = `nmc-kpi-reloaded-${remoteBuild}`;
+        if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem(guardKey)) {
+          sessionStorage.setItem(guardKey, '1');
+          window.location.reload();
+        }
+      } catch { /* offline — kiểm lần sau */ }
+    };
+    void checkBuild();
+    const interval = setInterval(() => { void checkBuild(); }, 90000);
+    const onVisible = () => { if (document.visibilityState === 'visible') void checkBuild(); };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => { stopped = true; clearInterval(interval); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('focus', onVisible); };
+  }, []);
 
   useEffect(() => {
     const handleEmbeddedNavigation = (event: MessageEvent) => {

@@ -10,6 +10,7 @@ export async function GET() {
 
   const checks: Record<string, any> = {
     timestamp: new Date().toISOString(),
+    build: process.env.RENDER_GIT_COMMIT || process.env.NEXT_PUBLIC_KPI_BUILD_SHA || 'unknown',
     env: {
       hasDatabaseUrl: !!databaseUrl,
       hasDirectUrl: !!directUrl,
