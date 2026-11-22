@@ -118,6 +118,64 @@ body.nmc-kpi-linked-page .nmc-kpi-embedded-internal-loader {
     filter: brightness(.95);
   }
 }
+
+/* nmc-kpi-embedded-mobile-scroll-v1
+ * KPI tách mở /quan-ly trong iframe toàn màn hình. Ở mobile, main trước đây
+ * dùng overflow-hidden nhưng không truyền chiều cao còn lại xuống detail shell,
+ * khiến bảng chi tiết bị cắt và không còn vùng nhận thao tác vuốt. Giữ khung
+ * iframe cố định, rồi giao quyền cuộn cho detail content/table bên trong.
+ */
+@media (max-width: 767px) {
+  html[data-kpi-embed='1'],
+  html[data-kpi-embed='1'] body {
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  html[data-kpi-embed='1'] body > div:first-child,
+  html[data-kpi-embed='1'] .nmc-management-skin {
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  html[data-kpi-embed='1'] .nmc-management-content {
+    flex: 1 1 0% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+  }
+
+  html[data-kpi-embed='1'] [data-nmc-kpi-detail-shell] {
+    min-height: 0 !important;
+    height: 100% !important;
+  }
+
+  html[data-kpi-embed='1'] [data-nmc-kpi-detail-shell] > div {
+    min-height: 0 !important;
+  }
+
+  html[data-kpi-embed='1'] [data-nmc-kpi-detail-mobile] {
+    display: flex !important;
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  html[data-kpi-embed='1'] [data-nmc-kpi-detail-mobile] .saoviet-detail-table-wrapper,
+  html[data-kpi-embed='1'] [data-nmc-kpi-detail-mobile] .clbsv-detail-table-wrapper,
+  html[data-kpi-embed='1'] [data-nmc-kpi-detail-mobile] .policy-detail-table-wrapper {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}
 `;
 
 const KPI_EMBED_DETECTOR = `

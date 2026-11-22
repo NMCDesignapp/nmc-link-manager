@@ -8,7 +8,7 @@ import { AppDataProvider } from '@/lib/app-data-context'
 
 // URL Main App được nhúng khi build KPI để có thể chuyển host độc lập.
 // Vercel chỉ là fallback trong giai đoạn chuyển tiếp.
-const MAIN_APP_URL = (process.env.NEXT_PUBLIC_MAIN_APP_URL || 'https://nc-link.vercel.app').replace(/\/+$/, '')
+const MAIN_APP_URL = 'https://nc-link.onrender.com';
 
 export const metadata: Metadata = {
   title: 'KPI - N.M.C',
