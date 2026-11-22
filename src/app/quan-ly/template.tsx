@@ -142,13 +142,14 @@ body.nmc-kpi-linked-page .nmc-kpi-embedded-internal-loader {
     flex: 1 1 0% !important;
     height: 100% !important;
     min-height: 0 !important;
-    overflow: hidden !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
     padding: 0 !important;
   }
 
   html[data-kpi-embed='1'] [data-nmc-kpi-detail-shell] {
     min-height: 0 !important;
-    height: 100% !important;
+    height: auto !important;
   }
 
   html[data-kpi-embed='1'] [data-nmc-kpi-detail-shell] > div {
@@ -157,9 +158,9 @@ body.nmc-kpi-linked-page .nmc-kpi-embedded-internal-loader {
 
   html[data-kpi-embed='1'] [data-nmc-kpi-detail-mobile] {
     display: flex !important;
-    flex: 1 1 0% !important;
+    flex: 0 0 auto !important;
     min-height: 0 !important;
-    overflow-y: auto !important;
+    overflow: visible !important;
     overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
@@ -168,10 +169,11 @@ body.nmc-kpi-linked-page .nmc-kpi-embedded-internal-loader {
   html[data-kpi-embed='1'] [data-nmc-kpi-detail-mobile] .saoviet-detail-table-wrapper,
   html[data-kpi-embed='1'] [data-nmc-kpi-detail-mobile] .clbsv-detail-table-wrapper,
   html[data-kpi-embed='1'] [data-nmc-kpi-detail-mobile] .policy-detail-table-wrapper {
-    flex: 1 1 0% !important;
+    flex: 0 0 auto !important;
     min-height: 0 !important;
     max-height: none !important;
-    overflow: auto !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
