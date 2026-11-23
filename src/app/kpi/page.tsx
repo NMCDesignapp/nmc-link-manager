@@ -2807,8 +2807,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   font-weight: 800;
   letter-spacing: .02em;
 }
-.kpi-embed-loader::after {
-  content: '';
+.kpi-embed-loader-spinner {
   width: 39px;
   height: 39px;
   border-radius: 50%;
@@ -2818,7 +2817,29 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   box-shadow: 0 0 18px rgba(89, 213, 255, .28);
   animation: kpi-embed-spin .8s linear infinite;
 }
+.kpi-embed-loader-progress {
+  width: min(280px, 70vw);
+  height: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(103, 217, 255, .28);
+  border-radius: 999px;
+  background: rgba(103, 217, 255, .1);
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, .3), 0 0 14px rgba(89, 213, 255, .12);
+}
+.kpi-embed-loader-progress-fill {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #67d9ff, #61e4aa, #ffd76b);
+  box-shadow: 0 0 12px rgba(97, 228, 170, .7);
+  animation: kpi-embed-progress 1.8s ease-in-out infinite;
+}
 @keyframes kpi-embed-spin { to { transform: rotate(360deg); } }
+@keyframes kpi-embed-progress {
+  0% { width: 0; opacity: .65; }
+  70% { width: 100%; opacity: 1; }
+  100% { width: 100%; opacity: .65; }
+}
 .kpi-embed-iframe {
   display: block;
   width: 100%;
@@ -6625,7 +6646,11 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
           <div className="kpi-embed-body">
             {kpiEmbedLoading && (
               <div className="kpi-embed-loader" role="status" aria-live="polite">
+                <span className="kpi-embed-loader-spinner" aria-hidden="true" />
                 <span>Đang tải nội dung...</span>
+                <div className="kpi-embed-loader-progress" role="progressbar" aria-label="Tiến độ tải dữ liệu">
+                  <span className="kpi-embed-loader-progress-fill" aria-hidden="true" />
+                </div>
               </div>
             )}
             <iframe
