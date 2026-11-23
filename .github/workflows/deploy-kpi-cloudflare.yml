@@ -11,6 +11,10 @@ on:
       - 'kpi-app/src/app/page.tsx'
       - 'kpi-app/src/app/template.tsx'
       - 'kpi-app/wrangler.jsonc'
+      - 'scripts/apply-kpi-linked-loader-single.js'
+      - 'scripts/apply-kpi-loader-icon.js'
+      - 'src/app/quan-ly/page.tsx'
+      - 'src/app/quan-ly/template.tsx'
       - '.github/workflows/deploy-kpi-cloudflare.yml'
 
 permissions:
