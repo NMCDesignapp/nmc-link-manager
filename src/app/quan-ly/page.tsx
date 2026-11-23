@@ -2973,7 +2973,7 @@ export default function QuanLyPage() {
   // ===== AppDataContext: đọc dữ liệu đã preload khi app mở (lần đầu) =====
   // Khi dataVersion tăng (tức là context vừa load xong), sync vào local state.
   // Sheet-specific fetch vẫn giữ nguyên để dùng sau CRUD / đổi sheet.
-  const { data: appData, dataVersion: appDataVersion, isReloading: appDataReloading, reload: reloadAppData } = useAppData();
+  const { data: appData, dataVersion: appDataVersion, isLoading: appDataLoading, isReloading: appDataReloading, reload: reloadAppData } = useAppData();
   const lastSyncedVersion = useRef<number>(-1);
   useEffect(() => {
     if (appDataVersion <= lastSyncedVersion.current) return;
@@ -3050,7 +3050,10 @@ export default function QuanLyPage() {
   // Báo cho KPI cha chỉ sau khi sheet đã tải dữ liệu xong. Iframe load HTML
   // chưa đủ vì các chương trình còn phải chờ API và render bảng/card.
   useEffect(() => {
-    if (!isInIframe || !mounted || isLoading || !sheetLoadCompleted || typeof window === 'undefined') return;
+    // Preload dữ liệu của AppDataContext có thể kết thúc mà không tăng
+    // dataVersion (ví dụ API trả lỗi). Khi đó vẫn phải báo parent để tránh
+    // giữ lớp loading vô hạn; nội dung sheet sẽ hiển thị trạng thái thực tế.
+    if (!isInIframe || !mounted || isLoading || (!sheetLoadCompleted && appDataLoading) || typeof window === 'undefined') return;
     const frame = requestAnimationFrame(() => {
       window.parent.postMessage({
         type: 'nmc:kpi-embedded-ready',
@@ -3058,7 +3061,7 @@ export default function QuanLyPage() {
       }, '*');
     });
     return () => cancelAnimationFrame(frame);
-  }, [isInIframe, mounted, isLoading, sheetLoadCompleted, activeSheet]);
+  }, [isInIframe, mounted, isLoading, sheetLoadCompleted, appDataLoading, activeSheet]);
 
   // Khi đang xem Chính sách, Sao Việt hoặc CLB Sao Việt, làm mới nguồn cấu
   // trúc/dữ liệu nền định kỳ. Vì vậy thêm/bớt TVV, TB/TN, TTN hay thành viên

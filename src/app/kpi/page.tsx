@@ -4423,8 +4423,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'auto' });
   }, [kpiEmbeddedCanGoBack]);
 
-  // Chỉ ẩn loading khi trang con đã tải xong dữ liệu và báo sẵn sàng.
-  // Sự kiện này được gửi từ /quan-ly sau khi các chương trình đã render xong.
+  // Ưu tiên tín hiệu hoàn tất từ /quan-ly; có timeout dự phòng để iframe
+  // không bị che vô thời hạn nếu Render khởi động chậm hoặc tín hiệu bị lỡ.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const handleEmbeddedReady = (event: MessageEvent) => {
@@ -4436,6 +4436,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     window.addEventListener('message', handleEmbeddedReady);
     return () => window.removeEventListener('message', handleEmbeddedReady);
   }, [kpiSheet]);
+
+  // Render Free có thể cần thời gian khởi động sau khi ngủ. Không để lớp che
+  // ở KPI tồn tại mãi nếu trang con không gửi được tín hiệu ready.
+  useEffect(() => {
+    if (kpiSheet === 'home' || !kpiEmbedLoading) return;
+    const timeoutId = window.setTimeout(() => setKpiEmbedLoading(false), 60000);
+    return () => window.clearTimeout(timeoutId);
+  }, [kpiSheet, kpiEmbedLoading]);
 
   // ===== CUỘN LÊN ĐẦU TRANG KHI CHUYỂN MÀN HÌNH (yêu cầu 21/11/2026) =====
   // Gom về MỘT chỗ duy nhất: view (main/detail/calendar/tamthu/...) hoặc sheet nhúng
