@@ -3005,6 +3005,10 @@ export default function QuanLyPage() {
     if (appData.pendingMembers) setPendingMembers(appData.pendingMembers);
     if (appData.settings) setOnlineSettings(appData.settings);
     if (appData.contests) setSavedContestsList(appData.contests.filter(isSaoVietTrackingContest));
+    // KPI iframe: initial sheet URL skips loadSheet because AppDataContext preloads
+    // the shared dataset. Mark this initial preload complete so the parent loader
+    // can dismiss only after the data has been synced into local state and rendered.
+    setSheetLoadCompleted(true);
   }, [appData, appDataVersion]);
 
   const loadSheet = useCallback((sheet: SheetKey, _force = false) => {
