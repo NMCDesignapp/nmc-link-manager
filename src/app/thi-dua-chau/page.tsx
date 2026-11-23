@@ -1,6 +1,6 @@
 'use client';
 import { ContestCommunicationDialog } from '@/components/contest-communication-dialog';
-import { buildContestCommunication, contestProgramUrl, type ContestCommunication } from '@/lib/contest-communication';
+import { buildContestCommunication, contestProgramUrl, KPI_APP_ORIGIN, type ContestCommunication } from '@/lib/contest-communication';
 import { useContestApprovals } from '@/hooks/use-contest-approvals';
 
 // nmc-contest-top-eligibility-v1
@@ -899,6 +899,7 @@ function ThiDuaPageInner() {
   const [selectedSubjectTypes, setSelectedSubjectTypes] = useState<Set<string>>(new Set());
   const [isDownloadingImage, setIsDownloadingImage] = useState(false);
   const [communication, setCommunication] = useState<ContestCommunication | null>(null);
+  const [embedDataReady, setEmbedDataReady] = useState(!isEmbedMode);
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [recruiterList, setRecruiterList] = useState<RecruiterMember[]>([]);
   // NGUỒN ĐÚNG cho DS đối tượng thi đua (theo yêu cầu user):
@@ -1086,7 +1087,7 @@ function ThiDuaPageInner() {
   }, [fetchFresh]);
 
   // ===== AppDataContext: đọc dữ liệu đã preload khi app mở =====
-  const { data: appData, dataVersion, reload: reloadAppData } = useAppData();
+  const { data: appData, dataVersion, isLoading: appDataLoading, reload: reloadAppData } = useAppData();
   const effectiveCarryoverContracts = lockedSnapshot?.carryoverContracts || appData.carryoverContracts || [];
   const effectiveSaoVietRows = lockedSnapshot?.saoVietRows || registeredSaoViet.rows;
   const effectiveApprovals = lockedSnapshot
@@ -3406,7 +3407,7 @@ function ThiDuaPageInner() {
     tvvContractCountMin, referenceContestId, includeTNInPassCount,
     topN, topNMinIP, topNValueType, topRewardAmounts, topEligibilityType, topEligibilityMin,
     useTopRanking: supportsCombinedTopRanking(conditionType) && useTopRanking,
-  }, appData.settings || {}, new Date(), recruitmentConfig, contestProgramUrl(window.location.origin, selectedContestId));
+  }, appData.settings || {}, new Date(), recruitmentConfig, contestProgramUrl(KPI_APP_ORIGIN, selectedContestId));
 
   const handleDownloadImage = async () => {
     const communicationSnapshot = createCommunication();
@@ -4074,6 +4075,24 @@ function ThiDuaPageInner() {
       handleCalculateRef.current();
     }, 500);
   }, [isEmbedMode, embedContestId, isAutocalc, savedContests.length, contracts.length]);
+
+  // Khi mở từ KPI, chỉ gỡ loading sau khi chương trình đã được nạp,
+  // đã tính xong và bảng kết quả thật sự có số liệu.
+  useEffect(() => {
+    if (!isEmbedMode || !isAutocalc) return;
+    const hasNumbers = filteredContracts.length > 0 || displayContracts.length > 0;
+    const ready = Boolean(
+      !appDataLoading &&
+      embedContestId &&
+      selectedContestId === embedContestId &&
+      contestTitle !== 'CHƯƠNG TRÌNH THI ĐUA' &&
+      contracts.length > 0 &&
+      hasNumbers,
+    );
+    if (!ready) return;
+    setEmbedDataReady(true);
+    window.parent.postMessage({ type: 'nmc:contest-embedded-ready', contestId: embedContestId }, '*');
+  }, [isEmbedMode, isAutocalc, appDataLoading, embedContestId, selectedContestId, contestTitle, contracts.length, filteredContracts.length, displayContracts.length]);
 
   // Phase 2 per-row bonus calculation helper
   const getRowPhaseBonus = useCallback((metricValue: number, ipBase: number, totalIPBase: number, effectiveDate?: string): { phase1Bonus: number; phase2Bonus: number; phase1Tier: BonusTier | null; phase2Tier: BonusTier | null } => {
@@ -5302,6 +5321,11 @@ function ThiDuaPageInner() {
           </div>
 
           <div ref={resultContentRef} className={`${isEmbedMode ? '' : 'contest-result-content'} px-3 py-2`}>
+            {isEmbedMode && !embedDataReady && (
+              <div className="absolute inset-0 z-20 flex min-h-[240px] items-center justify-center bg-white text-sm font-bold text-emerald-700">
+                <Loader2 className="mr-2 h-5 w-5 animate-spin text-emerald-600" /> Đang tải số liệu chương trình...
+              </div>
+            )}
             <div ref={printRef}>
               {/* Poster image - full width, 21:9 aspect ratio, no gaps */}
               {posterUrl && <div className="mb-3 w-full overflow-hidden" style={{ aspectRatio: '21/9' }}><img src={posterUrl} alt="Poster" className="w-full h-full object-fill shadow-md" /></div>}

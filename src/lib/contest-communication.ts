@@ -1,8 +1,9 @@
 import { type ContestConfig, type RecruitmentContestConfig } from './contest-calculator.ts';
 
-export type CommunicationLine = { text: string; emphasis?: boolean; tone?: 'urgent' | 'title' };
+export type CommunicationLine = { text: string; emphasis?: boolean; tone?: 'urgent' | 'title'; url?: string };
 export type ContestCommunication = { lines: CommunicationLine[]; text: string };
 const MAIN_APP_ORIGIN = (process.env.NEXT_PUBLIC_MAIN_APP_URL || 'https://nc-link.onrender.com').replace(/\/+$/, '');
+export const KPI_APP_ORIGIN = (process.env.NEXT_PUBLIC_KPI_APP_URL || 'https://kpi-nc-link.chaunm2312.workers.dev').replace(/\/+$/, '');
 const day = (value: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).format(value);
 const date = (value: string) => {
   const d = new Date(value);
@@ -54,6 +55,6 @@ export function buildContestCommunication(c: ContestConfig, settings: Record<str
   ];
   const sync = successfulSyncTime(settings, now);
   lines.push({ text: sync ? `📊 Dữ liệu thi đua được cập nhật đến: ${new Date(sync).toLocaleString('vi-VN', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}.` : '📊 Chưa xác định được thời điểm đồng bộ thành công từ máy lên app.', emphasis: true });
-  lines.push({ text: `Xem chi tiết tại -> ${programUrl}` });
-  return { lines, text: lines.map(line => line.text).join('\n\n') };
+  lines.push({ text: `Xem chi tiết tại -> ${programUrl}`, url: programUrl });
+  return { lines, text: lines.map(line => line.text).join('\n') };
 }
