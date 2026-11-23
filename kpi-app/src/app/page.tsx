@@ -6664,8 +6664,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             <iframe
               ref={kpiIframeRef}
               key={kpiSheet}
-              // Main App /quan-ly luôn nằm trên Render, không nằm trên KPI Worker.
-              // Dùng đúng một origin cho cả KPI main và KPI standalone.
               src={buildMainUrl('/quan-ly?sheet=' + kpiSheet + (standalone ? '&from=kpi' : '&admin=1&from=kpi'))}
               title={kpiSheet === 'saoviet' ? 'Thi đua' : kpiSheet === 'report' ? 'Chính Sách 2026' : kpiSheet === 'cskk-2026' ? 'Chính Sách Khuyến Khích 2026' : 'CLB Sao Việt'}
               className="kpi-embed-iframe"
