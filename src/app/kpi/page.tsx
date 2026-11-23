@@ -1,5 +1,7 @@
 'use client';
 
+// Linked-sheet loading is a single centered rotating circle; no popup card.
+
 import { useState, useEffect, useMemo, useCallback, useRef, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
