@@ -2316,6 +2316,7 @@ export default function QuanLyPage() {
   const [clbMembers, setClbMembers] = useState<CLBMemberItem[]>([]);
   const [pendingMembers, setPendingMembers] = useState<PendingMemberItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [sheetLoadCompleted, setSheetLoadCompleted] = useState(false);
 
   // Structure state
   const [phongList, setPhongList] = useState<PhongItem[]>([]);
@@ -3007,6 +3008,7 @@ export default function QuanLyPage() {
   }, [appData, appDataVersion]);
 
   const loadSheet = useCallback((sheet: SheetKey, _force = false) => {
+    setSheetLoadCompleted(false);
     setIsLoading(true);
     const loaders: Record<SheetKey, () => Promise<void>> = {
       overview: async () => { await Promise.all([fetchAllData(), fetchTvvStruct(), fetchPhong(), fetchAD(), fetchBanNhom()]); }, // Fetch all data + structure for Kế hoạch targets
@@ -3024,7 +3026,10 @@ export default function QuanLyPage() {
       'clb-saoviet': async () => { await Promise.all([fetchAllData(), fetchTvvStruct(), fetchPhong(), fetchAD(), fetchBanNhom(), fetchLeaders(), fetchRecruiters(), fetchClbMembers(), fetchPendingMembers()]); },
       'vinh-danh': async () => { await Promise.all([fetchContracts(), fetchLeaders(), fetchTvvStruct(), fetchPhong(), fetchAD(), fetchBanNhom()]); },
     };
-    loaders[sheet]().finally(() => setIsLoading(false));
+    loaders[sheet]().finally(() => {
+      setIsLoading(false);
+      setSheetLoadCompleted(true);
+    });
   }, [fetchAllData, fetchLeaders, fetchRevenue, fetchContracts, fetchStaff, fetchRecruiters, fetchTuyenNgang, fetchPhong, fetchAD, fetchBanNhom, fetchTvvStruct, fetchClbMembers, fetchPendingMembers]);
 
   // Skip initial loadSheet — context đã preload dữ liệu toàn app.
@@ -3037,6 +3042,19 @@ export default function QuanLyPage() {
     }
     loadSheet(activeSheet);
   }, [activeSheet, loadSheet]);
+
+  // Báo cho KPI cha chỉ sau khi sheet đã tải dữ liệu xong. Iframe load HTML
+  // chưa đủ vì các chương trình còn phải chờ API và render bảng/card.
+  useEffect(() => {
+    if (!isInIframe || !mounted || isLoading || !sheetLoadCompleted || typeof window === 'undefined') return;
+    const frame = requestAnimationFrame(() => {
+      window.parent.postMessage({
+        type: 'nmc:kpi-embedded-ready',
+        sheet: activeSheet,
+      }, '*');
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isInIframe, mounted, isLoading, sheetLoadCompleted, activeSheet]);
 
   // Khi đang xem Chính sách, Sao Việt hoặc CLB Sao Việt, làm mới nguồn cấu
   // trúc/dữ liệu nền định kỳ. Vì vậy thêm/bớt TVV, TB/TN, TTN hay thành viên

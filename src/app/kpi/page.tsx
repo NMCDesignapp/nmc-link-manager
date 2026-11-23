@@ -4372,18 +4372,11 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const kpiIframeRef = useRef<HTMLIFrameElement>(null);
   const [kpiEmbeddedCanGoBack, setKpiEmbeddedCanGoBack] = useState(false);
   const [kpiEmbedLoading, setKpiEmbedLoading] = useState(false);
-  const kpiEmbedStartedAtRef = useRef(0);
-  const kpiEmbedReadyTimerRef = useRef<number | null>(null);
 
   // KPI tách hoạt động như một app độc lập: mỗi màn hình nhúng có một history entry riêng.
   const openKpiSheet = useCallback((sheet: 'saoviet' | 'report' | 'clb-saoviet' | 'cskk-2026') => {
     setKpiEmbeddedCanGoBack(false);
     setKpiEmbedLoading(true);
-    kpiEmbedStartedAtRef.current = Date.now();
-    if (kpiEmbedReadyTimerRef.current !== null && typeof window !== 'undefined') {
-      window.clearTimeout(kpiEmbedReadyTimerRef.current);
-      kpiEmbedReadyTimerRef.current = null;
-    }
     setKpiSheet(sheet);
     if (typeof window !== 'undefined') {
       window.history.pushState({ ...(window.history.state || {}), nmcKpiSheet: sheet }, '', window.location.href);
@@ -4404,6 +4397,20 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     setKpiSheet('home');
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'auto' });
   }, [kpiEmbeddedCanGoBack]);
+
+  // Chỉ ẩn loading khi trang con đã tải xong dữ liệu và báo sẵn sàng.
+  // Sự kiện này được gửi từ /quan-ly sau khi các chương trình đã render xong.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleEmbeddedReady = (event: MessageEvent) => {
+      if (event.source !== kpiIframeRef.current?.contentWindow) return;
+      if (event.data?.type !== 'nmc:kpi-embedded-ready') return;
+      if (event.data?.sheet !== kpiSheet) return;
+      setKpiEmbedLoading(false);
+    };
+    window.addEventListener('message', handleEmbeddedReady);
+    return () => window.removeEventListener('message', handleEmbeddedReady);
+  }, [kpiSheet]);
 
   // ===== CUỘN LÊN ĐẦU TRANG KHI CHUYỂN MÀN HÌNH (yêu cầu 21/11/2026) =====
   // Gom về MỘT chỗ duy nhất: view (main/detail/calendar/tamthu/...) hoặc sheet nhúng
@@ -6627,18 +6634,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               className="kpi-embed-iframe"
               loading="eager"
               allow="fullscreen"
-              onLoad={() => {
-                const elapsed = Date.now() - kpiEmbedStartedAtRef.current;
-                const KPI_LINKED_MIN_VISIBLE_MS = 3200;
-                const remaining = Math.max(0, KPI_LINKED_MIN_VISIBLE_MS - elapsed);
-                if (kpiEmbedReadyTimerRef.current !== null) {
-                  window.clearTimeout(kpiEmbedReadyTimerRef.current);
-                }
-                kpiEmbedReadyTimerRef.current = window.setTimeout(() => {
-                  kpiEmbedReadyTimerRef.current = null;
-                  setKpiEmbedLoading(false);
-                }, remaining);
-              }}
+              // /quan-ly tự gửi nmc:kpi-embedded-ready sau khi dữ liệu và nội dung
+              // chương trình đã render xong; không ẩn loading chỉ vì iframe đã load HTML.
               style={{
                 visibility: kpiEmbedLoading ? 'hidden' : 'visible',
                 opacity: kpiEmbedLoading ? 0 : 1,
