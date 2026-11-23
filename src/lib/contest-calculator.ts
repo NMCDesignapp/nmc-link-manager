@@ -1091,11 +1091,24 @@ export function calculateEntityPhaseOutcome(contracts: Contract[], config: Conte
 }
 
 // ===== Phase 1: filter contracts by dates + secondary per-contract condition =====
+function contestIsStillActive(config: ContestConfig): boolean {
+  if (!config.endDate) return false;
+  const end = getContestDateBoundary(config.endDate, true).getTime();
+  return Number.isFinite(end) && Date.now() <= end;
+}
+
 export function filterContractsByContest(
   contracts: Contract[],
   config: ContestConfig
 ): Contract[] {
-  let results = [...contracts];
+  // Chỉ áp dụng fallback cho chương trình còn thời hạn. Chương trình đã kết
+  // thúc phải giữ đúng dữ liệu lịch sử: ngày phát hành trống vẫn là trống.
+  const useEffectiveDateAsIssueDate = contestIsStillActive(config);
+  let results = contracts.map((contract) => (
+    useEffectiveDateAsIssueDate && !contract.issueDate && contract.effectiveDate
+      ? { ...contract, issueDate: contract.effectiveDate }
+      : contract
+  ));
   if (config.startDate) {
     const start = getContestDateBoundary(config.startDate);
     results = results.filter((c) => new Date(c.effectiveDate) >= start);

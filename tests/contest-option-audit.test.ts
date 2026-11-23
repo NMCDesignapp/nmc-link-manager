@@ -105,6 +105,20 @@ test('effective and issue ranges intersect inclusively; missing issue date canno
  const input=[rows[0],{...rows[1],issueDate:'2026-10-10T23:59:59.999Z'}, {...rows[0],id:'missing',issueDate:''},{...rows[0],id:'next',issueDate:'2026-10-11'}, {...rows[0],id:'before',effectiveDate:'2026-09-09'}];
  assert.deepEqual(calc.filterContractsByContest(input,cfg).map(c=>c.id),['p1','p2']);
 });
+test('active contest uses effective date when issue date is blank',()=>{
+ const cfg=config({startDate:'2026-11-01',endDate:'2099-12-31',issueDate:'2026-11-01',issueEndDate:'2026-11-30',usePhase2:false});
+ const input=[{...rows[0],id:'active-missing-issue',effectiveDate:'2026-11-15',issueDate:''}];
+ const filtered=calc.filterContractsByContest(input,cfg);
+ assert.equal(filtered.length,1);
+ assert.equal(filtered[0].issueDate,'2026-11-15');
+});
+test('ended contest does not backfill a blank issue date',()=>{
+ const cfg=config({startDate:'2026-09-01',endDate:'2020-12-31',issueDate:'2026-09-01'});
+ const input=[{...rows[0],id:'ended-missing-issue',effectiveDate:'2026-09-15',issueDate:''}];
+ const filtered=calc.filterContractsByContest(input,cfg);
+ assert.equal(filtered.length,0);
+ assert.equal(input[0].issueDate,'');
+});
 test('each supplementary switch independently blocks an otherwise qualifying reward at the boundary',()=>{
  const input=rows.slice(0,2);
  for(const [field,at,above] of [['secondaryTotalIPMin',24,25],['secondaryTotalAFYPMin',48,49],['secondaryContractCountMin',2,3],['secondaryLuotHDMin',1,2],['secondaryLuotHDCMin',1,2]] as const){
