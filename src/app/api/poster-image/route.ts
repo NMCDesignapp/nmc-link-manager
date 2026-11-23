@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const prefix = searchParams.get('prefix') || ''
-    if (prefix && !['saoviet-poster-', 'clbsv-poster-', 'kpi-banca-img-', 'kpi-nhom-img-'].includes(prefix)) {
+    if (prefix && !['saoviet-poster-', 'clbsv-poster-', 'kpi-banca-img-', 'kpi-nhom-img-', 'kpi-ad-img-'].includes(prefix)) {
       return NextResponse.json({ error: 'unsupported prefix' }, { status: 400 })
     }
     const rows: Array<{ key: string; updatedAt: Date }> = await db.$queryRawUnsafe<Array<{ key: string; updatedAt: Date }>>(
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate key format — only allow known prefix patterns
-    const allowedPrefixes = ['saoviet-poster-', 'clbsv-poster-', 'kpi-banca-img-', 'kpi-nhom-img-']
+    const allowedPrefixes = ['saoviet-poster-', 'clbsv-poster-', 'kpi-banca-img-', 'kpi-nhom-img-', 'kpi-ad-img-']
     if (!allowedPrefixes.some(p => key.startsWith(p))) {
       return NextResponse.json({ error: `key must start with one of: ${allowedPrefixes.join(', ')}` }, { status: 400 })
     }

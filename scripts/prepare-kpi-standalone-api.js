@@ -7,7 +7,7 @@
  * exceptions are proxied to Main App without giving standalone database credentials:
  * - /api/calendar for Kế hoạch khung
  * - /api/kpi-target-registrations for KPI monthly target registration
- * - /api/poster-image for ảnh đại diện nhóm (kpi-nhom-img-) + ảnh Banca (yêu cầu 19/11/2026)
+ * - /api/poster-image for ảnh đại diện nhóm (kpi-nhom-img-), ảnh AD (kpi-ad-img-) + ảnh Banca (yêu cầu 19/11/2026)
  */
 
 const fs = require('fs')
