@@ -2795,7 +2795,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-embed-loader {
   position: absolute;
   inset: 0;
-  z-index: 2147483647;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2806,8 +2806,6 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   font-size: 13px;
   font-weight: 800;
   letter-spacing: .02em;
-  visibility: visible !important;
-  opacity: 1 !important;
 }
 .kpi-embed-loader-card {
   display: flex;
@@ -6683,7 +6681,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               // /quan-ly tự gửi nmc:kpi-embedded-ready sau khi dữ liệu và nội dung
               // chương trình đã render xong; không ẩn loading chỉ vì iframe đã load HTML.
               style={{
+                visibility: kpiEmbedLoading ? 'hidden' : 'visible',
+                opacity: kpiEmbedLoading ? 0 : 1,
                 pointerEvents: kpiEmbedLoading ? 'none' : 'auto',
+                transition: 'opacity .16s ease-out',
               }}
             />
           </div>
