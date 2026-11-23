@@ -4424,29 +4424,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   // Sự kiện này được gửi từ /quan-ly sau khi các chương trình đã render xong.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    let hideTimer: number | null = null;
     const handleEmbeddedReady = (event: MessageEvent) => {
       if (event.source !== kpiIframeRef.current?.contentWindow) return;
       if (event.data?.type !== 'nmc:kpi-embedded-ready') return;
       if (event.data?.sheet !== kpiSheet) return;
-      // Cho popup có đủ thời gian xuất hiện trên màn hình ngay cả khi dữ liệu
-      // đã được preload/cache; nếu chưa ready thì popup vẫn tiếp tục hiển thị.
-      const minVisibleMs = 420;
-      const elapsed = kpiEmbedStartedAtRef.current > 0
-        ? Date.now() - kpiEmbedStartedAtRef.current
-        : minVisibleMs;
-      const hide = () => setKpiEmbedLoading(false);
-      if (elapsed < minVisibleMs) {
-        hideTimer = window.setTimeout(hide, minVisibleMs - elapsed);
-      } else {
-        hide();
-      }
+      setKpiEmbedLoading(false);
     };
     window.addEventListener('message', handleEmbeddedReady);
-    return () => {
-      window.removeEventListener('message', handleEmbeddedReady);
-      if (hideTimer !== null) window.clearTimeout(hideTimer);
-    };
+    return () => window.removeEventListener('message', handleEmbeddedReady);
   }, [kpiSheet]);
 
   // ===== CUỘN LÊN ĐẦU TRANG KHI CHUYỂN MÀN HÌNH (yêu cầu 21/11/2026) =====
