@@ -46,12 +46,9 @@ README gốc phản ánh giai đoạn đầu và còn ghi Neon. Không dùng REA
 
 ### Main App
 
-- Nền tảng production: Vercel.
-- Vercel project: `nc-link`.
-- Vercel team: `thanhhung070826-6875`.
-- Production: `https://nc-link.vercel.app`.
-- KPI trong Main App: `https://nc-link.vercel.app/kpi`.
+- Main App hiện chạy trên Render: `https://nc-link.onrender.com`.
 - Main App chứa chức năng quản trị, nguồn điều khiển cấu hình và các API ghi.
+- Đang tiến hành migration Main App từ Render sang Cloudflare; Render giữ nguyên làm phương án rollback cho đến khi xác minh và chuyển traffic.
 
 ### KPI tách
 
@@ -59,7 +56,7 @@ README gốc phản ánh giai đoạn đầu và còn ghi Neon. Không dùng REA
 - Worker: `kpi-nc-link`.
 - Production: `https://kpi-nc-link.chaunm2312.workers.dev`.
 - Source/build root: `kpi-app`; build bằng OpenNext for Cloudflare.
-- KPI đọc dữ liệu và proxy API cần thiết về Main App tại `https://nc-link.vercel.app`.
+- KPI đọc dữ liệu và proxy API cần thiết về Main App (hostname hiện tại cần được xác minh/điều chỉnh theo migration).
 - Không còn giai đoạn thử nghiệm hoặc bản nội dung KPI production trên Vercel. Tuy nhiên phải giữ Vercel project `kpi-redirect` cùng hai URL `angiang2026.vercel.app` và `angiang2026-nhom.vercel.app` làm lớp chuyển hướng tương thích sang KPI Cloudflare; không xóa project/alias này.
 - Đây là bản công khai, chỉ đọc.
 - Không được lộ nút quản trị, sidebar, mật khẩu quản trị, API ghi hoặc luồng nội bộ Main App.
@@ -542,7 +539,7 @@ Audit cũ ghi nhận snapshot:
 3. Config Data Hub thật nằm ngoài GitHub; cloud không tự biết đường dẫn local hoặc Windows process nếu heartbeat không hoạt động.
 4. `data-hub.config.example.json` chỉ là mẫu. Không mặc định sheet/path thật giống mẫu.
 5. Main App và KPI tách có thể lệch nếu ai đó sửa KPI mà không chạy script sync.
-6. Vercel deploy thành công không chứng minh luồng dữ liệu local đang chạy.
+6. Hosting deploy thành công không chứng minh luồng dữ liệu local đang chạy.
 7. Build pass không chứng minh giao diện mobile đúng; cần kiểm tra trực quan.
 8. Dữ liệu mirror có thể xóa phạm vi lớn nếu input sai; validation nguồn rỗng là bắt buộc.
 9. Repo public, trong lịch sử có thể có file tool-results/log không nên dùng làm nguồn chuẩn.
@@ -621,7 +618,7 @@ Một thay đổi chỉ được xem là hoàn tất khi có bằng chứng phù
 - diff đúng phạm vi;
 - lint/build/test pass hoặc nêu rõ lỗi có sẵn;
 - KPI sync check pass nếu liên quan;
-- Main App Vercel READY và Worker KPI Cloudflare ở trạng thái production nếu đã triển khai;
+- Main App Render/Cloudflare theo trạng thái migration đã xác minh và Worker KPI Cloudflare ở trạng thái nếu đã triển khai;
 - URL production trả 200;
 - giao diện trực quan đã kiểm tra nếu là CSS/layout;
 - source/heartbeat đã kiểm tra nếu là dữ liệu;
@@ -666,3 +663,8 @@ Cần cập nhật index.mjs và khởi động lại Data Hub Windows để ngu
 ## Điều kiện Sao Việt cho mục tiêu Excel
 
 Bảng kết quả có 10 cột; sau FYP lũy kế là điều kiện đạt Sao Việt hoặc nâng hạng. Tất cả loại thưởng chỉ được xét khi admin duyệt mã đối tượng. Duyệt lưu riêng trong Setting theo contest-sao-viet-approval:<id>:<scope>:<code>, không nhận từ Excel/participants; API settings chặn sửa prefix này. Không migration schema. Admin dùng cookie HttpOnly ký HMAC, đăng nhập tại trang chủ bằng NMC_ADMIN_PASSWORD; NMC_ADMIN_SESSION_SECRET chỉ ở server. SessionStorage không cấp quyền API. KPI và iframe chỉ đọc. Admin vẫn thấy dòng chưa đạt khi bật ẩn chưa đạt để có thể duyệt; bỏ tích lập tức bỏ thưởng. Các màn hình và xuất Excel dùng chung phép tính.
+
+
+## Bổ sung 2026-11-23 — Migration Main App Render → Cloudflare
+
+Main App hiện đang chạy trên Render tại `https://nc-link.onrender.com`. Mục tiêu là chuyển Main App sang Cloudflare, sử dụng GitHub làm nguồn code. Trong giai đoạn migration phải giữ Render sống làm phương án rollback; dựng Cloudflare thử nghiệm riêng, không ghi đè Worker KPI standalone `kpi-nc-link`, không đổi DNS/traffic production hoặc gây phát sinh chi phí trước khi kiểm chứng và được xác nhận. Database production hiện là Supabase PostgreSQL; không migration DB hoặc sửa dữ liệu chỉ để thử hosting. Đánh giá runtime Next.js, Prisma, authentication, API routes, uploads, environment variables/secrets và khả năng rollback trước khi cutover. Repository public: không commit secrets, token, connection string, dữ liệu cá nhân hoặc backup nhạy cảm.
