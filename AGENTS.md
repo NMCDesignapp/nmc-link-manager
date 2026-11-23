@@ -17,11 +17,10 @@ Trao đổi với người dùng bằng tiếng Việt, trực tiếp, nêu rõ 
 ## 2. Vai trò của các bản triển khai
 
 - Repository: `NMCDesignapp/nmc-link-manager`.
-- Main App production: `https://nc-link.vercel.app`.
-- KPI trong Main App: `https://nc-link.vercel.app/kpi`.
-- KPI tách production chính thức: Cloudflare Worker `kpi-nc-link`, URL `https://kpi-nc-link.chaunm2312.workers.dev`.
-- Vercel Main App dùng project `nc-link`, team `thanhhung070826-6875`.
-- KPI tách không còn deploy nội dung production trên Vercel. Phải giữ project Vercel `kpi-redirect` và hai URL `angiang2026.vercel.app`, `angiang2026-nhom.vercel.app` để chuyển hướng người dùng sang KPI Cloudflare; không xóa project/alias này và không triển khai ứng dụng KPI vào đó.
+- Main App hiện đang chạy trên Render: `https://nc-link.onrender.com` (migration sang Cloudflare đang tiến hành).
+- Main App KPI path hiện hành cần đối chiếu runtime, không mặc định hostname Vercel.
+- KPI standalone production hiện tại: Cloudflare Worker `kpi-nc-link`, URL `https://kpi-nc-link.chaunm2312.workers.dev`.
+- Không dùng Vercel làm đích triển khai Main App cho migration này.
 - Main App là nơi quản trị và nguồn điều khiển chính.
 - KPI tách là bản công khai, chỉ đọc; không được làm lộ chức năng quản trị, sidebar, API ghi hoặc luồng điều hướng nội bộ của Main App.
 
@@ -177,14 +176,13 @@ Người dùng cần biết rõ dữ liệu đến từ đâu và có tự độ
 
 ```text
 main mới nhất
-  -> feature/docs branch
+  -> feature branch
   -> thay đổi tối thiểu
   -> lint/build/test
   -> đồng bộ kpi-app nếu liên quan
   -> xem diff
-  -> PR
-  -> merge main
-  -> kiểm tra Main App trên Vercel và KPI tách trên Cloudflare
+  -> PR/merge có kiểm soát
+  -> kiểm tra Main App trên Render hoặc Cloudflare theo giai đoạn migration và KPI Worker
 ```
 
 Không force-push `main`. Không ghi đè thay đổi chưa rõ nguồn gốc. Không sửa file generated/build artifact nếu source tương ứng tồn tại.
