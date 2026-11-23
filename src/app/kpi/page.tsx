@@ -6930,6 +6930,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                 const aPctCls = pctClass(aPct);
                                 const aGlow = aPct >= 100 ? 'rg-ad-glow' : '';
                                 const adStructForPopup = adStructList.find(a => a.tenAD === ad.managerKey);
+                                const adAvatarId = adStructForPopup?.maAD || ad.managerKey;
+                                const adAvatarUrl = adAvatars[adAvatarId];
+                                const adAvatarIsUploading = adAvatarUploading === adAvatarId;
                                 const canOpenPopup = !!adStructForPopup;
                                 const openAdPopup = (e: React.MouseEvent) => {
                                   if (!adStructForPopup) return;
@@ -6951,12 +6954,63 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                     onClick={openAdPopup}
                                   >
                                     <td>
+                                      <div className="rg-ad-main-cell">
+                                        <span className="rg-ad-avatar" aria-hidden={!kpiAdminAuthed}>
+                                          {adAvatarUrl ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={adAvatarUrl} alt="" />
+                                          ) : (
+                                            <span className="rg-ad-avatar-ph">{grpAvatarInitials(ad.ten)}</span>
+                                          )}
+                                          {adAvatarIsUploading && <span className="rg-ad-avatar-updating" />}
+                                          {kpiAdminAuthed && (
+                                            <span className="rg-ad-avatar-admin">
+                                              <button
+                                                type="button"
+                                                className="rg-ad-avatar-edit"
+                                                title="Cài ảnh đại diện AD"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  adAvatarTargetRef.current = adAvatarId;
+                                                  adAvatarFileRef.current?.click();
+                                                }}
+                                              >
+                                                <Settings size={10} />
+                                              </button>
+                                              {adAvatarUrl && (
+                                                <button
+                                                  type="button"
+                                                  className="rg-ad-avatar-edit rg-ad-avatar-del"
+                                                  title="Xóa ảnh đại diện AD"
+                                                  onClick={(e) => { e.stopPropagation(); void deleteAdAvatar(adAvatarId); }}
+                                                >
+                                                  <X size={10} />
+                                                </button>
+                                              )}
+                                            </span>
+                                          )}
+                                        </span>
+                                        {kpiAdminAuthed && (
+                                          <button
+                                            type="button"
+                                            className="rg-ad-avatar-upload-label"
+                                            title={adAvatarUrl ? 'Đổi ảnh đại diện AD' : 'Thêm ảnh đại diện AD'}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              adAvatarTargetRef.current = adAvatarId;
+                                              adAvatarFileRef.current?.click();
+                                            }}
+                                          >
+                                            {adAvatarUrl ? 'Đổi ảnh' : '+ Ảnh AD'}
+                                          </button>
+                                        )}
                                       <div className="rg-ad-name-cell">
                                         <span className="rg-ad-name-line">
                                           <span className="rg-ad-name">{ad.ten}</span>
                                           <span className={`rg-ad-name-pct ${aPctCls}`}>({Math.round(aPct)}%)</span>
                                         </span>
                                         {ad.kh > 0 && <span className="rg-ad-sub">KH: {fmt(ad.kh)}đ</span>}
+                                      </div>
                                       </div>
                                     </td>
                                     <td><span className="rg-ad-afyp">{fmt(ad.afyp)}<span className="rg-ad-afyp-unit">đ</span></span></td>
