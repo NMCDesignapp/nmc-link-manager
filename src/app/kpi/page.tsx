@@ -4439,12 +4439,23 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     return () => window.removeEventListener('message', handleEmbeddedReady);
   }, [kpiSheet]);
 
-  // Render Free có thể cần thời gian khởi động sau khi ngủ. Không để lớp che
-  // ở KPI tồn tại mãi nếu trang con không gửi được tín hiệu ready.
+  // Phản hồi tải chậm: báo rõ trạng thái sau 8 giây, không để người dùng
+  // tưởng app đứng. Timeout 60 giây vẫn là giới hạn tránh lớp che vô hạn.
+  const [kpiEmbedSlow, setKpiEmbedSlow] = useState(false);
   useEffect(() => {
-    if (kpiSheet === 'home' || !kpiEmbedLoading) return;
-    const timeoutId = window.setTimeout(() => setKpiEmbedLoading(false), 60000);
-    return () => window.clearTimeout(timeoutId);
+    if (kpiSheet === 'home' || !kpiEmbedLoading) {
+      setKpiEmbedSlow(false);
+      return;
+    }
+    const slowId = window.setTimeout(() => setKpiEmbedSlow(true), 8000);
+    const timeoutId = window.setTimeout(() => {
+      setKpiEmbedLoading(false);
+      setKpiEmbedSlow(false);
+    }, 60000);
+    return () => {
+      window.clearTimeout(slowId);
+      window.clearTimeout(timeoutId);
+    };
   }, [kpiSheet, kpiEmbedLoading]);
 
   // ===== CUỘN LÊN ĐẦU TRANG KHI CHUYỂN MÀN HÌNH (yêu cầu 21/11/2026) =====
@@ -6657,6 +6668,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             {kpiEmbedLoading && (
               <div className="kpi-embed-loader" role="status" aria-live="polite" aria-label="Đang tải nội dung">
                 <span className="kpi-embed-loader-spinner" aria-hidden="true" />
+                <span>{kpiEmbedSlow ? 'Máy chủ đang xử lý, vui lòng chờ thêm...' : 'Đang tải dữ liệu...'}</span>
               </div>
             )}
             <iframe
