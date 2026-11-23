@@ -59,7 +59,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="/nmc-metal-loading-plate-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/kpi-embedded-sync-inline-v1.css?v=20260829-1" />
         <link rel="stylesheet" href="/kpi-embedded-compact-v2.css?v=20260830-1" />
-        <link rel="stylesheet" href="/kpi-loader-scope-v14.css?v=20260904-1" />
+        <link rel="stylesheet" href="/kpi-loader-scope-v14.css?v=20261123-1" />
         <link rel="stylesheet" href="/kpi-detail-metal-v15.css?v=20260906-1" />
         <link rel="stylesheet" href="/kpi-calendar-navy-light-v17.css?v=20260906-1" />
         <link rel="stylesheet" href="/kpi-layout-polish-v18.css?v=20260907-1" />
