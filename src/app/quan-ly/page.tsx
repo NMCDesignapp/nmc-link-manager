@@ -12796,8 +12796,9 @@ export default function QuanLyPage() {
   };
 
   if (!mounted) {
-    // SSR + first client render: chỉ loading spinner, không render header/sidebar/content
-    // để tránh hydration mismatch (SSR không biết sheet/isEmbedded → render khác client).
+    // KPI cha đã quản lý một loading overlay duy nhất; không render AppLoader
+    // thứ hai bên trong iframe. Trang quản lý độc lập vẫn giữ loader ban đầu.
+    if (isInIframe) return null;
     return <AppLoader show />;
   }
 
