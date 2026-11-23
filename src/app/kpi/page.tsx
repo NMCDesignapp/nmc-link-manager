@@ -410,6 +410,25 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   background: linear-gradient(180deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 100%);
 }
 .kpi-app .rg-ad-table tbody td:first-child { text-align: left; padding-left: 10px; }
+.kpi-app .rg-ad-main-cell { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.kpi-app .rg-ad-avatar {
+  position: relative; flex: 0 0 auto; width: 42px; height: 42px;
+  border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle at 30% 25%, #6f8eae, #243b57 78%);
+  border: 1.5px solid rgba(58, 124, 200, .58);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.12), inset 0 1px 3px rgba(255,255,255,.16);
+  overflow: visible;
+}
+.kpi-app .rg-ad-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.kpi-app .rg-ad-avatar-ph { font-size: 12px; font-weight: 900; letter-spacing: .02em; color: #d6ecff; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+.kpi-app .rg-ad-avatar-admin { position: absolute; right: -7px; bottom: -7px; display: flex; gap: 3px; z-index: 3; }
+.kpi-app .rg-ad-avatar-edit {
+  width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center;
+  background: #0d4d4d; color: #f3ffff; border: 1px solid #008080; cursor: pointer; padding: 0;
+}
+.kpi-app .rg-ad-avatar-edit.rg-ad-avatar-del { background: #6b1d1d; border-color: #a03030; }
+.kpi-app .rg-ad-avatar-updating { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(125,200,240,.3); border-top-color: #7dc8f0; animation: nmc-kpi-spin .8s linear infinite; }
+.kpi-app .rg-ad-name-cell > .rg-ad-name-content { min-width: 0; display: flex; flex-direction: column; gap: 0; line-height: 1.2; }
 .kpi-app .rg-ad-name { font-weight: 900; color: #1a3a5e; }
 .kpi-app .rg-ad-val { font-weight: 900; text-shadow: 0 1px 0 #ffffff; }
 .kpi-app .rg-ad-val.lhd { color: #DC2626; }     /* red - Lượt */
@@ -913,6 +932,8 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-ad-table thead th { font-size: 8px; padding: 5px 2px; }
   .kpi-app .rg-ad-table tbody td { font-size: 9px; padding: 6px 1px; }
   .kpi-app .rg-ad-table tbody td:first-child { padding-left: 5px; }
+  .kpi-app .rg-ad-avatar { width: 36px; height: 36px; }
+  .kpi-app .rg-ad-avatar-ph { font-size: 10px; }
   .kpi-app .rg-ad-name-cell,
   .kpi-app .rg-ad-name-line,
   .kpi-app .rg-ad-afyp { min-width: 0; max-width: 100%; overflow: hidden; }
@@ -1938,6 +1959,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .rg-ad-table thead th:first-child { padding-left: 9px; }
   .kpi-app .rg-ad-table tbody td { padding: 4px 4px; font-size: 10px; line-height: 1.15; }
   .kpi-app .rg-ad-table tbody td:first-child { padding-left: 9px; }
+  .kpi-app .rg-ad-avatar { width: 40px; height: 40px; }
   .kpi-app .rg-ad-name { font-size: 10px; }
   .kpi-app .rg-ad-sub { font-size: 8px; }
   .kpi-app .rg-ad-afyp { font-size: 10px; }
@@ -3187,6 +3209,29 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 @media (min-width: 900px) {
   .kpi-app .honour-tier.platinum .banca-img-cell { width: 62px !important; height: 62px !important; min-width: 62px !important; flex-basis: 62px !important; }
   .kpi-app .honour-tier.gold .banca-img-cell { width: 54px !important; height: 54px !important; min-width: 54px !important; flex-basis: 54px !important; }
+}
+
+/* AD avatar: enlarge slightly and keep equal vertical breathing room in each row. */
+.kpi-app .rg-ad-table tbody td { padding-top: 6px; padding-bottom: 6px; }
+.kpi-app .rg-ad-table tbody td:first-child { padding-left: 14px; }
+.kpi-app .rg-ad-main-cell { min-height: 48px; align-items: center; gap: 14px; }
+.kpi-app .rg-ad-avatar { width: 48px; height: 48px; }
+.kpi-app .rg-ad-name { font-size: 11px; }
+.kpi-app .rg-ad-name-pct { font-size: 9px; }
+.kpi-app .rg-ad-sub { font-size: 8px; }
+.kpi-app .rg-ad-afyp { font-size: 11px; }
+.kpi-app .rg-ad-val { font-size: 11px; }
+
+@media (max-width: 640px) {
+  .kpi-app .rg-ad-table tbody td { padding-top: 5px; padding-bottom: 5px; }
+  .kpi-app .rg-ad-table tbody td:first-child { padding-left: 10px; }
+  .kpi-app .rg-ad-main-cell { min-height: 44px; gap: 10px; }
+  .kpi-app .rg-ad-avatar { width: 44px; height: 44px; }
+  .kpi-app .rg-ad-name { font-size: 9.5px; }
+  .kpi-app .rg-ad-name-pct { font-size: 7.5px; }
+  .kpi-app .rg-ad-sub { font-size: 7px; }
+  .kpi-app .rg-ad-afyp { font-size: 9px; }
+  .kpi-app .rg-ad-val { font-size: 9.5px; }
 }
 
 .kpi-app .region-divider.is-collapse-btn {
@@ -4615,10 +4660,37 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const [grpAvatarUploading, setGrpAvatarUploading] = useState<string | null>(null);
   const grpAvatarFileRef = useRef<HTMLInputElement>(null);
   const grpAvatarTargetRef = useRef<string>('');
+  const [adAvatars, setAdAvatars] = useState<Record<string, string>>({});
+  const [adAvatarUploading, setAdAvatarUploading] = useState<string | null>(null);
+  const adAvatarFileRef = useRef<HTMLInputElement>(null);
+  const adAvatarTargetRef = useRef<string>('');
 
   // Khôi phục phiên quản trị trong cùng phiên trình duyệt
   useEffect(() => {
     try { if (sessionStorage.getItem('nmc-kpi-admin') === '1') setKpiAdminAuthed(true); } catch {}
+  }, []);
+
+  // Manifest ảnh đại diện AD — key: kpi-ad-img-<maAD>
+  useEffect(() => {
+    let cancelled = false;
+    const loadAdAvatars = async () => {
+      try {
+        const res = await fetch('/api/poster-image?prefix=kpi-ad-img-', { cache: 'no-store' });
+        const data = res.ok ? await res.json() : { items: [] };
+        const imgs: Record<string, string> = {};
+        for (const item of data.items || []) {
+          if (item?.key) {
+            const id = String(item.key).replace('kpi-ad-img-', '');
+            imgs[id] = `/api/poster-image/${encodeURIComponent(item.key)}?v=${item.updatedAt || 0}`;
+          }
+        }
+        if (!cancelled) setAdAvatars(imgs);
+      } catch {
+        if (!cancelled) setAdAvatars({});
+      }
+    };
+    loadAdAvatars();
+    return () => { cancelled = true; };
   }, []);
 
   const unlockKpiAdmin = useCallback(() => {
@@ -4719,6 +4791,44 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       setGroupAvatars((prev) => {
         const next = { ...prev };
         delete next[maBanNhom];
+        return next;
+      });
+    } catch (e: any) {
+      alert(`Lỗi xóa: ${e?.message || e}`);
+    }
+  };
+
+  const uploadAdAvatar = async (adId: string, file: File) => {
+    const key = `kpi-ad-img-${adId}`;
+    setAdAvatarUploading(adId);
+    try {
+      const dataBase64 = await compressGroupAvatar(file);
+      const res = await fetch('/api/poster-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, dataBase64 }),
+      });
+      if (res.ok) {
+        setAdAvatars((prev) => ({ ...prev, [adId]: `/api/poster-image/${encodeURIComponent(key)}?t=${Date.now()}` }));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Lỗi upload ảnh AD: ${err.error || res.status}`);
+      }
+    } catch (e: any) {
+      alert(`Lỗi: ${e?.message || e}`);
+    } finally {
+      setAdAvatarUploading(null);
+    }
+  };
+
+  const deleteAdAvatar = async (adId: string) => {
+    if (!confirm('Xóa ảnh đại diện AD này?')) return;
+    const key = `kpi-ad-img-${adId}`;
+    try {
+      await fetch(`/api/poster-image?key=${encodeURIComponent(key)}`, { method: 'DELETE' });
+      setAdAvatars((prev) => {
+        const next = { ...prev };
+        delete next[adId];
         return next;
       });
     } catch (e: any) {
@@ -7278,6 +7388,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                       const aPctCls = pctClass(aPct);
                                       const aGlow = aPct >= 100 ? 'rg-ad-glow anim-in' : 'anim-in';
                                       const adStructForPopup = adStructList.find(a => a.tenAD === ad.managerKey);
+                                      const adAvatarId = adStructForPopup?.maAD || ad.managerKey;
+                                      const adAvatarUrl = adAvatars[adAvatarId];
+                                      const adAvatarIsUploading = adAvatarUploading === adAvatarId;
                                       const canOpenPopup = !!adStructForPopup;
                                       const openAdPopup = (e: React.MouseEvent) => {
                                         if (!adStructForPopup) return;
@@ -7299,12 +7412,49 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                           onClick={openAdPopup}
                                         >
                                           <td>
-                                            <div className="rg-ad-name-cell">
-                                              <span className="rg-ad-name-line">
-                                                <span className="rg-ad-name">{ad.ten}</span>
-                                                <span className={`rg-ad-name-pct ${aPctCls}`}>({Math.round(aPct)}%)</span>
+                                            <div className="rg-ad-main-cell">
+                                              <span className="rg-ad-avatar" aria-hidden={!kpiAdminAuthed}>
+                                                {adAvatarUrl ? (
+                                                  // eslint-disable-next-line @next/next/no-img-element
+                                                  <img src={adAvatarUrl} alt="" />
+                                                ) : (
+                                                  <span className="rg-ad-avatar-ph">{grpAvatarInitials(ad.ten)}</span>
+                                                )}
+                                                {adAvatarIsUploading && <span className="rg-ad-avatar-updating" />}
+                                                {kpiAdminAuthed && (
+                                                  <span className="rg-ad-avatar-admin">
+                                                    <button
+                                                      type="button"
+                                                      className="rg-ad-avatar-edit"
+                                                      title="Cài ảnh đại diện AD"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        adAvatarTargetRef.current = adAvatarId;
+                                                        adAvatarFileRef.current?.click();
+                                                      }}
+                                                    >
+                                                      <Settings size={10} />
+                                                    </button>
+                                                    {adAvatarUrl && (
+                                                      <button
+                                                        type="button"
+                                                        className="rg-ad-avatar-edit rg-ad-avatar-del"
+                                                        title="Xóa ảnh đại diện AD"
+                                                        onClick={(e) => { e.stopPropagation(); void deleteAdAvatar(adAvatarId); }}
+                                                      >
+                                                        <X size={10} />
+                                                      </button>
+                                                    )}
+                                                  </span>
+                                                )}
                                               </span>
-                                              {ad.kh > 0 && <span className="rg-ad-sub">KH: {fmt(ad.kh)}đ</span>}
+                                              <span className="rg-ad-name-content">
+                                                <span className="rg-ad-name-line">
+                                                  <span className="rg-ad-name">{ad.ten}</span>
+                                                  <span className={`rg-ad-name-pct ${aPctCls}`}>({Math.round(aPct)}%)</span>
+                                                </span>
+                                                {ad.kh > 0 && <span className="rg-ad-sub">KH: {fmt(ad.kh)}đ</span>}
+                                              </span>
                                             </div>
                                           </td>
                                           <td><span className="rg-ad-afyp">{fmt(ad.afyp)}<span className="rg-ad-afyp-unit">đ</span></span></td>
@@ -8002,6 +8152,18 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
           const target = grpAvatarTargetRef.current;
           event.target.value = '';
           if (file && target) void uploadGroupAvatar(target, file);
+        }}
+      />
+      <input
+        ref={adAvatarFileRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          const target = adAvatarTargetRef.current;
+          event.target.value = '';
+          if (file && target) void uploadAdAvatar(target, file);
         }}
       />
 
