@@ -22,8 +22,13 @@ for (const kpiPagePath of kpiPagePaths) {
   const newMainIframe = ': `/quan-ly?sheet=${kpiSheet}&admin=1&from=kpi`';
   if (source.includes(oldMainIframe)) {
     source = source.replace(oldMainIframe, newMainIframe);
-  } else if (!source.includes(newMainIframe)) {
-    throw new Error(`[KPI linked loader] Không tìm thấy URL iframe trong ${kpiPagePath}`);
+  } else if (
+    !source.includes(newMainIframe) &&
+    // The canonical Render URL is now composed through buildMainUrl().
+    // Accept that explicit form instead of requiring the former relative URL.
+    !(source.includes("buildMainUrl('/quan-ly?sheet='") && source.includes("&from=kpi"))
+  ) {
+    throw new Error(`[KPI linked loader] Không tìm thấy URL iframe hợp lệ (cần from=kpi) trong ${kpiPagePath}`);
   }
 
   // Keep the linked iframe completely invisible while the category popup is active.

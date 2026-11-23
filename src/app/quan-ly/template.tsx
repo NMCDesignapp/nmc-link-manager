@@ -9,7 +9,13 @@ const KPI_EMBED_LOADER_OVERRIDES = `
  */
 html[data-kpi-embed='1'] .nmc-kpi-embedded-internal-loader,
 html.nmc-kpi-linked-page .nmc-kpi-embedded-internal-loader,
-body.nmc-kpi-linked-page .nmc-kpi-embedded-internal-loader {
+body.nmc-kpi-linked-page .nmc-kpi-embedded-internal-loader,
+/* The default AppLoader is rendered before React detects the iframe. Hide it
+   synchronously from the template so it cannot flash or stack above the KPI
+   parent's single linked-sheet loader during hydration. */
+html[data-kpi-embed='1'] .nmc-compact-loader-overlay,
+html.nmc-kpi-linked-page .nmc-compact-loader-overlay,
+body.nmc-kpi-linked-page .nmc-compact-loader-overlay {
   display: none !important;
   animation: none !important;
 }
