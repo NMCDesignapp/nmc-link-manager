@@ -3229,15 +3229,16 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .rg-ad-val { font-size: 11px; }
 
 @media (max-width: 640px) {
-  .kpi-app .rg-ad-table tbody td { padding-top: 5px; padding-bottom: 5px; }
+  .kpi-app .rg-ad-table tbody td { padding-top: 7px; padding-bottom: 7px; }
   .kpi-app .rg-ad-table tbody td:first-child { padding-left: 10px; }
-  .kpi-app .rg-ad-main-cell { min-height: 44px; gap: 10px; }
-  .kpi-app .rg-ad-avatar { width: 44px; height: 44px; }
-  .kpi-app .rg-ad-name { font-size: 9.5px; }
-  .kpi-app .rg-ad-name-pct { font-size: 7.5px; }
-  .kpi-app .rg-ad-sub { font-size: 7px; }
-  .kpi-app .rg-ad-afyp { font-size: 9px; }
-  .kpi-app .rg-ad-val { font-size: 9.5px; }
+  .kpi-app .rg-ad-main-cell { min-height: 50px; gap: 10px; }
+  .kpi-app .rg-ad-avatar { width: 46px; height: 46px; }
+  .kpi-app .rg-ad-name { font-size: 11px; }
+  .kpi-app .rg-ad-name-pct { font-size: 9px; }
+  .kpi-app .rg-ad-sub { font-size: 8px; }
+  .kpi-app .rg-ad-afyp { font-size: 10px; }
+  .kpi-app .rg-ad-val { font-size: 10.5px; }
+  .kpi-app .rg-ad-avatar-upload-label { font-size: 8px; padding: 4px 6px; }
 }
 
 .kpi-app .region-divider.is-collapse-btn {
