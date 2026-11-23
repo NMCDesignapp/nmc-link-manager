@@ -428,6 +428,12 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 .kpi-app .rg-ad-avatar-edit.rg-ad-avatar-del { background: #6b1d1d; border-color: #a03030; }
 .kpi-app .rg-ad-avatar-updating { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(125,200,240,.3); border-top-color: #7dc8f0; animation: nmc-kpi-spin .8s linear infinite; }
+.kpi-app .rg-ad-avatar-upload-label {
+  flex: 0 0 auto; border: 1px dashed #0f7d83; border-radius: 999px; padding: 4px 7px;
+  background: #e7fbfb; color: #075e63; font-size: 9px; font-weight: 900; line-height: 1;
+  cursor: pointer; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,.12);
+}
+.kpi-app .rg-ad-avatar-upload-label:hover { background: #d4f5f5; }
 .kpi-app .rg-ad-name-cell > .rg-ad-name-content { min-width: 0; display: flex; flex-direction: column; gap: 0; line-height: 1.2; }
 .kpi-app .rg-ad-name { font-weight: 900; color: #1a3a5e; }
 .kpi-app .rg-ad-val { font-weight: 900; text-shadow: 0 1px 0 #ffffff; }
@@ -7448,6 +7454,20 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                                                   </span>
                                                 )}
                                               </span>
+                                              {kpiAdminAuthed && (
+                                                <button
+                                                  type="button"
+                                                  className="rg-ad-avatar-upload-label"
+                                                  title={adAvatarUrl ? 'Đổi ảnh đại diện AD' : 'Thêm ảnh đại diện AD'}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    adAvatarTargetRef.current = adAvatarId;
+                                                    adAvatarFileRef.current?.click();
+                                                  }}
+                                                >
+                                                  {adAvatarUrl ? 'Đổi ảnh' : '+ Ảnh AD'}
+                                                </button>
+                                              )}
                                               <span className="rg-ad-name-content">
                                                 <span className="rg-ad-name-line">
                                                   <span className="rg-ad-name">{ad.ten}</span>
