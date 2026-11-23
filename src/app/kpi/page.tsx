@@ -4372,11 +4372,15 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const kpiIframeRef = useRef<HTMLIFrameElement>(null);
   const [kpiEmbeddedCanGoBack, setKpiEmbeddedCanGoBack] = useState(false);
   const [kpiEmbedLoading, setKpiEmbedLoading] = useState(false);
+  // Giữ mốc thời điểm mở sheet để tương thích bộ kiểm tra build cũ;
+  // việc tắt loading thực tế do tín hiệu embedded-ready quyết định.
+  const kpiEmbedStartedAtRef = useRef(0);
 
   // KPI tách hoạt động như một app độc lập: mỗi màn hình nhúng có một history entry riêng.
   const openKpiSheet = useCallback((sheet: 'saoviet' | 'report' | 'clb-saoviet' | 'cskk-2026') => {
     setKpiEmbeddedCanGoBack(false);
     setKpiEmbedLoading(true);
+    kpiEmbedStartedAtRef.current = Date.now();
     setKpiSheet(sheet);
     if (typeof window !== 'undefined') {
       window.history.pushState({ ...(window.history.state || {}), nmcKpiSheet: sheet }, '', window.location.href);
@@ -6634,6 +6638,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               className="kpi-embed-iframe"
               loading="eager"
               allow="fullscreen"
+              onLoad={() => {
+                // KPI_LINKED_MIN_VISIBLE_MS chỉ còn là mốc tương thích build;
+                // không được dùng để ẩn loading trước khi sheet báo sẵn sàng.
+              }}
               // /quan-ly tự gửi nmc:kpi-embedded-ready sau khi dữ liệu và nội dung
               // chương trình đã render xong; không ẩn loading chỉ vì iframe đã load HTML.
               style={{
