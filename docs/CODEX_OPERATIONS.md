@@ -133,31 +133,26 @@ git push -u origin feature/<ten-ngan>
 
 Tạo PR vào `main`, xem preview/build, rồi mới merge.
 
-## 6. Kiểm tra deployment
+## 6. Kiểm tra deployment (đang migration Render → Cloudflare)
 
-Kiến trúc production chính thức:
-
-- Main App: Vercel project `nc-link`, URL `https://nc-link.vercel.app`;
-- KPI tách: Cloudflare Worker `kpi-nc-link`, URL `https://kpi-nc-link.chaunm2312.workers.dev`.
-
-Không deploy nội dung KPI production lên Vercel. Phải giữ project `kpi-redirect` và hai alias Vercel cũ để chuyển hướng sang Cloudflare. Với thay đổi KPI, build từ `kpi-app`, triển khai Worker Cloudflare và giữ proxy về Main App.
+- Main App đang chạy trên Render: `https://nc-link.onrender.com`; giữ làm bản dự phòng cho tới khi Cloudflare được xác minh.
+- Mục tiêu migration Main App: Cloudflare Workers/Pages theo runtime phù hợp; dùng deployment thử riêng, không đổi DNS production trong giai đoạn test.
+- KPI standalone hiện chạy trên Worker `kpi-nc-link`: `https://kpi-nc-link.chaunm2312.workers.dev`; không ghi đè Worker này khi dựng Main App.
+- Vercel không phải đích Main App của dự án trong đợt migration này.
 
 Kiểm tra:
-
-1. Main App Vercel trạng thái READY;
-2. `https://nc-link.vercel.app` trả HTTP 200;
-3. `https://nc-link.vercel.app/kpi` mở được;
-4. `https://kpi-nc-link.chaunm2312.workers.dev` mở được và tải dữ liệu từ Main App;
-5. `https://angiang2026.vercel.app` và `https://angiang2026-nhom.vercel.app` vẫn chuyển người dùng đến KPI Cloudflare;
-6. tính năng vừa sửa hoạt động ở breakpoint yêu cầu;
-7. không có lỗi console/network quan trọng;
-8. standalone không lộ admin.
+1. Render hiện vẫn hoạt động và có phương án rollback;
+2. deployment Cloudflare thử nghiệm độc lập, URL riêng;
+3. login, APIs, database, file handling và chức năng cốt lõi;
+4. KPI Worker độc lập vẫn hoạt động;
+5. kiểm tra desktop/mobile, lỗi console/network và quyền truy cập;
+6. chỉ chuyển traffic sau khi kiểm tra, backup và phê duyệt rõ ràng.
 
 Không chỉ nhìn trạng thái deployment. CSS/responsive cần kiểm tra trực quan.
 
 ## 7. Kiểm tra Data Hub local trên Windows
 
-Data Hub không nằm trong Vercel. Khi nhiệm vụ liên quan đồng bộ Excel, Codex trên máy có thể kiểm tra local.
+Data Hub không chạy trong hosting Main App; nó chạy trên máy quản trị. Khi nhiệm vụ liên quan đồng bộ Excel, Codex trên máy có thể kiểm tra local.
 
 ### Kiểm tra config
 
@@ -267,7 +262,7 @@ Codex phải dừng và báo trước khi:
 Dùng prompt sau trong phiên mới:
 
 ```text
-Tiếp quản dự án NMC Link Manager. Đọc AGENTS.md và toàn bộ docs/CODEX_*.md trước. Mã hiện tại là nguồn chuẩn. Main App nc-link.vercel.app chạy production trên Vercel; KPI tách kpi-nc-link.chaunm2312.workers.dev chạy production trên Cloudflare Workers và là công khai chỉ đọc. Production DB là Supabase qua POSTGRES_PRISMA_URL. Data Hub và Google là hai nguồn độc quyền qua nmc-sync-source. Mọi sửa KPI phải sync bằng scripts/sync-kpi-app.sh, build cả hai và kiểm tra đúng hai nền tảng production. Kiểm tra git status trước, không sửa hoặc deploy khi chưa báo kế hoạch.
+Tiếp quản dự án NMC Link Manager. Đọc AGENTS.md và toàn bộ docs/CODEX_*.md trước. Mã hiện tại là nguồn chuẩn. Main App hiện chạy trên Render `https://nc-link.onrender.com` và đang trong quá trình migration sang Cloudflare; KPI tách `kpi-nc-link.chaunm2312.workers.dev` chạy Cloudflare Workers, công khai chỉ đọc. Production DB là Supabase qua POSTGRES_PRISMA_URL. Data Hub và Google là hai nguồn độc quyền qua nmc-sync-source. Mọi sửa KPI phải sync bằng scripts/sync-kpi-app.sh, build cả hai và kiểm tra đúng hai nền tảng production. Kiểm tra git status trước, không sửa hoặc deploy khi chưa báo kế hoạch.
 ```
 
 ## 12. Cập nhật kiến thức sau mỗi nhiệm vụ lớn
