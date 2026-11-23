@@ -6653,7 +6653,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
           </div>
           <div className="kpi-embed-body">
             {kpiEmbedLoading && (
-              {/* Single spinner only: no card, text, or progress popup. */}
               <div className="kpi-embed-loader" role="status" aria-live="polite" aria-label="Đang tải nội dung">
                 <span className="kpi-embed-loader-spinner" aria-hidden="true" />
               </div>
