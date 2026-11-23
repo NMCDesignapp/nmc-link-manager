@@ -2973,7 +2973,7 @@ export default function QuanLyPage() {
   // ===== AppDataContext: đọc dữ liệu đã preload khi app mở (lần đầu) =====
   // Khi dataVersion tăng (tức là context vừa load xong), sync vào local state.
   // Sheet-specific fetch vẫn giữ nguyên để dùng sau CRUD / đổi sheet.
-  const { data: appData, dataVersion: appDataVersion, isReloading: appDataReloading, reload: reloadAppData } = useAppData();
+  const { data: appData, dataVersion: appDataVersion, isLoading: appDataLoading, isReloading: appDataReloading, reload: reloadAppData } = useAppData();
   const lastSyncedVersion = useRef<number>(-1);
   useEffect(() => {
     if (appDataVersion <= lastSyncedVersion.current) return;
@@ -3006,6 +3006,15 @@ export default function QuanLyPage() {
     if (appData.settings) setOnlineSettings(appData.settings);
     if (appData.contests) setSavedContestsList(appData.contests.filter(isSaoVietTrackingContest));
   }, [appData, appDataVersion]);
+
+  // Khi mở trực tiếp một sheet từ KPI, lần tải đầu dùng dữ liệu preload của
+  // AppDataContext nên không chạy loadSheet lần nữa. Đánh dấu hoàn tất sau khi
+  // preload kết thúc để KPI nhận được tín hiệu và tắt popup loading.
+  useEffect(() => {
+    if (!mounted || appDataLoading || appDataVersion <= 0) return;
+    setIsLoading(false);
+    setSheetLoadCompleted(true);
+  }, [mounted, appDataLoading, appDataVersion]);
 
   const loadSheet = useCallback((sheet: SheetKey, _force = false) => {
     setSheetLoadCompleted(false);
