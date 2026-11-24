@@ -1,6 +1,6 @@
 # NMC Data Hub — Đồng bộ Excel tự động
 
-Data Hub chạy trên máy quản trị và là nguồn ưu tiên cho toàn bộ dữ liệu Main App:
+Data Hub chạy trên máy quản trị và là nguồn ưu tiên cho toàn bộ dữ liệu ứng dụng Render:
 
 - Sao Việt cá nhân, TN KTM, TN tuyển dụng
 - Doanh số lịch sử từ `NEW_KPI04_<năm>.xlsx`: chỉ nhận HĐ có **IP > 0**, mỗi HĐ được phân vào tháng theo **Ngày phát hành**, từ tháng 1 đến tháng liền trước tháng hiện tại.
@@ -9,19 +9,15 @@ Data Hub chạy trên máy quản trị và là nguồn ưu tiên cho toàn bộ
 - BC02 giữ đủ mọi hàng Excel có dữ liệu theo quy tắc riêng; KPI04 loại HĐ có IP <= 0 vì đây là HĐ đã hủy.
 - Cấu trúc TVV, DS TN, DS TTN, thành viên CLB và TTN tuyển ngang
 
-## Work log / tài liệu phục hồi
+## Kiến trúc production
 
-Đợt chuyển tài khoản Vercel, tối ưu hiệu năng, sửa Excel/Data Hub và thiết lập chạy ẩn nền ngày 2026-08-18 → 2026-08-19 được ghi đầy đủ tại:
+Ứng dụng web duy nhất chạy trên Render tại https://nc-link.onrender.com. Data Hub là tiến trình riêng chạy trên máy quản trị và gửi dữ liệu vào API của ứng dụng Render; cập nhật web app không tự cập nhật tiến trình Data Hub trên Windows.
 
-```text
-docs/WORKLOG_2026-08-18_19_VERCEL_DATA_HUB.md
-```
-
-Nếu cần chuyển Vercel account/team, Data Hub mất kết nối, Sao Việt mất dòng đầu hoặc Tamthu báo sai số dòng, đọc work log này trước khi thay đổi dữ liệu production.
+Khi Data Hub mất kết nối, Sao Việt mất dòng đầu hoặc Tamthu báo sai số dòng, kiểm tra cấu hình local, heartbeat và trạng thái nguồn trước khi thay đổi dữ liệu production.
 
 ## Nguyên tắc chống ghi đè
 
-Main App chỉ cho phép **một nguồn tự động hoạt động tại một thời điểm**.
+Ứng dụng Render chỉ cho phép **một nguồn tự động hoạt động tại một thời điểm**.
 
 - Khi Data Hub đang được chọn, mọi yêu cầu ghi từ Google Sheets bị máy chủ từ chối.
 - Khi bật Google Sheets trên trang Quản lý, mọi yêu cầu ghi từ Data Hub bị máy chủ từ chối và tiến trình trên máy tự chuyển sang trạng thái tạm dừng.
