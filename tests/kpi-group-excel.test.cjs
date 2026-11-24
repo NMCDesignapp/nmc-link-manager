@@ -6,7 +6,7 @@ const ts = require('typescript');
 const XLSX = require('xlsx-js-style');
 
 // Run the real page calculations and export handler with synthetic data.
-for (const page of ['src/app/kpi/page.tsx', 'kpi-app/src/app/page.tsx']) {
+for (const page of ['src/app/kpi/page.tsx']) {
   const source = fs.readFileSync(page, 'utf8');
   const ast = ts.createSourceFile(page, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const snippets = {};

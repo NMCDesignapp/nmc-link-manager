@@ -2,9 +2,9 @@ const fs = require('fs');
 const path = require('path');
 
 // Main App build already invokes this script. Apply the canonical KPI table UI
-// patch here as well so Vercel Main and standalone builds use the same source.
+// patch the single Render app source.
 require('./apply-kpi-table-ui-fixes.js');
-// Keep the Sao Việt auto-card rule in the same build chain used by both apps.
+// Keep the Sao Việt auto-card rule in the same Render build chain.
 require('./apply-sao-viet-contest-filter.js');
 
 const targets = [
@@ -12,11 +12,6 @@ const targets = [
     filePath: path.resolve(__dirname, '../src/components/app-loader.tsx'),
     imageSrc: '/kpi-tech-logo.webp',
     label: 'Main App',
-  },
-  {
-    filePath: path.resolve(__dirname, '../kpi-app/src/components/app-loader.tsx'),
-    imageSrc: '/kpi-tech-logo.webp',
-    label: 'KPI tách',
   },
 ];
 

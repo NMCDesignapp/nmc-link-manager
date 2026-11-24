@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * KPI runtime performance fixes shared by Main App and standalone KPI.
+ * KPI runtime performance fixes for the single Render app.
  *
  * 1) Keep the second AppData hydration pass from competing with the KPI loader fade.
- * 2) Reduce high-frequency Settings polling. Same-origin tabs still receive instant
- *    BroadcastChannel/storage events, while standalone KPI keeps a lightweight fallback.
+ * 2) Reduce high-frequency Settings polling while same-origin tabs still receive instant
+ *    BroadcastChannel/storage events.
  * 3) Reduce full background reload frequency so multiple open tabs do not create a
- *    request storm against Supabase/Vercel.
+ *    request storm against Supabase.
  */
 
 const fs = require('fs')
@@ -16,7 +16,6 @@ const path = require('path')
 const root = path.resolve(__dirname, '..')
 const targets = [
   path.join(root, 'src', 'lib', 'app-data-context.tsx'),
-  path.join(root, 'kpi-app', 'src', 'lib', 'app-data-context.tsx'),
 ]
 
 const oldHydrationBlock = `        setData(nextData)

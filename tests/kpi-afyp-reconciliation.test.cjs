@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { loadKpiDashboard } = require('./helpers/load-kpi-dashboard.cjs');
 
-for (const page of ['src/app/kpi/page.tsx', 'kpi-app/src/app/page.tsx']) {
+for (const page of ['src/app/kpi/page.tsx']) {
   const calculate = loadKpiDashboard(page);
   const rooms = [{ maPhong: 'REG', tenPhong: 'Regular' }, { maPhong: 'PA', tenPhong: 'PA' }, { maPhong: 'Banca', tenPhong: 'Banca' }];
   const ads = [{ maAD: 'AD_TEST', tenAD: 'Test Manager', maPhong: 'REG' }];

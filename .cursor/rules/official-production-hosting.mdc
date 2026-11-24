@@ -1,13 +1,14 @@
 ---
-description: Đích hosting production chính thức của NC-Link và KPI
+description: Hosting production duy nhất của NMC Link Manager
 alwaysApply: true
 ---
 
 # Production hosting
 
-- NC-Link Main App chạy trên Vercel project `nc-link`, team `thanhhung070826-6875`, tại `https://nc-link.vercel.app`.
-- KPI standalone chạy chính thức trên Cloudflare Worker `kpi-nc-link` tại `https://kpi-nc-link.chaunm2312.workers.dev`.
-- KPI Cloudflare là production, không phải thử nghiệm. Giữ Vercel project `kpi-redirect` và hai URL `angiang2026.vercel.app`, `angiang2026-nhom.vercel.app` để chuyển hướng sang Cloudflare; không xóa chúng và không triển khai nội dung KPI vào đó.
-- Thay đổi Main App phải kiểm tra Vercel; thay đổi KPI phải đồng bộ source và kiểm tra Worker Cloudflare.
-- Không tự đổi project, Worker, URL production, mật khẩu hoặc secret. Chỉ thay đổi khi người dùng yêu cầu rõ ràng.
-- Không đưa secret database/admin vào KPI Worker; Worker dùng Main App tại `https://nc-link.vercel.app` cho dữ liệu/API được phép.
+- Ứng dụng production duy nhất chạy trên Render tại https://nc-link.onrender.com.
+- Render Web Service: angiang2026; repository NMCDesignapp/nmc-link-manager; branch main; root directory repository; Dockerfile ./Dockerfile.
+- Toàn bộ trang, API và KPI /kpi nằm trong cùng ứng dụng Next.js ở repository root.
+- Render tự deploy khi có commit mới trên main.
+- Không tạo hoặc triển khai bản production trên Vercel, Cloudflare Workers hay Netlify.
+- Không tự đổi service, URL, database, biến môi trường hoặc secret.
+- Không đưa secret database/admin hoặc dữ liệu cá nhân vào Git.

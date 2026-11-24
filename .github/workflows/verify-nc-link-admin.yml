@@ -26,7 +26,7 @@ jobs:
       CI: 'true'
       POSTGRES_PRISMA_URL: 'postgresql://ci:ci@127.0.0.1:5432/nmc_ci?schema=public'
       POSTGRES_URL_NON_POOLING: 'postgresql://ci:ci@127.0.0.1:5432/nmc_ci?schema=public'
-      NEXT_PUBLIC_MAIN_APP_URL: 'https://nc-link.vercel.app'
+      NEXT_PUBLIC_MAIN_APP_URL: 'https://nc-link.onrender.com'
       NMC_ADMIN_PASSWORD: 'ci-placeholder-only'
       NMC_ADMIN_SESSION_SECRET: 'ci-placeholder-session-secret-32-characters'
       NMC_DATA_HUB_IMPORT_TOKEN: 'ci-placeholder-only'

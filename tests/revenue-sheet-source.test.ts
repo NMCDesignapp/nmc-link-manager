@@ -4,7 +4,6 @@ import test from 'node:test';
 
 const hub = readFileSync('data-hub/index.mjs', 'utf8');
 const kpi = readFileSync('src/app/kpi/page.tsx', 'utf8');
-const standalone = readFileSync('kpi-app/src/app/page.tsx', 'utf8');
 const management = readFileSync('src/app/quan-ly/client-page.tsx', 'utf8');
 const sync = readFileSync('src/app/api/sync/route.ts', 'utf8');
 const monthlyRevenueSync = readFileSync('src/app/api/revenue/sync-from-contracts/route.ts', 'utf8');
@@ -67,7 +66,7 @@ test('Doanhso Sheet 1/9/11 lấy đúng tháng theo số Sheet, bỏ Sheet 10 hi
   assert.match(result.csv, /SEP/); // Ngày phát hành trống vẫn được nhập.
 });
 
-for (const [label, source] of [['KPI Main App', kpi], ['KPI tách', standalone], ['Quản lý', management]] as const) {
+for (const [label, source] of [['KPI Render', kpi], ['Quản lý', management]] as const) {
   test(`${label}: nhãn nguồn Sheet quyết định tháng thay vì ngày PH/HL`, () => {
     const normalizedSource = source.replace(/\r\n/g, '\n');
     const from = normalizedSource.indexOf('function getDoanhSoMonth(');
@@ -88,7 +87,6 @@ for (const [label, source] of [['KPI Main App', kpi], ['KPI tách', standalone],
 
 test('Tổng Công ty cộng AFYP mỗi hàng một lần và import tháng bằng transaction', () => {
   assert.match(kpi, /const totalAFYP = periodContracts\.reduce\(\(sum, c\) => sum \+ num\(c\.afyp\), 0\)/);
-  assert.match(standalone, /const totalAFYP = periodContracts\.reduce\(\(sum, c\) => sum \+ num\(c\.afyp\), 0\)/);
   assert.match(sync, /await db\.\$transaction\(async tx =>/);
   assert.match(sync, /if \(!authoritativeReplacement && !agentCode\) return;/);
   assert.match(sync, /revenueSourceMonth\(getVal\(row, 'Nguồn dữ liệu'/);

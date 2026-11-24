@@ -1,85 +1,43 @@
-# N.M.C - Link Management App
+# KPI An Giang — NMC Link Manager
 
-Ứng dụng quản lý và tổng hợp liên kết với giao diện neon/cyberpunk.
+Ứng dụng quản lý và theo dõi số liệu kinh doanh, KPI, thi đua và các nghiệp vụ liên quan.
 
-## Tính năng
+## Production
 
-- Quản lý liên kết web (thêm, sửa, xóa)
-- Upload file (hình ảnh, video, tài liệu)
-- Phân loại theo danh mục
-- Đánh dấu yêu thích
-- Thống kê & phân tích
-- Xuất dữ liệu JSON/CSV
-- Xem trước trang web trong iframe
-- Giao diện neon/cyberpunk với hiệu ứng đẹp mắt
-- PWA support
-- Cài đặt tùy chỉnh (màu neon, tốc độ hiệu ứng, v.v.)
+- URL duy nhất: https://nc-link.onrender.com
+- Hosting: Render Web Service `angiang2026`
+- Source: repository root, branch `main`
+- Build: Dockerfile `./Dockerfile` (Node.js 22, Next.js standalone)
+- Deploy: Render tự động triển khai khi có commit mới trên `main`
+- KPI: nằm trong cùng ứng dụng tại `/kpi`
 
-## Công nghệ
-
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS 4 + shadcn/ui
-- **Database**: Prisma ORM (SQLite local / PostgreSQL on Vercel)
-- **File Upload**: Vercel Blob
-- **Analytics**: Vercel Analytics
+Không có deployment production riêng trên Vercel, Cloudflare Workers hoặc Netlify. Không tạo thêm bản ứng dụng KPI độc lập.
 
 ## Chạy local
 
 ```bash
-# Install dependencies
-npm install
-
-# Push database schema
-npx prisma db push
-
-# Run development server
+npm ci
 npm run dev
 ```
 
-Mở [http://localhost:3000](http://localhost:3000) để xem kết quả.
+Mở http://localhost:3000.
 
-## Deploy lên Vercel
-
-### Bước 1: Tạo Neon Database
-
-1. Truy cập [neon.tech](https://neon.tech) và tạo tài khoản miễn phí
-2. Tạo một project mới
-3. Copy chuỗi kết nối `DATABASE_URL` (có dạng `postgresql://...`)
-
-### Bước 2: Cập nhật Prisma Schema cho PostgreSQL
-
-Thay đổi provider trong `prisma/schema.prisma`:
-
-```prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-```
-
-### Bước 3: Push schema lên Neon
+## Kiểm tra trước khi phát hành
 
 ```bash
-npx prisma db push
+npm run lint
+npm run build
 ```
 
-### Bước 4: Deploy lên Vercel
+## Cấu trúc chính
 
-1. Push code lên GitHub
-2. Import project trên [vercel.com](https://vercel.com)
-3. Thêm environment variables:
-   - `DATABASE_URL` = chuỗi kết nối Neon PostgreSQL
-   - `BLOB_READ_WRITE_TOKEN` = Vercel Blob token (tùy chọn, cho upload file)
-4. Deploy!
+- `src/app`: trang và API routes của ứng dụng.
+- `src/components`: thành phần giao diện dùng chung.
+- `src/lib`: nghiệp vụ, dữ liệu và tích hợp.
+- `public`: tài nguyên tĩnh.
+- `prisma`: schema cơ sở dữ liệu.
+- `data-hub`: công cụ đồng bộ dữ liệu chạy riêng trên máy quản trị; không phải web service thứ hai.
 
-## Environment Variables
+## Lưu ý an toàn
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DATABASE_URL` | Chuỗi kết nối database | Yes |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token cho upload file | No |
-
-## License
-
-MIT
+Không commit secrets, connection strings, token, file Excel nghiệp vụ hoặc dữ liệu nhận dạng cá nhân. Không thay đổi database production hoặc biến môi trường Render khi chưa xác minh tác động và phương án khôi phục.

@@ -4,7 +4,6 @@ on:
   pull_request:
     paths:
       - 'src/app/layout.tsx'
-      - 'kpi-app/src/app/layout.tsx'
       - 'public/kpi-table-runtime-v27.js'
       - 'public/kpi-table-runtime-v27.css'
       - 'scripts/check-kpi-table-runtime-v27.cjs'

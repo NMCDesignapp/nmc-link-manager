@@ -1,3 +1,5 @@
+> **KIẾN TRÚC PRODUCTION HIỆN HÀNH (2026-11-24):** Dự án chỉ có một ứng dụng tại `https://nc-link.onrender.com`, chạy trên Render từ repository root, branch `main`, Dockerfile `./Dockerfile`. KPI nằm trong cùng ứng dụng tại `/kpi`. Mọi nội dung bên dưới nhắc Vercel, Cloudflare Workers, Netlify hoặc KPI standalone là lịch sử cũ và không còn là hướng dẫn triển khai. Không khôi phục các nền tảng/bản triển khai đó.
+
 # Bàn giao toàn bộ ngữ cảnh cho Codex — NMC Link Manager
 
 ## Tin truyền thông thi đua

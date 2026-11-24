@@ -3,21 +3,15 @@ const path = require('path');
 
 const KPI_LINKED_MIN_VISIBLE_MS = 3200;
 
-// Patch both sources because standalone prebuild first syncs the Main KPI page into
-// kpi-app/src/app/page.tsx, then this script runs. Main production builds use
-// src/app/kpi/page.tsx directly.
-const kpiPagePaths = [
-  path.resolve(__dirname, '../src/app/kpi/page.tsx'),
-  path.resolve(__dirname, '../kpi-app/src/app/page.tsx'),
-];
+// Patch the single canonical KPI source used by the Render production app.
+const kpiPagePaths = [path.resolve(__dirname, '../src/app/kpi/page.tsx')];
 
 for (const kpiPagePath of kpiPagePaths) {
   if (!fs.existsSync(kpiPagePath)) continue;
 
   let source = fs.readFileSync(kpiPagePath, 'utf8');
 
-  // Main App must pass from=kpi just like the standalone KPI so /quan-ly knows it
-  // is embedded and can suppress its own initial loading layers.
+  // The Render app passes from=kpi so /quan-ly knows it is embedded and can suppress its own initial loading layers.
   const oldMainIframe = ': `/quan-ly?sheet=${kpiSheet}&admin=1`';
   const newMainIframe = ': `/quan-ly?sheet=${kpiSheet}&admin=1&from=kpi`';
   if (source.includes(oldMainIframe)) {
@@ -80,10 +74,7 @@ for (const kpiPagePath of kpiPagePaths) {
 // only arms after a real user interaction outside an already-open detail table.
 // This gives feedback for the white-table gap without reintroducing the second
 // spinner underneath the parent category popup.
-const embeddedLoaderPaths = [
-  path.resolve(__dirname, '../src/components/embedded-program-data-loader.tsx'),
-  path.resolve(__dirname, '../kpi-app/src/components/embedded-program-data-loader.tsx'),
-];
+const embeddedLoaderPaths = [path.resolve(__dirname, '../src/components/embedded-program-data-loader.tsx')];
 
 for (const embeddedLoaderPath of embeddedLoaderPaths) {
   if (!fs.existsSync(embeddedLoaderPath)) continue;
@@ -97,4 +88,4 @@ for (const embeddedLoaderPath of embeddedLoaderPaths) {
   console.log(`✓ KPI linked pages: giữ spinner + “Đang tải dữ liệu...” cho từng chương trình (${path.relative(path.resolve(__dirname, '..'), embeddedLoaderPath)}).`);
 }
 
-console.log('✓ KPI linked pages: popup ngang 100% + glow cho cấp trang; spinner đơn cho cấp chương trình.');
+console.log('✓ KPI linked pages: Render app popup ngang 100% + glow cho cấp trang; spinner đơn cho cấp chương trình.');
