@@ -4457,10 +4457,13 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       return;
     }
     const slowId = window.setTimeout(() => setKpiEmbedSlow(true), 8000);
+    // Không giữ iframe ẩn vô thời hạn nếu child app preload bị kẹt hoặc
+    // không gửi ready message. Sau 15s mở nội dung để người dùng thấy trạng thái
+    // thực tế (lỗi/API/loading bên trong) thay vì chỉ một spinner che toàn trang.
     const timeoutId = window.setTimeout(() => {
       setKpiEmbedLoading(false);
       setKpiEmbedSlow(false);
-    }, 60000);
+    }, 15000);
     return () => {
       window.clearTimeout(slowId);
       window.clearTimeout(timeoutId);
