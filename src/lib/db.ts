@@ -4,7 +4,7 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Vercel serverless functions must use Supavisor transaction mode. If the
+// Render production uses Supabase PostgreSQL; normalize Supavisor transaction URLs. If the
 // configured URL points at Supabase session mode (5432), normalize it to the
 // transaction pooler (6543) at runtime without exposing or changing secrets.
 function normalizeRuntimeDatabaseUrl(value: string): string {
@@ -21,9 +21,7 @@ function normalizeRuntimeDatabaseUrl(value: string): string {
         url.port = '6543'
       }
       url.searchParams.set('pgbouncer', 'true')
-      // The KPI/management bootstrap intentionally runs several independent
-      // reads in parallel. A single Prisma connection serialized those reads
-      // and caused P2024/60-second Vercel timeouts after the project migration.
+      // KPI and management pages run several independent reads in parallel. A single Prisma connection serialized those reads and caused pool timeouts after the database migration.
       // Keep this deliberately small while allowing the core parallel reads.
       url.searchParams.set('connection_limit', '3')
       // Let short bursts queue instead of failing immediately with P2024.
@@ -39,8 +37,7 @@ function normalizeRuntimeDatabaseUrl(value: string): string {
   }
 }
 
-// Resolve the production connection managed by the Supabase ↔ Vercel
-// integration. Legacy variables remain only as compatibility fallbacks.
+// Resolve the production Supabase PostgreSQL connection. Legacy variables remain only as compatibility fallbacks.
 function resolveDatabaseUrl(): string {
   const supabasePrismaUrl = process.env.POSTGRES_PRISMA_URL || ''
   const databaseUrl = process.env.DATABASE_URL || ''
