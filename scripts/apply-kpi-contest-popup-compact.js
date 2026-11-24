@@ -6,7 +6,6 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 const targets = [
   path.join(root, 'src', 'components', 'kpi-contest-notice.tsx'),
-  path.join(root, 'kpi-app', 'src', 'components', 'kpi-contest-notice.tsx'),
 ];
 const pagePath = path.join(root, 'src', 'app', 'kpi', 'page.tsx');
 
