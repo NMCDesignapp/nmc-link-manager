@@ -17,7 +17,7 @@ if (!sha) {
 }
 
 const line = `NEXT_PUBLIC_KPI_BUILD_SHA=${sha}\n`
-for (const dir of [root, path.join(root, 'kpi-app')]) {
+for (const dir of [root]) {
   try {
     if (!fs.existsSync(path.join(dir, 'package.json'))) continue
     fs.writeFileSync(path.join(dir, '.env.production.local'), line, 'utf8')
