@@ -121,11 +121,11 @@ export function AppLoader({ show, error, onRetry, variant = 'default' }: AppLoad
           <div className="nmc-kpi-loader-logo-safe relative mx-auto mb-5 flex h-[104px] w-[104px] items-center justify-center">
             <div className="nmc-kpi-loader-logo-safe-halo pointer-events-none absolute inset-[-17px] rounded-full" />
             <div
-              className="relative z-10 h-[92px] w-[92px] overflow-hidden rounded-[23px]"
+              className="relative z-10 h-[96px] w-[96px] overflow-hidden rounded-full"
               style={{ boxShadow: '0 0 0 3px rgba(255,255,255,.14), 0 0 28px rgba(95,214,255,.42), 0 0 48px rgba(78,230,169,.22)' }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/kpi-tech-logo.webp" alt="KPI An Giang" className="block h-full w-full object-cover" />
+              <img src="/kpi-tech-logo.webp" alt="KPI An Giang" className="block h-full w-full rounded-full object-cover" />
               <span className="nmc-kpi-loader-logo-safe-shine pointer-events-none absolute inset-y-[-20%] left-[-48%] w-[34%]" />
             </div>
           </div>
@@ -150,20 +150,16 @@ export function AppLoader({ show, error, onRetry, variant = 'default' }: AppLoad
             </div>
           ) : (
             <div className="mt-7 flex flex-col items-center gap-3">
-              <div
-                className="h-10 w-10 rounded-full"
-                style={{
-                  border: '3px solid rgba(91, 222, 164, .2)',
-                  borderTopColor: '#54e4a3',
-                  borderRightColor: '#86d8ff',
-                  animation: 'nmc-kpi-loader-spin .82s linear infinite',
-                }}
-              />
-              <p className="text-sm italic text-slate-300">Đang tải dữ liệu...</p>
+              <div className="nmc-kpi-entry-progress" aria-hidden="true"><span /></div>
+              <p className="text-sm font-bold text-slate-300">Đang tải, vui lòng chờ...</p>
             </div>
           )}
           <style>{`
-            @keyframes nmc-kpi-loader-spin { to { transform: rotate(360deg); } }
+            @keyframes nmc-kpi-entry-progress {
+              0% { transform: translateX(-120%); opacity: .3; }
+              45% { opacity: 1; }
+              100% { transform: translateX(260%); opacity: .3; }
+            }
             @keyframes nmc-kpi-loader-logo-pulse {
               0%, 100% { transform: scale(1); filter: brightness(1); }
               50% { transform: scale(1.035); filter: brightness(1.1); }
@@ -188,6 +184,8 @@ export function AppLoader({ show, error, onRetry, variant = 'default' }: AppLoad
               filter: blur(1px);
               animation: nmc-kpi-loader-logo-shine 2.6s ease-in-out infinite;
             }
+            .nmc-kpi-entry-progress { width: min(280px, 78vw); height: 7px; overflow: hidden; border-radius: 999px; background: rgba(104,216,255,.16); box-shadow: inset 0 0 7px rgba(0,0,0,.35); }
+            .nmc-kpi-entry-progress span { display: block; width: 42%; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#38bdf8,#34d399,#facc15); box-shadow: 0 0 15px rgba(52,211,153,.62); animation: nmc-kpi-entry-progress 1.35s ease-in-out infinite; }
           `}</style>
         </div>
       </div>

@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { KpiEntryGate } from '@/components/kpi-entry-gate'
 
 const KPI_MOBILE_HEADER_OVERRIDES = `
 /* nmc-unified-tech-background-v3 */
@@ -234,7 +233,6 @@ export default function KpiTemplate({ children }: { children: ReactNode }) {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: KPI_MOBILE_HEADER_OVERRIDES }} />
-      <KpiEntryGate />
       {children}
     </>
   )

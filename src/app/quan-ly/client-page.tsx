@@ -12783,7 +12783,7 @@ export default function QuanLyPage() {
   };
 
   const renderSheet = () => {
-    if (isLoading) return <div className="nmc-kpi-embedded-internal-loader flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
+    if (isLoading) return isInIframe ? null : <div className="nmc-kpi-embedded-internal-loader flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;
     // Mounted guard: khi chưa mounted (SSR hoặc hydration đầu tiên) → render skeleton
     // tránh flash bug hiện overview rồi mới switch sang sheet từ URL (?sheet=xxx)
     if (!mounted) return <div className="nmc-kpi-embedded-internal-loader flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /><span className="ml-3 text-emerald-300 text-sm">Đang tải...</span></div>;

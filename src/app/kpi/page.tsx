@@ -6716,8 +6716,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
           <div className="kpi-embed-body">
             {kpiEmbedLoading && (
               <div className="kpi-embed-loader" role="status" aria-live="polite" aria-label="Đang tải nội dung">
-                <span className="kpi-embed-loader-spinner" aria-hidden="true" />
-                <span>{kpiEmbedSlow ? 'Máy chủ đang xử lý, vui lòng chờ thêm...' : 'Đang tải, vui lòng chờ...'}</span>
+                <div className="kpi-embed-loader-card">
+                  <div className="kpi-embed-loader-mark" aria-hidden="true"><span /><span /><span /><span /></div>
+                  <strong>ĐANG TẢI DỮ LIỆU</strong>
+                  <span>{kpiEmbedSlow ? 'Máy chủ đang xử lý, vui lòng chờ thêm...' : 'Đang tải, vui lòng chờ...'}</span>
+                  <div className="kpi-embed-loader-progress" aria-hidden="true"><span /></div>
+                </div>
               </div>
             )}
             <iframe
@@ -8294,11 +8298,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             <input
               className="region-lock-input"
               type="password"
-              inputMode="numeric"
-              maxLength={10}
+              autoComplete="current-password"
               autoFocus
               value={kpiAdminPass}
-              onChange={(event) => { setKpiAdminPass(event.target.value.replace(/\D/g, '')); setKpiAdminError(false); }}
+              onChange={(event) => { setKpiAdminPass(event.target.value); setKpiAdminError(false); }}
               onKeyDown={(event) => { if (event.key === 'Enter') unlockKpiAdmin(); }}
               aria-label="Mã quản trị KPI"
             />
