@@ -6,27 +6,16 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 const mainPage = path.join(root, 'src', 'app', 'kpi', 'page.tsx');
 const componentSource = path.join(root, 'src', 'components', 'kpi-contest-notice.tsx');
-const standaloneComponent = path.join(root, 'kpi-app', 'src', 'components', 'kpi-contest-notice.tsx');
 const MARKER = "import { KpiContestNotice } from '@/components/kpi-contest-notice';";
-const STANDALONE_LOCK = 'nmc-kpi-standalone-contest-notice-v2';
 
 if (!fs.existsSync(mainPage)) throw new Error(`Không tìm thấy ${mainPage}`);
 if (!fs.existsSync(componentSource)) throw new Error(`Không tìm thấy ${componentSource}`);
-
-// Keep a committed standalone component when it carries the explicit lock marker.
-// This avoids prebuild overwriting the production-safe standalone popup implementation.
-const standaloneLocked = fs.existsSync(standaloneComponent)
-  && fs.readFileSync(standaloneComponent, 'utf8').includes(STANDALONE_LOCK);
-if (!standaloneLocked) {
-  fs.mkdirSync(path.dirname(standaloneComponent), { recursive: true });
-  fs.copyFileSync(componentSource, standaloneComponent);
-}
 
 let source = fs.readFileSync(mainPage, 'utf8');
 const sourceEol = source.includes('\r\n') ? '\r\n' : '\n';
 source = source.replace(/\r\n/g, '\n');
 if (source.includes(MARKER)) {
-  console.log(`✓ KPI contest notice: Main đã có carousel; standalone ${standaloneLocked ? 'giữ component đã khóa' : 'đã đồng bộ từ Main'}.`);
+  console.log('✓ KPI contest notice: source đã có carousel trong ứng dụng Render.');
   process.exit(0);
 }
 
