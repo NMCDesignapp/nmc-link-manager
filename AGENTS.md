@@ -17,27 +17,15 @@ Trao đổi với người dùng bằng tiếng Việt, trực tiếp, nêu rõ 
 ## 2. Vai trò của các bản triển khai
 
 - Repository: `NMCDesignapp/nmc-link-manager`.
-- Main App production: `https://nc-link.vercel.app`.
-- KPI trong Main App: `https://nc-link.vercel.app/kpi`.
-- KPI tách production chính thức: Cloudflare Worker `kpi-nc-link`, URL `https://kpi-nc-link.chaunm2312.workers.dev`.
-- Vercel Main App dùng project `nc-link`, team `thanhhung070826-6875`.
-- KPI tách không còn deploy nội dung production trên Vercel. Phải giữ project Vercel `kpi-redirect` và hai URL `angiang2026.vercel.app`, `angiang2026-nhom.vercel.app` để chuyển hướng người dùng sang KPI Cloudflare; không xóa project/alias này và không triển khai ứng dụng KPI vào đó.
-- Main App là nơi quản trị và nguồn điều khiển chính.
-- KPI tách là bản công khai, chỉ đọc; không được làm lộ chức năng quản trị, sidebar, API ghi hoặc luồng điều hướng nội bộ của Main App.
+- Ứng dụng production duy nhất: `https://nc-link.onrender.com`.
+- Render Web Service: `angiang2026`, branch `main`, root directory repository, Dockerfile `./Dockerfile`.
+- Render tự deploy khi có commit mới trên `main`.
+- Runtime production là Next.js app ở root repository: `src/app`, `src/lib`, `src/components`, `public`, `prisma`.
+- KPI là một phần của cùng ứng dụng tại `/kpi`; không có KPI standalone.
+- Không tạo, duy trì hoặc triển khai bản Vercel, Cloudflare Workers hay Netlify cho dự án này.
+- Không xóa hoặc thay đổi Render service, database production, biến môi trường hay URL nếu chưa có yêu cầu riêng.
 
-Khi người dùng nói “chỉnh KPI”, mặc định phải kiểm tra cả:
-
-1. `src/app/kpi/page.tsx` của Main App.
-2. `kpi-app/src/app/page.tsx` của KPI tách.
-
-Sau khi sửa KPI nguồn, chạy:
-
-```bash
-bash scripts/sync-kpi-app.sh
-bash scripts/sync-kpi-app.sh --check
-```
-
-Không sửa tay hai bản độc lập rồi để chúng lệch nhau. Các khác biệt standalone hợp lệ phải đi qua `scripts/apply-standalone-patches.js` hoặc shim riêng của `kpi-app`.
+Khi người dùng nói “chỉnh KPI”, chỉ sửa nguồn trong `src/app/kpi` và các component/lib dùng chung của ứng dụng root. Không đồng bộ sang một project KPI riêng.
 
 ## 3. Nguồn dữ liệu và database
 
@@ -53,7 +41,7 @@ Excel trên máy quản trị
   -> API ghi của Main App
   -> Supabase PostgreSQL
   -> API đọc / AppDataContext
-  -> Main App và KPI tách
+  -> ứng dụng Render
 ```
 
 Google Sheets là nguồn thay thế, không phải nguồn chạy song song. Nguồn tự động hiện được điều khiển bởi Setting `nmc-sync-source` với hai giá trị:
@@ -173,18 +161,18 @@ Người dùng cần biết rõ dữ liệu đến từ đâu và có tự độ
 
 ## 8. Quy trình sửa mã
 
-Ưu tiên quy trình:
+Quy trình production duy nhất:
 
 ```text
 main mới nhất
-  -> feature/docs branch
+  -> feature branch
   -> thay đổi tối thiểu
   -> lint/build/test
-  -> đồng bộ kpi-app nếu liên quan
   -> xem diff
   -> PR
   -> merge main
-  -> kiểm tra Main App trên Vercel và KPI tách trên Cloudflare
+  -> Render tự deploy
+  -> xác minh https://nc-link.onrender.com
 ```
 
 Không force-push `main`. Không ghi đè thay đổi chưa rõ nguồn gốc. Không sửa file generated/build artifact nếu source tương ứng tồn tại.
@@ -192,17 +180,12 @@ Không force-push `main`. Không ghi đè thay đổi chưa rõ nguồn gốc. K
 Lệnh kiểm tra cơ bản:
 
 ```bash
-npm install
+npm ci
 npm run lint
-npm run build
-
-bash scripts/sync-kpi-app.sh --check
-cd kpi-app
-npm install
 npm run build
 ```
 
-Với thay đổi nhỏ chỉ CSS/template, vẫn phải kiểm tra build của project bị ảnh hưởng.
+Dockerfile production ở root dùng Node 22, build bằng `npm run build`, sau đó chạy Next standalone bằng `node server.js`. Mọi thay đổi phải tương thích Dockerfile này. Không chạy lệnh deploy Vercel/Cloudflare/Netlify.
 
 ## 9. Khi tài liệu và mã không khớp
 
