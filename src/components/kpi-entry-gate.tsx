@@ -138,7 +138,7 @@ export function KpiEntryGate() {
         }
         #nmc-kpi-entry-gate.is-leaving { opacity: 0; visibility: hidden; pointer-events: none; }
         #nmc-kpi-entry-gate .nmc-kpi-gate-card {
-          position: relative; box-sizing: border-box; width: min(86vw, 390px); min-height: 300px; padding: 30px 28px 24px;
+          position: relative; box-sizing: border-box; width: min(88vw, 370px); min-height: 270px; padding: 26px 24px 22px;
           overflow: hidden; border: 1.5px solid rgba(244,197,83,.96); border-radius: 23px;
           background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.06) 0 1px, rgba(0,0,0,.04) 1px 3px), linear-gradient(145deg, #e4e7ea 0%, #bdc2c7 18%, #8f969d 39%, #545b63 64%, #9ba1a8 82%, #d9dde1 100%);
           box-shadow: 0 28px 82px rgba(0,0,0,.66), inset 0 1px 0 rgba(255,255,255,.86), inset 0 -14px 30px rgba(18,22,27,.30), 0 0 0 1px rgba(255,218,119,.12), 0 0 30px rgba(244,197,83,.12);
@@ -152,14 +152,14 @@ export function KpiEntryGate() {
         #nmc-kpi-entry-gate .b1 { left: 13px; top: 13px; } #nmc-kpi-entry-gate .b2 { right: 13px; top: 13px; }
         #nmc-kpi-entry-gate .b3 { left: 13px; bottom: 13px; } #nmc-kpi-entry-gate .b4 { right: 13px; bottom: 13px; }
         #nmc-kpi-entry-gate .nmc-kpi-logo-shell {
-          width: 94px; height: 94px; aspect-ratio: 1 / 1; margin: 0 auto 11px; overflow: hidden; border: 2px solid rgba(255,213,103,.95);
-          border-radius: 50%; background: #06111b; box-shadow: 0 0 0 3px rgba(247,190,77,.12), 0 0 24px rgba(255,191,62,.25), inset 0 0 0 1px rgba(255,255,255,.15);
+          width: 100px; height: 100px; aspect-ratio: 1 / 1; margin: 0 auto 12px; overflow: hidden; border: 2px solid rgba(89,226,195,.95);
+          border-radius: 28px; background: linear-gradient(145deg,#062b50,#0a8b83); box-shadow: 0 0 0 3px rgba(89,226,195,.12), 0 0 24px rgba(89,226,195,.25), inset 0 0 0 1px rgba(255,255,255,.15); display:flex; align-items:center; justify-content:center;
         }
         #nmc-kpi-entry-gate .nmc-kpi-logo-shell img {
-          display: block; width: 100%; height: 100%; aspect-ratio: 1 / 1; object-fit: cover; object-position: center; border-radius: 50%; transform: scale(1.08); image-rendering: auto;
+          display: none;
         }
         #nmc-kpi-entry-gate .nmc-kpi-gate-title {
-          color: #ffcf5d; font: 900 27px/1.08 'Outfit', system-ui, sans-serif; letter-spacing: .07em;
+          color: #c7fff3; font: 900 26px/1.08 'Outfit', system-ui, sans-serif; letter-spacing: .06em;
           text-shadow: 0 1px 0 #fff0bd, 0 2px 2px rgba(54,35,8,.82), 0 0 8px rgba(255,193,48,.30);
         }
         #nmc-kpi-entry-gate .nmc-kpi-ecg-stage { position: relative; width: min(100%, 310px); height: 58px; margin: 10px auto 0; }
@@ -206,8 +206,8 @@ export function KpiEntryGate() {
         }
         @media (max-width: 520px) {
           #nmc-kpi-entry-gate { padding: 18px; background-position: center top; }
-          #nmc-kpi-entry-gate .nmc-kpi-gate-card { width: min(91vw, 374px); min-height: 286px; padding: 27px 24px 22px; }
-          #nmc-kpi-entry-gate .nmc-kpi-logo-shell { width: 88px; height: 88px; }
+          #nmc-kpi-entry-gate .nmc-kpi-gate-card { width: min(90vw, 360px); min-height: 260px; padding: 24px 22px 20px; }
+          #nmc-kpi-entry-gate .nmc-kpi-logo-shell { width: 96px; height: 96px; }
           #nmc-kpi-entry-gate .nmc-kpi-gate-title { font-size: 24px; }
           #nmc-kpi-entry-gate .nmc-kpi-ecg-stage { height: 54px; margin-top: 11px; }
           #nmc-kpi-entry-gate .nmc-kpi-gate-loading { font-size: 14px; }
@@ -216,8 +216,8 @@ export function KpiEntryGate() {
       <div className="nmc-kpi-gate-card">
         <span className="nmc-kpi-bolt b1" aria-hidden="true" /><span className="nmc-kpi-bolt b2" aria-hidden="true" />
         <span className="nmc-kpi-bolt b3" aria-hidden="true" /><span className="nmc-kpi-bolt b4" aria-hidden="true" />
-        <div className="nmc-kpi-logo-shell" aria-hidden="true"><img src="/kpi-tech-logo.webp" alt="" /></div>
-        <div className="nmc-kpi-gate-title">AN GIANG KPI</div>
+        <div className="nmc-kpi-logo-shell" aria-hidden="true"><span style={{font:"900 28px/1 system-ui",letterSpacing:"-.04em",color:"#eaffff",textShadow:"0 2px 12px #48d9c7"}}>NMC</span></div>
+        <div className="nmc-kpi-gate-title">NC LINK</div>
         <div className="nmc-kpi-ecg-stage" aria-hidden="true">
           <svg className="nmc-kpi-ecg-groove" viewBox="0 0 360 56" preserveAspectRatio="none"><path d={ECG_PATH} /><path d={ECG_PATH} /></svg>
           <svg className="nmc-kpi-ecg-bright" viewBox="0 0 360 56" preserveAspectRatio="none">
