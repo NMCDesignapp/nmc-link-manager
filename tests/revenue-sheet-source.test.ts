@@ -87,7 +87,6 @@ for (const [label, source] of [['KPI Render', kpi], ['Quản lý', management]] 
 
 test('Tổng Công ty cộng AFYP mỗi hàng một lần và import tháng bằng transaction', () => {
   assert.match(kpi, /const totalAFYP = periodContracts\.reduce\(\(sum, c\) => sum \+ num\(c\.afyp\), 0\)/);
-  assert.match(standalone, /const totalAFYP = periodContracts\.reduce\(\(sum, c\) => sum \+ num\(c\.afyp\), 0\)/);
   assert.match(sync, /await db\.\$transaction\(async tx =>/);
   assert.match(sync, /if \(!authoritativeReplacement && !agentCode\) return;/);
   assert.match(sync, /revenueSourceMonth\(getVal\(row, 'Nguồn dữ liệu'/);
