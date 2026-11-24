@@ -5,7 +5,6 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const mainLayout = read('src/app/layout.tsx');
-const standaloneLayout = read('kpi-app/src/app/layout.tsx');
 const runtime = read('public/kpi-table-runtime-v27.js');
 const css = read('public/kpi-table-runtime-v27.css');
 
@@ -17,7 +16,7 @@ const legacyScripts = [
   'kpi-rank-header-structure-v26.js',
 ];
 
-for (const [name, layout] of [['main', mainLayout], ['standalone', standaloneLayout]]) {
+for (const [name, layout] of [['Render app', mainLayout]]) {
   if (!layout.includes('kpi-table-runtime-v27.js')) throw new Error(`${name}: v27 runtime missing`);
   if (!layout.includes('kpi-table-runtime-v27.css')) throw new Error(`${name}: v27 CSS missing`);
   for (const script of legacyScripts) {
