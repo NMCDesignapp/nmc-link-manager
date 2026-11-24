@@ -2797,7 +2797,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-embed-loader {
   position: absolute;
   inset: 0;
-  z-index: 5;
+  z-index: 999;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2820,16 +2820,6 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   animation: kpi-embed-loading-text 1.5s ease-in-out infinite;
 }
 @keyframes kpi-embed-loading-text { 0%,100% { opacity:.7 } 50% { opacity:1 } }
-.kpi-embed-loader-spinner {
-  width: 39px;
-  height: 39px;
-  border-radius: 50%;
-  border: 3px solid rgba(104, 216, 255, .18);
-  border-top-color: #67d9ff;
-  border-right-color: #61e4aa;
-  box-shadow: 0 0 18px rgba(89, 213, 255, .28);
-  animation: kpi-embed-spin .8s linear infinite;
-}
 .kpi-embed-loader-progress {
   width: min(280px, 70vw);
   height: 7px;
@@ -2847,7 +2837,6 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   box-shadow: 0 0 12px rgba(97, 228, 170, .7);
   animation: kpi-embed-progress 1.8s ease-in-out infinite;
 }
-@keyframes kpi-embed-spin { to { transform: rotate(360deg); } }
 @keyframes kpi-embed-progress {
   0% { width: 0; opacity: .65; }
   70% { width: 100%; opacity: 1; }
