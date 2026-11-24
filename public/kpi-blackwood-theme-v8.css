@@ -18,11 +18,6 @@ html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader::after {
   animation: none !important;
 }
 
-/* Defensive: the embedded loading surface should contain only the silver card. */
-html body .kpi-app.kpi-app.kpi-app .kpi-embed-loader > :not(span) {
-  display: none !important;
-}
-
 @media (max-width: 720px) {
   /* Same surface as #view-main > header in the KPI template. */
   html body .kpi-app.kpi-app .kpi-embed-header,

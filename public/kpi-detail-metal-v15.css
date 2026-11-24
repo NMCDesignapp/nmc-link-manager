@@ -293,22 +293,6 @@ html body .kpi-app #view-detail .grp-prog-fill {
   box-shadow: none;
 }
 
-/* Initial KPI entry popup: keep the ECG line completely flat. */
-#nmc-kpi-entry-gate .nmc-kpi-ecg-groove path:first-child,
-#nmc-kpi-entry-gate .nmc-kpi-ecg-groove path + path,
-#nmc-kpi-entry-gate .nmc-kpi-ecg-bright path,
-#nmc-kpi-entry-gate .nmc-kpi-ecg-head,
-#nmc-kpi-entry-gate .nmc-kpi-ecg-head.is-arrived {
-  filter: none !important;
-}
-#nmc-kpi-entry-gate .nmc-kpi-ecg-dot,
-#nmc-kpi-entry-gate .nmc-kpi-ecg-dot.start,
-#nmc-kpi-entry-gate .nmc-kpi-ecg-dot.end,
-#nmc-kpi-entry-gate .nmc-kpi-ecg-dot.end.is-arrived,
-#nmc-kpi-entry-gate.is-arrived .nmc-kpi-ecg-dot.end {
-  box-shadow: none !important;
-}
-
 @media (max-width: 720px) {
   html body .kpi-app #view-detail .detail-hero,
   html body .kpi-app #view-detail .month-grid,
