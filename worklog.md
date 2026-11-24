@@ -1373,3 +1373,9 @@ Task: Quy ước Worklog chỉ có NC Link; retire KPI standalone entry/deploy; 
 - NC Link/KPI vẫn là một ứng dụng duy nhất; người xem vào KPI, Admin dùng quyền mở quản lý nội bộ.
 - Giữ logo hiện có ở entry gate; điều chỉnh ảnh logo từ crop/zoom sang contain và bỏ scale để tránh logo vỡ/cắt trên màn hình mobile.
 - Đóng PR #278 và #279 vì đề xuất điều hướng/nhận diện không đúng ý người dùng.
+
+
+## 2026-11-24 — Bỏ lớp che vô hạn trang nhúng KPI
+
+- Trong KPI iframe, nếu trang /quan-ly không gửi tín hiệu embedded-ready (preload/loading bị kẹt), lớp spinner chỉ che tối đa 15 giây thay vì 60 giây; sau đó hiển thị nội dung iframe để người dùng thấy trạng thái thực tế và có thể thao tác/đánh giá.
+- Đây là fallback hiển thị, không khẳng định sửa gốc API preload; tiếp tục cần xác minh trang chính sách/thi đua tải dữ liệu.
