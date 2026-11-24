@@ -57,26 +57,10 @@ export default function RootLayout({
     <html lang="vi" className="dark h-full">
       <head>
         <link rel="apple-touch-icon" href="/icon/nc-link-180.png" />
-        <link rel="stylesheet" href="/kpi-ui-overrides.css" />
-        <link rel="stylesheet" href="/kpi-cyber-room-v4.css?v=20260807-2053" />
-        <link rel="stylesheet" href="/kpi-loader-fix-v1.css?v=20260808-1017" />
-        <link rel="stylesheet" href="/kpi-performance-v1.css?v=20260807-2110" />
-        <link rel="stylesheet" href="/kpi-blackwood-theme-v3.css?v=20260825-1" />
-        <link rel="stylesheet" href="/kpi-blackwood-theme-v4.css?v=20260825-2" />
-        <link rel="stylesheet" href="/kpi-blackwood-theme-v5.css?v=20260826-1" />
-        <link rel="stylesheet" href="/kpi-blackwood-theme-v6.css?v=20260826-2" />
-        <link rel="stylesheet" href="/kpi-blackwood-theme-v7.css?v=20260826-3" />
-        <link rel="stylesheet" href="/kpi-blackwood-theme-v8.css?v=20260826-4" />
-        <link rel="stylesheet" href="/kpi-blackwood-theme-v9.css?v=20260826-5" />
-        <link rel="stylesheet" href="/kpi-blackwood-theme-v10.css?v=20260826-6" />
-        <link rel="stylesheet" href="/kpi-blackwood-theme-v11.css?v=20260826-7" />
-        <link rel="stylesheet" href="/kpi-blackwood-theme-v12.css?v=20260831-1" />
-        <link rel="stylesheet" href="/kpi-blackwood-theme-v13.css?v=20260831-1" />
         <link rel="stylesheet" href="/main-management-soft-ui-v1.css?v=20260827-2" />
         <link rel="stylesheet" href="/main-management-metal-v2.css?v=20260831-2" />
         <link rel="stylesheet" href="/main-home-panels-soft-ui-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/clb-sao-viet-soft-ui-v1.css?v=20260827-1" />
-        <link rel="stylesheet" href="/nmc-metal-loading-plate-v1.css?v=20260827-1" />
         <link rel="stylesheet" href="/nmc-main-metal-system-v2.css?v=20260831-3" />
         <link rel="stylesheet" href="/main-management-mobile-fixes-v1.css?v=20260903-1" />
         <link rel="stylesheet" href="/kpi-embedded-detail-tables-v1.css?v=20260829-5" />
