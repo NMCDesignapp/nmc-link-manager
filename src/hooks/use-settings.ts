@@ -25,7 +25,7 @@ export const defaultSettings: AppSettings = {
   enable_haptic: 'true',
   enable_neon_effects: 'true',
   profile_name: 'N.M.C',
-  profile_bio: 'Tat ca lien ket cua toi',
+  profile_bio: 'KPI AN GIANG',
   csv_url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vStQqbaHb_1aP-hMzZCiVoeaSobXV5gwqw6iZBoQ0MgpsXiobO1GdCM5zoCoCxVBtxT_Nujjll_MJmC/pub?output=csv',
   csv_staff_url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSLOfLKaDdEL8EcAb6kaI6GKt3cFaXLxnwuCgeR63rmn2pQI0wC-aZswNRCDqvt87G0981ibFjmDNG1/pub?output=csv',
   csv_nyd_url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRMzanBhPmqGXv2JXxYHkuaNiWC2YhzOAemkQao1FfW_l2a5-wJnjDeFnxvohS4ydTXusXVey8J3jdA/pub?output=csv',
