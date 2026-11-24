@@ -92,7 +92,7 @@ for (const target of targets) {
 // cho bước vào Thi đua / Chính sách / CLB Sao Việt. Hai spinner nội bộ của /quan-ly
 // (mounted guard + data-sheet guard) chỉ tạo thêm lớp loading chồng và tốn animation.
 // Gắn class ổn định cho đúng hai guard này; template /quan-ly sẽ ẩn chúng CHỈ ở KPI embed.
-const linkedPagePath = path.resolve(__dirname, '../src/app/quan-ly/page.tsx');
+const linkedPagePath = path.resolve(__dirname, '../src/app/quan-ly/client-page.tsx');
 if (fs.existsSync(linkedPagePath)) {
   let linkedSource = fs.readFileSync(linkedPagePath, 'utf8');
   const internalLoaderClass = 'nmc-kpi-embedded-internal-loader';

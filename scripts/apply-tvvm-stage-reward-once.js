@@ -75,7 +75,7 @@ for (const file of TARGETS) {
 // - Thưởng Đồng Hành
 // Chỉ thay các block có `tongThuongTVVm += thuongThang + thuongChang`, vì đây là
 // hai nơi dùng thưởng TVVm làm nền cho chính sách quản lý; không đụng bảng thưởng TVVm cá nhân.
-const policyFile = 'src/app/quan-ly/page.tsx';
+const policyFile = 'src/app/quan-ly/client-page.tsx';
 const originalPolicySource = fs.readFileSync(policyFile, 'utf8');
 const policyEol = originalPolicySource.includes('\r\n') ? '\r\n' : '\n';
 let policySource = originalPolicySource.replace(/\r\n/g, '\n');

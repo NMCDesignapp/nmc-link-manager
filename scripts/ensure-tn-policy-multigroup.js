@@ -12,7 +12,7 @@ const path = require('path');
 // legacy chip filters can be regenerated as scalar state by older source transforms.
 // This script runs LAST in dev/build and is deliberately idempotent.
 
-const filePath = path.join(process.cwd(), 'src/app/quan-ly/page.tsx');
+const filePath = path.join(process.cwd(), 'src/app/quan-ly/client-page.tsx');
 const targets = [
   { variable: 'tuyenLuyenNhomFilter', setter: 'setTuyenLuyenNhomFilter' },
   { variable: 'dongHanhNhomFilter', setter: 'setDongHanhNhomFilter' },

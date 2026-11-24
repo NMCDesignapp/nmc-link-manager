@@ -4192,7 +4192,6 @@ function circleStroke(radius: number, pct: number) {
 function glowCls(pct: number): string { return pct >= 100 ? ' glow-full' : ''; }
 function pctClass(pct: number): string { return pct >= 100 ? 'green' : pct >= 75 ? 'gold' : 'red'; }
 // Mã quản trị KPI (icon khóa trên trang chính) — yêu cầu user 19/11/2026
-const KPI_ADMIN_PASSCODE = '0969774224';
 
 // SHA của bản build đang chạy (Render/CI gắn lúc build qua scripts/inject-kpi-build-sha.js).
 // Trang KPI so SHA này với /api/health → khác bản → tự reload đúng 1 lần (hết chuyện bản cũ).
@@ -4723,7 +4722,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   };
 
   // ===== QUẢN TRỊ KPI + ẢNH ĐẠI DIỆN NHÓM (yêu cầu 19/11/2026) =====
-  // Icon khóa nhỏ trên trang chính → nhập mã quản trị (mặc định 0969774224).
+  // Icon khóa nhỏ trên trang chính → xác thực qua phiên quản trị server.
   // Đã mở khóa: hiện nút cài/xóa ảnh đại diện trên từng thẻ nhóm ở CHI TIẾT NHÓM.
   // Chưa mở khóa: các nút này ẩn hoàn toàn với người xem thường.
   const [kpiAdminAuthed, setKpiAdminAuthed] = useState(false);
@@ -4739,9 +4738,26 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const adAvatarFileRef = useRef<HTMLInputElement>(null);
   const adAvatarTargetRef = useRef<string>('');
 
-  // Khôi phục phiên quản trị trong cùng phiên trình duyệt
+  // Khôi phục phiên quản trị từ cookie HttpOnly do server cấp.
   useEffect(() => {
-    try { if (sessionStorage.getItem('nmc-kpi-admin') === '1') setKpiAdminAuthed(true); } catch {}
+    let cancelled = false;
+    void fetch('/api/admin/session', { credentials: 'same-origin', cache: 'no-store' })
+      .then(response => response.ok ? response.json() : null)
+      .then((result: { authenticated?: boolean } | null) => {
+        if (!cancelled && result?.authenticated) {
+          setAdminAuthed(true);
+          setKpiAdminAuthed(true);
+          try { sessionStorage.setItem('kpi_admin_authed', '1'); } catch {}
+        } else if (!cancelled) {
+          setKpiAdminAuthed(false);
+          try {
+            sessionStorage.removeItem('nmc-kpi-admin');
+            sessionStorage.removeItem('kpi_admin_authed');
+          } catch {}
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   // Manifest ảnh đại diện AD — key: kpi-ad-img-<maAD>
@@ -4767,21 +4783,40 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     return () => { cancelled = true; };
   }, []);
 
-  const unlockKpiAdmin = useCallback(() => {
-    if (kpiAdminPass === KPI_ADMIN_PASSCODE) {
-      setKpiAdminAuthed(true);
-      setKpiAdminPromptOpen(false);
-      setKpiAdminPass('');
-      setKpiAdminError(false);
-      try { sessionStorage.setItem('nmc-kpi-admin', '1'); } catch {}
-    } else {
+  const unlockKpiAdmin = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ password: kpiAdminPass }),
+      });
+      const result = await response.json().catch(() => null);
+      if (response.ok && result?.authenticated) {
+        setAdminAuthed(true);
+        setKpiAdminAuthed(true);
+        try { sessionStorage.setItem('kpi_admin_authed', '1'); } catch {}
+        setKpiAdminPromptOpen(false);
+        setKpiAdminPass('');
+        setKpiAdminError(false);
+        return;
+      }
+      setKpiAdminError(true);
+    } catch {
       setKpiAdminError(true);
     }
   }, [kpiAdminPass]);
 
-  const lockKpiAdmin = useCallback(() => {
+  const lockKpiAdmin = useCallback(async () => {
+    try {
+      await fetch('/api/admin/session', { method: 'DELETE', credentials: 'same-origin' });
+    } catch {}
+    setAdminAuthed(false);
     setKpiAdminAuthed(false);
-    try { sessionStorage.removeItem('nmc-kpi-admin'); } catch {}
+    try {
+      sessionStorage.removeItem('kpi_admin_authed');
+      sessionStorage.removeItem('nmc-kpi-admin');
+    } catch {}
   }, []);
 
   // Manifest ảnh đại diện nhóm — key: kpi-nhom-img-<maBanNhom>

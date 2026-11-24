@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { resolveCommunicationExportProfile } from '../src/lib/clb-sao-viet-image-export.ts';
 
 const exporter = readFileSync(new URL('../src/lib/clb-sao-viet-image-export.ts', import.meta.url), 'utf8');
-const caller = readFileSync(new URL('../src/app/quan-ly/page.tsx', import.meta.url), 'utf8');
+const caller = readFileSync(new URL('../src/app/quan-ly/client-page.tsx', import.meta.url), 'utf8');
 const contestResult = readFileSync(new URL('../src/app/thi-dua-chau/page.tsx', import.meta.url), 'utf8');
 
 test('policy programs use individual density profiles', () => {

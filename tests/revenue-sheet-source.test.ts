@@ -5,7 +5,7 @@ import test from 'node:test';
 const hub = readFileSync('data-hub/index.mjs', 'utf8');
 const kpi = readFileSync('src/app/kpi/page.tsx', 'utf8');
 const standalone = readFileSync('kpi-app/src/app/page.tsx', 'utf8');
-const management = readFileSync('src/app/quan-ly/page.tsx', 'utf8');
+const management = readFileSync('src/app/quan-ly/client-page.tsx', 'utf8');
 const sync = readFileSync('src/app/api/sync/route.ts', 'utf8');
 const monthlyRevenueSync = readFileSync('src/app/api/revenue/sync-from-contracts/route.ts', 'utf8');
 

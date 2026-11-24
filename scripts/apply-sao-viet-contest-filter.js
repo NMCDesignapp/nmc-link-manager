@@ -7,7 +7,7 @@ const path = require('path');
 //
 // Patch được chạy ở build-time cho cả Main App và KPI standalone để tránh hai nguồn lệch nhau.
 const targets = [
-  path.resolve(__dirname, '../src/app/quan-ly/page.tsx'),
+  path.resolve(__dirname, '../src/app/quan-ly/client-page.tsx'),
   path.resolve(__dirname, '../kpi-app/src/app/quan-ly/page.tsx'),
 ];
 
