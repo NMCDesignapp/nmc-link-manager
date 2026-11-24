@@ -6747,18 +6747,16 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         <section className={`view ${view === 'main' ? 'active' : ''}`} id="view-main" role="main">
           <header>
             <div className="main-header">
-              {/* Nút back:
-                  - KPI0 (standalone=false): LUÔN hiển thị, bấm về `/` (main app)
-                    (trước đây chỉ hiện khi adminAuthed → sai, vì admin vào từ main app
-                     nhưng chưa login admin trên /kpi sẽ mất nút back)
-                  - KPI tách (standalone=true): KHÔNG hiển thị (user không được về main app) */}
+              {/* Chỉ Admin đã xác thực mới có lối vào giao diện NC-Link cũ.
+                  Trang /nc-link tự kiểm tra cookie HttpOnly ở server; người dùng thường
+                  không thể mở trực tiếp URL này. KPI vẫn là trang mặc định tại /. */}
               {!standalone && kpiAdminAuthed && (
                 <button
                   type="button"
                   className="btn-back-u"
-                  onClick={() => router.push('/')}
-                  title="Quay lại NC Link"
-                  aria-label="Quay lại NC Link"
+                  onClick={() => router.push('/nc-link')}
+                  title="Quay lại giao diện NC-Link cũ"
+                  aria-label="Quay lại giao diện NC-Link cũ"
                 >
                   <ArrowLeft size={18} />
                 </button>
