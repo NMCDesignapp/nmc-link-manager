@@ -18,14 +18,14 @@ import '@fontsource/roboto-condensed/latin-ext-900.css'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'N.M.C - Trung tam quan ly lien ket',
-  description: 'Ung dung quan ly va tong hop tat ca lien ket web cua ban',
+  title: 'KPI AN GIANG - Design bg Chau',
+  description: 'Ung dung theo doi so lieu kinh doanh',
   generator: 'v0.app',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'NMC Links',
+    title: 'KPI AN GIANG',
   },
   formatDetection: {
     telephone: false,
