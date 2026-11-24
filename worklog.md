@@ -1379,3 +1379,11 @@ Task: Quy ước Worklog chỉ có NC Link; retire KPI standalone entry/deploy; 
 
 - Trong KPI iframe, nếu trang /quan-ly không gửi tín hiệu embedded-ready (preload/loading bị kẹt), lớp spinner chỉ che tối đa 15 giây thay vì 60 giây; sau đó hiển thị nội dung iframe để người dùng thấy trạng thái thực tế và có thể thao tác/đánh giá.
 - Đây là fallback hiển thị, không khẳng định sửa gốc API preload; tiếp tục cần xác minh trang chính sách/thi đua tải dữ liệu.
+
+
+## 2026-11-24 — Loader liên kết KPI
+
+- Loader khi mở các trang Chính sách/Thi đua/CLB trong KPI nhúng có nền blur/đậm, spinner quay và dòng rõ "Đang tải, vui lòng chờ...".
+- Giữ app KPI là ứng dụng duy nhất: root `/` là KPI; `/quan-ly` là nội bộ Admin; icon Trang chủ trỏ root.
+- Vercel aliases `angiang2026*` đã gắn deployment redirect nhưng chưa kiểm tra HTTP từng host.
+- Các script poster backup hiện còn đường dẫn cũ `/home/z/my-project/...`; chưa chuyển vì cần xác định môi trường backup thực tế trước khi thay/di chuyển dữ liệu.
