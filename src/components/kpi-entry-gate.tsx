@@ -156,7 +156,7 @@ export function KpiEntryGate() {
           border-radius: 50%; background: #06111b; box-shadow: 0 0 0 3px rgba(247,190,77,.12), 0 0 24px rgba(255,191,62,.25), inset 0 0 0 1px rgba(255,255,255,.15);
         }
         #nmc-kpi-entry-gate .nmc-kpi-logo-shell img {
-          display: block; width: 100%; height: 100%; aspect-ratio: 1 / 1; object-fit: cover; object-position: center; border-radius: 50%; transform: scale(1.08); image-rendering: auto;
+          display: block; width: 100%; height: 100%; aspect-ratio: 1 / 1; object-fit: contain; object-position: center; border-radius: 50%; transform: none; image-rendering: auto;
         }
         #nmc-kpi-entry-gate .nmc-kpi-gate-title {
           color: #ffcf5d; font: 900 27px/1.08 'Outfit', system-ui, sans-serif; letter-spacing: .07em;
