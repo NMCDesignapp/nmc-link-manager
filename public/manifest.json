@@ -1,7 +1,7 @@
 {
-  "name": "N.M.C - Trung tam quan ly lien ket",
-  "short_name": "NMC Links",
-  "description": "Ung dung quan ly va tong hop tat ca lien ket web cua ban",
+  "name": "KPI AN GIANG - Design by N.C",
+  "short_name": "KPI AN GIANG",
+  "description": "Ung dung ho tro theo doi so lieu kinh doanh",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0f",
@@ -18,8 +18,8 @@
       "url": "/?action=add",
       "icons": [
         {
-          "src": "/icon/nc-link-128.png",
-          "sizes": "128x128",
+          "src": "/icon/nc-link-129.png",
+          "sizes": "129x129",
           "type": "image/png"
         }
       ]
