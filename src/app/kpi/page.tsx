@@ -6706,15 +6706,13 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     (trước đây chỉ hiện khi adminAuthed → sai, vì admin vào từ main app
                      nhưng chưa login admin trên /kpi sẽ mất nút back)
                   - KPI tách (standalone=true): KHÔNG hiển thị (user không được về main app) */}
-              {!standalone && (
+              {!standalone && kpiAdminAuthed && (
                 <button
                   type="button"
                   className="btn-back-u"
-                  onClick={() => {
-                    router.push('/');
-                  }}
-                  title="Trở về trang chính"
-                  aria-label="Trở về trang chính"
+                  onClick={() => router.push('/quan-ly?admin=1')}
+                  title="Quay lại NC Link quản lý"
+                  aria-label="Quay lại NC Link quản lý"
                 >
                   <ArrowLeft size={18} />
                 </button>
