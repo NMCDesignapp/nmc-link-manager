@@ -5,7 +5,6 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 const sourcePath = path.join(root, 'src', 'components', 'kpi-contest-notice.tsx');
-const standalonePath = path.join(root, 'kpi-app', 'src', 'components', 'kpi-contest-notice.tsx');
 const pagePath = path.join(root, 'src', 'app', 'kpi', 'page.tsx');
 const UI_MARKER = '/* nmc-kpi-region-notice-polish-v1 */';
 const POPUP_MARKER = 'data-kpi-contest-popup="true"';
@@ -200,8 +199,6 @@ if (!source.includes(SWIPE_MARKER) || !source.includes('setRotationNonce((value)
 
 const serializedSource = source.replace(/\n/g, sourceNewline);
 fs.writeFileSync(sourcePath, serializedSource, 'utf8');
-fs.mkdirSync(path.dirname(standalonePath), { recursive: true });
-fs.writeFileSync(standalonePath, serializedSource, 'utf8');
 
 const originalPage = fs.readFileSync(pagePath, 'utf8');
 const pageNewline = originalPage.includes('\r\n') ? '\r\n' : '\n';
