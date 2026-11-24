@@ -4,8 +4,7 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  // Managed by the Supabase ↔ Vercel integration. Keeping these names means
-  // Vercel rotates connection credentials without copying them into this repo.
+  // Render supplies these Supabase PostgreSQL connection values as environment variables.
   url       = env("POSTGRES_PRISMA_URL")
   directUrl = env("POSTGRES_URL_NON_POOLING")
 }
