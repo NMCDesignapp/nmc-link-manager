@@ -82,7 +82,7 @@ function NmcSolidLogo({ bio }: { bio: string }) {
           <circle cx="70.5" cy="38" r="4.5" fill="url(#nmc-logo-mint)" />
           <circle cx="135" cy="38" r="4.5" fill="url(#nmc-logo-mint)" />
           </svg>
-          <p className="nmc-home-designer">Design by Châu</p>
+          <p className="nmc-home-designer"></p>
         </div>
         {bio && <p className="nmc-home-bio">{bio}</p>}
       </div>
