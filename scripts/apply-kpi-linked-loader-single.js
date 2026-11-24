@@ -1,0 +1,91 @@
+const fs = require('fs');
+const path = require('path');
+
+const KPI_LINKED_MIN_VISIBLE_MS = 3200;
+
+// Patch the single canonical KPI source used by the Render production app.
+const kpiPagePaths = [path.resolve(__dirname, '../src/app/kpi/page.tsx')];
+
+for (const kpiPagePath of kpiPagePaths) {
+  if (!fs.existsSync(kpiPagePath)) continue;
+
+  let source = fs.readFileSync(kpiPagePath, 'utf8');
+
+  // The Render app passes from=kpi so /quan-ly knows it is embedded and can suppress its own initial loading layers.
+  const oldMainIframe = ': `/quan-ly?sheet=${kpiSheet}&admin=1`';
+  const newMainIframe = ': `/quan-ly?sheet=${kpiSheet}&admin=1&from=kpi`';
+  if (source.includes(oldMainIframe)) {
+    source = source.replace(oldMainIframe, newMainIframe);
+  } else if (
+    !source.includes(newMainIframe) &&
+    // The canonical Render URL is now composed through buildMainUrl().
+    // Accept that explicit form instead of requiring the former relative URL.
+    !(source.includes("buildMainUrl('/quan-ly?sheet='") && source.includes("&from=kpi"))
+  ) {
+    throw new Error(`[KPI linked loader] Không tìm thấy URL iframe hợp lệ (cần from=kpi) trong ${kpiPagePath}`);
+  }
+
+  // Keep the linked iframe completely invisible while the category popup is active.
+  // The bright ECG reaches 100% at ~2.82s (theme v11). We keep the popup for at
+  // least 3.2s and also wait for the iframe onLoad event. This guarantees that the
+  // signal visibly reaches the right endpoint and holds its final gold glow before
+  // the linked page is revealed.
+  const loadingStateLine = '  const [kpiEmbedLoading, setKpiEmbedLoading] = useState(false);';
+  const refMarker = 'kpiEmbedStartedAtRef';
+  if (!source.includes(refMarker)) {
+    if (!source.includes(loadingStateLine)) {
+      throw new Error(`[KPI linked loader] Không tìm thấy state kpiEmbedLoading trong ${kpiPagePath}`);
+    }
+    source = source.replace(
+      loadingStateLine,
+      `${loadingStateLine}\n  const kpiEmbedStartedAtRef = useRef(0);\n  const kpiEmbedReadyTimerRef = useRef<number | null>(null);`,
+    );
+  }
+
+  const openLoadingLine = '    setKpiEmbedLoading(true);';
+  const startedAtLine = '    kpiEmbedStartedAtRef.current = Date.now();';
+  if (!source.includes(startedAtLine)) {
+    if (!source.includes(openLoadingLine)) {
+      throw new Error(`[KPI linked loader] Không tìm thấy điểm bắt đầu loader trong ${kpiPagePath}`);
+    }
+    source = source.replace(
+      openLoadingLine,
+      `${openLoadingLine}\n${startedAtLine}\n    if (kpiEmbedReadyTimerRef.current !== null && typeof window !== 'undefined') {\n      window.clearTimeout(kpiEmbedReadyTimerRef.current);\n      kpiEmbedReadyTimerRef.current = null;\n    }`,
+    );
+  }
+
+  const oldOnLoad = '              onLoad={() => setKpiEmbedLoading(false)}';
+  const readyHandlerMarker = 'KPI_LINKED_MIN_VISIBLE_MS';
+  if (source.includes(oldOnLoad)) {
+    source = source.replace(
+      oldOnLoad,
+      `              onLoad={() => {\n                const elapsed = Date.now() - kpiEmbedStartedAtRef.current;\n                const KPI_LINKED_MIN_VISIBLE_MS = ${KPI_LINKED_MIN_VISIBLE_MS};\n                const remaining = Math.max(0, KPI_LINKED_MIN_VISIBLE_MS - elapsed);\n                if (kpiEmbedReadyTimerRef.current !== null) {\n                  window.clearTimeout(kpiEmbedReadyTimerRef.current);\n                }\n                kpiEmbedReadyTimerRef.current = window.setTimeout(() => {\n                  kpiEmbedReadyTimerRef.current = null;\n                  setKpiEmbedLoading(false);\n                }, remaining);\n              }}\n              style={{\n                visibility: kpiEmbedLoading ? 'hidden' : 'visible',\n                opacity: kpiEmbedLoading ? 0 : 1,\n                pointerEvents: kpiEmbedLoading ? 'none' : 'auto',\n                transition: 'opacity .16s ease-out',\n              }}`,
+    );
+  } else if (!source.includes(readyHandlerMarker)) {
+    throw new Error(`[KPI linked loader] Không tìm thấy onLoad iframe trong ${kpiPagePath}`);
+  }
+
+  fs.writeFileSync(kpiPagePath, source, 'utf8');
+  console.log(`✓ KPI linked pages: ECG đủ 100% rồi mới hiện iframe (${path.relative(path.resolve(__dirname, '..'), kpiPagePath)}).`);
+}
+
+// Level 2 loader is intentionally kept for individual program clicks. The
+// EmbeddedProgramDataLoader itself now ignores the initial category entry and
+// only arms after a real user interaction outside an already-open detail table.
+// This gives feedback for the white-table gap without reintroducing the second
+// spinner underneath the parent category popup.
+const embeddedLoaderPaths = [path.resolve(__dirname, '../src/components/embedded-program-data-loader.tsx')];
+
+for (const embeddedLoaderPath of embeddedLoaderPaths) {
+  if (!fs.existsSync(embeddedLoaderPath)) continue;
+  const source = fs.readFileSync(embeddedLoaderPath, 'utf8');
+  if (!source.includes('interactionArmed') || !source.includes('detailEligibleForLoader')) {
+    throw new Error(`[KPI linked loader] Loader chi tiết chưa có cơ chế chỉ kích hoạt sau click: ${embeddedLoaderPath}`);
+  }
+  if (source.includes('nmc-kpi-parent-loader-only')) {
+    throw new Error(`[KPI linked loader] Phát hiện rule cũ đang tắt toàn bộ loader chi tiết: ${embeddedLoaderPath}`);
+  }
+  console.log(`✓ KPI linked pages: giữ spinner + “Đang tải dữ liệu...” cho từng chương trình (${path.relative(path.resolve(__dirname, '..'), embeddedLoaderPath)}).`);
+}
+
+console.log('✓ KPI linked pages: Render app popup ngang 100% + glow cho cấp trang; spinner đơn cho cấp chương trình.');
