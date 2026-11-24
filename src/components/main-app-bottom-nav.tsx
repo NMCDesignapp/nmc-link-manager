@@ -8,7 +8,7 @@ type MainAppBottomNavProps = {
 }
 
 const ITEMS = [
-  { key: 'home', label: 'Trang chủ', href: '/', icon: Home },
+  { key: 'home', label: 'Trang chủ', href: '/quan-ly', icon: Home },
   { key: 'management', label: 'Quản lý', href: '/quan-ly', icon: Database },
   { key: 'contest', label: 'Thi đua', href: '/thi-dua-chau', icon: Trophy },
   { key: 'kpi', label: 'KPI', href: '/kpi', icon: BarChart3 },
