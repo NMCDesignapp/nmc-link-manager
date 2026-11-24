@@ -355,7 +355,7 @@
 }
 
 .nmc-home-skin > div > .fixed.inset-0.z-\[1000\] > div.relative.flex.flex-col.items-center.justify-center.z-10 > div.mt-8.text-center > div:first-child::after {
-  content: 'TRUNG TÂM ĐIỀU HÀNH NC-LINK';
+  content: 'KPI AN GIANG';
   display: block;
   color: #eef4f6;
   font-size: 11px;
@@ -370,7 +370,7 @@
 }
 
 .nmc-home-skin > div > .fixed.inset-0.z-\[1000\] > div.relative.flex.flex-col.items-center.justify-center.z-10 > div.mt-8.text-center > div:last-child::after {
-  content: 'N·M·C  •  MAIN APP';
+  content: 'N·C  •  KPI AN GIANG';
   display: block;
   margin-top: 7px;
   color: #9fb1bb;
