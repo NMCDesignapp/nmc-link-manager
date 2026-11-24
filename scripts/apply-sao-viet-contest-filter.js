@@ -5,10 +5,9 @@ const path = require('path');
 // Yêu cầu nghiệp vụ: chương trình có tên bắt đầu bằng "CHỐT" vẫn được lưu ở Thi đua,
 // nhưng KHÔNG tự xuất hiện thành card/bảng chi tiết trong Sao Việt toàn chặng.
 //
-// Patch được chạy ở build-time cho cả Main App và KPI standalone để tránh hai nguồn lệch nhau.
+// Patch được chạy ở build-time cho ứng dụng Render duy nhất.
 const targets = [
   path.resolve(__dirname, '../src/app/quan-ly/client-page.tsx'),
-  path.resolve(__dirname, '../kpi-app/src/app/quan-ly/page.tsx'),
 ];
 
 const marker = 'nmc-sao-viet-exclude-chot-v1';
