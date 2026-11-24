@@ -2797,18 +2797,27 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-embed-loader {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  color: #dceeff;
-  background: radial-gradient(circle at center, rgba(15, 49, 79, .92), rgba(5, 17, 31, .97));
-  font-size: 13px;
+  gap: 15px;
+  color: #f0f8ff;
+  background: radial-gradient(circle at center, rgba(12, 39, 66, .86), rgba(3, 12, 25, .82));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-size: 14px;
   font-weight: 800;
-  letter-spacing: .02em;
+  letter-spacing: .025em;
+  text-align: center;
+  padding: 20px;
 }
+.kpi-embed-loader span:last-child {
+  text-shadow: 0 2px 12px rgba(0,0,0,.65);
+  animation: kpi-embed-loading-text 1.5s ease-in-out infinite;
+}
+@keyframes kpi-embed-loading-text { 0%,100% { opacity:.7 } 50% { opacity:1 } }
 .kpi-embed-loader-spinner {
   width: 39px;
   height: 39px;

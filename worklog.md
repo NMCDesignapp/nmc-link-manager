@@ -1355,3 +1355,14 @@ Added a shared read-only, cached, periodically refreshed source hook for Main an
 - Không đổi điều kiện, số tiền thưởng hoặc trạng thái chưa đạt SV/nâng hạng khi đã hoàn thành mục tiêu. Các chương trình khác giữ nguyên cách hiển thị. Xuất Excel trực tiếp của component dùng cùng nội dung thiếu hụt.
 
 - Làm nổi bật thưởng đã đạt của VỀ ĐÍCH THÀNH CÔNG: số tiền 14px, đậm 900, xanh ngọc đậm, nền xanh nhạt và viền nhẹ. Trạng thái thiếu hụt giữ 9px nghiêng xám nhạt.
+
+
+---
+Task ID: single-app-nc-link-and-linked-loader-2026-11-24
+Task: Quy ước Worklog chỉ có NC Link; retire KPI standalone entry/deploy; cải thiện loader trang liên kết.
+
+- NC Link (https://nc-link.onrender.com) là ứng dụng duy nhất. KPI là màn hình trong NC Link, không quản lý như ứng dụng riêng.
+- Route cũ /kpi-standalone chuyển hướng về /. Workflow deploy KPI Cloudflare riêng đã được gỡ để không deploy thêm instance độc lập. Source kpi-app giữ trong repository làm tài liệu/source legacy cho tới khi rà soát đầy đủ các cơ chế backup hình và dữ liệu; không xóa vội các file/asset có thể là bản dự phòng.
+- Loader khi mở sheet liên kết: lớp phủ nền tối mờ + blur; thông báo tải được tăng tương phản và animation nhẹ; spinner hiện có tiếp tục xoay. Loader giữ nguyên tín hiệu ready/timeout, không thay đổi cơ chế tải dữ liệu.
+- Quy ước backup hình cần tập trung vào NC Link duy nhất; việc rà soát và chuyển mọi backup asset / backup manifest còn trỏ vào standalone cần tiếp tục trước khi xóa source legacy.
+- Hosting hiện hành: Render Main App NC Link. Không dùng Vercel.
