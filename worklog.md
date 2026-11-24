@@ -1366,3 +1366,10 @@ Task: Quy ước Worklog chỉ có NC Link; retire KPI standalone entry/deploy; 
 - Loader khi mở sheet liên kết: lớp phủ nền tối mờ + blur; thông báo tải được tăng tương phản và animation nhẹ; spinner hiện có tiếp tục xoay. Loader giữ nguyên tín hiệu ready/timeout, không thay đổi cơ chế tải dữ liệu.
 - Quy ước backup hình cần tập trung vào NC Link duy nhất; việc rà soát và chuyển mọi backup asset / backup manifest còn trỏ vào standalone cần tiếp tục trước khi xóa source legacy.
 - Hosting hiện hành: Render Main App NC Link. Không dùng Vercel.
+
+
+## 2026-11-24 — Sửa hiển thị logo màn hình KPI/NC Link
+
+- NC Link/KPI vẫn là một ứng dụng duy nhất; người xem vào KPI, Admin dùng quyền mở quản lý nội bộ.
+- Giữ logo hiện có ở entry gate; điều chỉnh ảnh logo từ crop/zoom sang contain và bỏ scale để tránh logo vỡ/cắt trên màn hình mobile.
+- Đóng PR #278 và #279 vì đề xuất điều hướng/nhận diện không đúng ý người dùng.
