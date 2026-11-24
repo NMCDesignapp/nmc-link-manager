@@ -9,7 +9,7 @@ Trước khi sửa mã:
 1. Đọc `docs/CODEX_HANDOFF.md` và `docs/CODEX_OPERATIONS.md`.
 2. Chạy `git status`, xác định branch hiện tại và kiểm tra thay đổi chưa commit.
 3. Đọc đúng file đang điều khiển tính năng; không suy đoán từ README cũ.
-4. Xác định thay đổi có ảnh hưởng Main App, KPI trong Main App, KPI tách, Data Hub hay dữ liệu production hay không.
+4. Xác định thay đổi có ảnh hưởng ứng dụng Render, module KPI /kpi, Data Hub hay dữ liệu production hay không.
 5. Với yêu cầu giao diện, giữ nguyên logic dữ liệu trừ khi người dùng yêu cầu thay đổi logic.
 
 Trao đổi với người dùng bằng tiếng Việt, trực tiếp, nêu rõ phần đã sửa, phần đã kiểm tra và điều chưa thể xác minh.
