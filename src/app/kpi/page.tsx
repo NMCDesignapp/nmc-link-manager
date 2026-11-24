@@ -2804,7 +2804,9 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   justify-content: center;
   gap: 15px;
   color: #f0f8ff;
-  background: radial-gradient(circle at center, rgba(12, 39, 66, .86), rgba(3, 12, 25, .82));
+  border: 1px solid rgba(97, 228, 170, .18);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(3, 12, 25, .94), rgba(5, 22, 39, .92));
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   font-size: 14px;
@@ -6680,7 +6682,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             {kpiEmbedLoading && (
               <div className="kpi-embed-loader" role="status" aria-live="polite" aria-label="Đang tải nội dung">
                 <span className="kpi-embed-loader-spinner" aria-hidden="true" />
-                <span>{kpiEmbedSlow ? 'Máy chủ đang xử lý, vui lòng chờ thêm...' : 'Đang tải dữ liệu...'}</span>
+                <span>{kpiEmbedSlow ? 'Máy chủ đang xử lý, vui lòng chờ thêm...' : 'Đang tải, vui lòng chờ...'}</span>
               </div>
             )}
             <iframe
