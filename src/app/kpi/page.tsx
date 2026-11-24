@@ -6756,9 +6756,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <button
                   type="button"
                   className="btn-back-u"
-                  onClick={() => router.push('/quan-ly?admin=1')}
-                  title="Quay lại NC Link quản lý"
-                  aria-label="Quay lại NC Link quản lý"
+                  onClick={() => router.push('/')}
+                  title="Quay lại NC Link"
+                  aria-label="Quay lại NC Link"
                 >
                   <ArrowLeft size={18} />
                 </button>
