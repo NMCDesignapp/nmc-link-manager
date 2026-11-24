@@ -45,7 +45,13 @@ const CLBTopIPSection = dynamic(
 );
 
 function SectionLoading() {
-  return <div className="border-t border-[#aeb9b2] bg-[#f5f1e8] px-4 py-4 text-center text-xs text-[#b8c6c0]">Đang tải kết quả...</div>;
+  return (
+    <div className="flex min-h-[150px] flex-col items-center justify-center gap-3 border-t border-[#365b72] bg-gradient-to-br from-[#071b2b] via-[#102a3d] to-[#07100d] px-4 py-8 text-center" role="status" aria-live="polite">
+      <span className="h-9 w-9 animate-spin rounded-full border-[3px] border-sky-300/20 border-t-emerald-300 border-r-sky-300" />
+      <span className="text-sm font-bold text-emerald-100">Đang tải</span>
+      <span className="text-xs text-slate-300">Vui lòng chờ</span>
+    </div>
+  );
 }
 
 function getDefaultAssessment() {

@@ -4191,9 +4191,6 @@ function circleStroke(radius: number, pct: number) {
 }
 function glowCls(pct: number): string { return pct >= 100 ? ' glow-full' : ''; }
 function pctClass(pct: number): string { return pct >= 100 ? 'green' : pct >= 75 ? 'gold' : 'red'; }
-// Mã quản trị KPI (icon khóa trên trang chính) — yêu cầu user 19/11/2026
-const KPI_ADMIN_PASSCODE = '0969774224';
-
 // SHA của bản build đang chạy (Render/CI gắn lúc build qua scripts/inject-kpi-build-sha.js).
 // Trang KPI so SHA này với /api/health → khác bản → tự reload đúng 1 lần (hết chuyện bản cũ).
 const KPI_BUILD_SHA = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_KPI_BUILD_SHA) || '';
@@ -4548,8 +4545,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   // Calendar edit popup state (settings button locked with password)
   const [calAuthed, setCalAuthed] = useState(false);
   const [calAuthScope, setCalAuthScope] = useState<string | null>(null);
-  const [calPwdOpen, setCalPwdOpen] = useState(false);
-  const [calPwdInput, setCalPwdInput] = useState('');
 
   // ===== ADMIN AUTH =====
   // Admin login/logout NẰM Ở giao diện chính ứng dụng (/src/app/page.tsx).
@@ -4557,57 +4552,33 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   // Trạng thái đăng nhập chia sẻ qua sessionStorage('kpi_admin_authed').
   const [adminAuthed, setAdminAuthed] = useState(false);
 
-  // On mount: check sessionStorage for existing admin auth
-  // Đồng thời clear flag `kpi_embed` — cờ này chỉ được set khi user bấm link
-  // từ KPI sang /quan-ly. Khi user đang ở KPI → không còn trong chế độ embed.
-  // Nếu standalone=true (KPI tách) → set flag `kpi_standalone` để /quan-ly biết
-  // mà quay về /kpi-standalone thay vì /kpi khi bấm nút "Trở về".
+  // Admin authority is read only from the signed HttpOnly server session.
   useEffect(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem('kpi_embed');
-        if (standalone) {
-          sessionStorage.setItem('kpi_standalone', '1');
-        } else {
-          sessionStorage.removeItem('kpi_standalone');
+    let cancelled = false;
+    if (standalone) return;
+    void fetch('/api/admin/session', { cache: 'no-store', credentials: 'same-origin' })
+      .then((response) => response.ok ? response.json() : { authenticated: false })
+      .then((data) => {
+        if (cancelled) return;
+        const authenticated = data?.authenticated === true;
+        setAdminAuthed(authenticated); setKpiAdminAuthed(authenticated);
+        setCalAuthed(authenticated); setCalAuthScope(authenticated ? '*' : null);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAdminAuthed(false); setKpiAdminAuthed(false);
+          setCalAuthed(false); setCalAuthScope(null);
         }
-        if (sessionStorage.getItem('kpi_admin_authed') === '1') {
-          setAdminAuthed(true);
-        }
-      }
-    } catch {}
+      });
+    return () => { cancelled = true; };
   }, [standalone]);
 
-  // Browser/mobile back đóng màn hình đang nhúng trước, thay vì thoát khỏi KPI.
   useEffect(() => {
-    const handlePopState = () => {
-      setKpiSheet('home');
-      window.scrollTo({ top: 0, behavior: 'auto' });
-    };
+    const handlePopState = () => { setKpiSheet('home'); window.scrollTo({ top: 0, behavior: 'auto' }); };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Lắng nghe thay đổi sessionStorage từ trang khác (khi user đăng nhập/đăng xuất ở /)
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'kpi_admin_authed') {
-        setAdminAuthed(e.newValue === '1');
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    // Poll mỗi 800ms — sessionStorage không trigger storage event trong cùng tab
-    const poll = setInterval(() => {
-      try {
-        const v = sessionStorage.getItem('kpi_admin_authed') === '1';
-        setAdminAuthed(prev => prev !== v ? v : prev);
-      } catch {}
-    }, 800);
-    return () => { window.removeEventListener('storage', onStorage); clearInterval(poll); };
-  }, []);
-
-  const [calPwdError, setCalPwdError] = useState(false);
   const [calEditOpen, setCalEditOpen] = useState(false);
   const [calEditForm, setCalEditForm] = useState<{ id: number | null; date: string; title: string; owners: string[]; ownerCustom: string }>({ id: null, date: '', title: '', owners: [], ownerCustom: '' });
   const [calEditSaving, setCalEditSaving] = useState(false);
@@ -4617,28 +4588,12 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   // Click vào chữ "TIẾN ĐỘ KHU VỰC" để toggle.
   // Mặc định ẨN khi mở app (user request 2026-07-20).
   const [khuVucCollapsed, setKhuVucCollapsed] = useState(true);
-  const [regionLockOpen, setRegionLockOpen] = useState(false);
-  const [regionLockCode, setRegionLockCode] = useState('');
-  const [regionLockError, setRegionLockError] = useState(false);
+  const [regionUnlockPending, setRegionUnlockPending] = useState(false);
   const requestKhuVucToggle = useCallback(() => {
-    if (!khuVucCollapsed) {
-      setKhuVucCollapsed(true);
-      return;
-    }
-    setRegionLockCode('');
-    setRegionLockError(false);
-    setRegionLockOpen(true);
-  }, [khuVucCollapsed]);
-  const unlockKhuVuc = useCallback(() => {
-    if (regionLockCode === '6789') {
-      setKhuVucCollapsed(false);
-      setRegionLockOpen(false);
-      setRegionLockCode('');
-      setRegionLockError(false);
-      return;
-    }
-    setRegionLockError(true);
-  }, [regionLockCode]);
+    if (!khuVucCollapsed) { setKhuVucCollapsed(true); return; }
+    if (adminAuthed) setKhuVucCollapsed(false);
+    else { setRegionUnlockPending(true); setKpiAdminPass(''); setKpiAdminError(false); setKpiAdminPromptOpen(true); }
+  }, [adminAuthed, khuVucCollapsed]);
 
   // ===== VINH DANH (8 Bạch Kim + 25 Hạng Vàng) =====
   // Thứ tự vị trí tách khỏi mã ảnh, không di chuyển binary/hồ sơ.
@@ -4739,11 +4694,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const adAvatarFileRef = useRef<HTMLInputElement>(null);
   const adAvatarTargetRef = useRef<string>('');
 
-  // Khôi phục phiên quản trị trong cùng phiên trình duyệt
-  useEffect(() => {
-    try { if (sessionStorage.getItem('nmc-kpi-admin') === '1') setKpiAdminAuthed(true); } catch {}
-  }, []);
-
   // Manifest ảnh đại diện AD — key: kpi-ad-img-<maAD>
   useEffect(() => {
     let cancelled = false;
@@ -4767,21 +4717,25 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     return () => { cancelled = true; };
   }, []);
 
-  const unlockKpiAdmin = useCallback(() => {
-    if (kpiAdminPass === KPI_ADMIN_PASSCODE) {
-      setKpiAdminAuthed(true);
-      setKpiAdminPromptOpen(false);
-      setKpiAdminPass('');
-      setKpiAdminError(false);
-      try { sessionStorage.setItem('nmc-kpi-admin', '1'); } catch {}
-    } else {
-      setKpiAdminError(true);
-    }
-  }, [kpiAdminPass]);
+  const unlockKpiAdmin = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/session', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin', body: JSON.stringify({ password: kpiAdminPass }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.authenticated !== true) { setKpiAdminError(true); return; }
+      setAdminAuthed(true); setKpiAdminAuthed(true); setCalAuthed(true); setCalAuthScope('*');
+      setKpiAdminPromptOpen(false); setKpiAdminPass(''); setKpiAdminError(false);
+      if (regionUnlockPending) { setKhuVucCollapsed(false); setRegionUnlockPending(false); }
+    } catch { setKpiAdminError(true); }
+  }, [kpiAdminPass, regionUnlockPending]);
 
-  const lockKpiAdmin = useCallback(() => {
-    setKpiAdminAuthed(false);
-    try { sessionStorage.removeItem('nmc-kpi-admin'); } catch {}
+  const lockKpiAdmin = useCallback(async () => {
+    try { await fetch('/api/admin/session', { method: 'DELETE', credentials: 'same-origin' }); }
+    finally {
+      setAdminAuthed(false); setKpiAdminAuthed(false); setCalAuthed(false); setCalAuthScope(null);
+    }
   }, []);
 
   // Manifest ảnh đại diện nhóm — key: kpi-nhom-img-<maBanNhom>
@@ -5196,6 +5150,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   // Remember which existing event the user wanted to edit, so after password
   // auth we can open the edit form for THAT event (not a blank new-entry form).
   const [calPendingEdit, setCalPendingEdit] = useState<CalendarEvent | null>(null);
+  const [calPendingNew, setCalPendingNew] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [overviewPeriod, setOverviewPeriod] = useState<string>(`month-${new Date().getMonth() + 1}`);
   const [onlineSettings, setOnlineSettings] = useState<Record<string, string>>({});
@@ -5500,13 +5455,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     people.forEach(person => { acc[person] = room; });
     return acc;
   }, {});
-  const CAL_MASTER_PASSWORD_HASH = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92';
-  const CAL_SCOPE_PASSWORD_HASHES: Record<string, string> = {
-    'Phòng PTKD 1': '987a0457f57001ca36deffb20f5f255712b3e22fce4ea15e38a88d6d354f4530',
-    'Phòng PTKD 2': 'f7ab5e7d49f38c06dba85147a7c74c79700ba4f7e4b4564a457f6f5eaf953ed6',
-    'Phòng PTKD 3': '99b1159f77be8a32029a0463617aa71935b9e02feb43ecefd9c4959431f067ad',
-    'Phòng HTKD': '5236af15d71903ad5bbdc332c7360d565c57605e2a95fe7a0e82b23ebe287111',
-  };
   const CAL_OWNER_COLORS: Record<string, string> = {
     'Công ty': '#7c3aed',
     'Phòng PTKD 1': '#16a34a',
@@ -5533,9 +5481,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const getOwnerColor = (owner: string) => CAL_OWNER_COLORS[owner] || '#475569'; // slate for custom/other
 
   const openCalPwd = () => {
-    if (calAuthed) { setCalEditOpen(true); return; }
-    setCalPendingEdit(null);
-    setCalPwdOpen(true); setCalPwdInput(''); setCalPwdError(false);
+    if (adminAuthed) { setCalEditOpen(true); return; }
+    setCalPendingEdit(null); setCalPendingNew(true);
+    setKpiAdminPass(''); setKpiAdminError(false); setKpiAdminPromptOpen(true);
   };
 
   // Parse owner string from DB into array — supports multi-select format "Công ty, HTKD"
@@ -5575,6 +5523,19 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const getCalOwnerOptions = (scope: string): string[] => {
     return scope === 'Công ty' ? CAL_ROOM_SCOPES : (CAL_RESPONSIBLE_OPTIONS[scope] || []);
   };
+  useEffect(() => {
+    if (!adminAuthed) { setCalAuthed(false); setCalAuthScope(null); return; }
+    setCalAuthed(true); setCalAuthScope('*');
+    if (calPendingEdit) {
+      const ev = calPendingEdit;
+      setCalEditForm({ id: ev.id, date: ev.date, title: ev.title, owners: getEditableOwnersForScope(ev, calScope), ownerCustom: '' });
+      setCalPendingEdit(null); setCalPendingNew(false); setCalEditError(null); setCalEditOpen(true);
+    } else if (calPendingNew) {
+      setCalPendingNew(false);
+      setCalEditForm({ id: null, date: `${CUR_YEAR}-${calMonth}-01`, title: '', owners: [], ownerCustom: '' });
+      setCalEditError(null); setCalEditOpen(true);
+    }
+  }, [adminAuthed, calPendingEdit, calPendingNew, calScope, calMonth]);
 
   const getDisplayOwnersForScope = (ev: CalendarEvent, scope: string): string[] => {
     const owners = parseOwners(ev.owner);
@@ -5600,43 +5561,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     return eventHasRoomOwner(ev, scope);
   };
 
-  const sha256Hex = async (value: string): Promise<string> => {
-    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
-    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
-  };
-
-  const submitCalPwd = async () => {
-    const enteredHash = await sha256Hex(calPwdInput);
-    const isMaster = enteredHash === CAL_MASTER_PASSWORD_HASH;
-    const expectedRoomHash = CAL_SCOPE_PASSWORD_HASHES[calScope];
-    const isSelectedRoomPassword = Boolean(expectedRoomHash && enteredHash === expectedRoomHash);
-    if (isMaster || isSelectedRoomPassword) {
-      setCalAuthed(true); setCalAuthScope(isMaster ? '*' : calScope); setCalPwdOpen(false); setCalPwdInput(''); setCalPwdError(false);
-      // If user clicked an existing entry to edit, open edit form for THAT event.
-      // Otherwise, open blank new-entry form.
-      if (calPendingEdit) {
-        const ev = calPendingEdit;
-        const owners = getEditableOwnersForScope(ev, calScope);
-        setCalEditForm({
-          id: ev.id,
-          date: ev.date,
-          title: ev.title,
-          owners,
-          ownerCustom: '',
-        });
-        setCalPendingEdit(null);
-      } else {
-        setCalEditForm({ id: null, date: `${CUR_YEAR}-${calMonth}-01`, title: '', owners: [], ownerCustom: '' });
-      }
-      setCalEditError(null);
-      setCalEditOpen(true);
-    } else {
-      setCalPwdError(true);
-    }
-  };
-
   const openCalEditFor = (ev: CalendarEvent) => {
-    if (calAuthed) {
+    if (adminAuthed) {
       const owners = getEditableOwnersForScope(ev, calScope);
       setCalEditForm({
         id: ev.id,
@@ -5648,12 +5574,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       setCalEditError(null);
       setCalEditOpen(true);
     } else {
-      // Not authed yet — remember this event and prompt for password.
-      // After successful auth, submitCalPwd will open the edit form for it.
-      setCalPendingEdit(ev);
-      setCalPwdOpen(true);
-      setCalPwdInput('');
-      setCalPwdError(false);
+      setCalPendingEdit(ev); setCalPendingNew(false);
+      setKpiAdminPass(''); setKpiAdminError(false); setKpiAdminPromptOpen(true);
     }
   };
 
@@ -6724,7 +6646,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <button
                   type="button"
                   className="btn-back-u"
-                  onClick={() => router.push('/quan-ly?admin=1')}
+                  onClick={() => router.push('/nc-link')}
                   title="Quay lại NC Link quản lý"
                   aria-label="Quay lại NC Link quản lý"
                 >
@@ -6740,7 +6662,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 type="button"
                 className={`kpi-admin-btn${kpiAdminAuthed ? ' authed' : ''}`}
                 onClick={() => {
-                  if (kpiAdminAuthed) { lockKpiAdmin(); }
+                  if (kpiAdminAuthed) { void lockKpiAdmin(); }
                   else { setKpiAdminPass(''); setKpiAdminError(false); setKpiAdminPromptOpen(true); }
                 }}
                 title={kpiAdminAuthed ? 'Quản trị: đang mở khóa (bấm để khóa lại)' : 'Đăng nhập quản trị'}
@@ -7866,7 +7788,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             <button
               type="button"
               onClick={() => {
-                if (calAuthed) {
+                if (adminAuthed) {
                   openCalEditForNew();
                 } else {
                   openCalPwd();
@@ -7876,9 +7798,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '6px 10px', borderRadius: 8,
-                background: calAuthed ? '#0d4d4d' : '#3a3f48',
-                color: calAuthed ? '#f3ffff' : '#c0c8d0',
-                border: `1px solid ${calAuthed ? '#008080' : '#5a6068'}`,
+                background: adminAuthed ? '#0d4d4d' : '#3a3f48',
+                color: adminAuthed ? '#f3ffff' : '#c0c8d0',
+                border: `1px solid ${adminAuthed ? '#008080' : '#5a6068'}`,
                 fontSize: 11, fontWeight: 800, cursor: 'pointer',
                 transition: 'all .2s',
               }}
@@ -7901,7 +7823,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 className={`cal-scope-btn ${calScope === scope ? 'on' : ''}`}
                 onClick={() => {
                   setCalScope(scope);
-                  setCalAuthed(calAuthScope === '*' || calAuthScope === scope);
+                  setCalAuthed(adminAuthed); setCalAuthScope(adminAuthed ? '*' : null);
                 }}
               >
                 {scope}
@@ -7930,10 +7852,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       {row.events.length > 0
                         ? row.events.map((e, ei) => (
                           <span
-                            className={`cal-line editable${calAuthed ? ' authed' : ' locked'}`}
+                            className={`cal-line editable${adminAuthed ? ' authed' : ' locked'}`}
                             key={ei}
                             onClick={() => openCalEditFor(e)}
-                            title={calAuthed ? 'Bấm để sửa' : 'Bấm để mở khóa (cần mật khẩu)'}
+                            title={adminAuthed ? 'Bấm để sửa' : 'Đăng nhập Admin để sửa'}
                           >
                             {e.title}
                           </span>
@@ -7974,32 +7896,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             </div>
           </div>
         </section>
-
-        {/* ===== CALENDAR PASSWORD POPUP ===== */}
-        {calPwdOpen && (
-          <div className="cal-modal-overlay" onClick={() => setCalPwdOpen(false)}>
-            <div className="cal-modal cal-modal-pwd" onClick={e => e.stopPropagation()}>
-              <div className="cal-modal-head">
-                <span>Xác thực quản trị</span>
-                <button className="cal-modal-x" onClick={() => setCalPwdOpen(false)}>×</button>
-              </div>
-              <div className="cal-modal-body">
-                <p className="cal-modal-hint">Nhập mật khẩu của <strong>{calScope}</strong> để nhập/sửa kế hoạch:</p>
-                <input
-                  type="password"
-                  className={`cal-pwd-input${calPwdError ? ' err' : ''}`}
-                  value={calPwdInput}
-                  autoFocus
-                  onChange={e => { setCalPwdInput(e.target.value); setCalPwdError(false); }}
-                  onKeyDown={e => { if (e.key === 'Enter') submitCalPwd(); }}
-                  placeholder="••••••"
-                />
-                {calPwdError && <span className="cal-pwd-err">Mật khẩu không đúng</span>}
-                <button className="cal-modal-save" onClick={submitCalPwd}>Xác nhận</button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ===== CALENDAR EDIT POPUP ===== */}
         {calEditOpen && (
@@ -8255,22 +8151,20 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
           <div className="region-lock-card" onMouseDown={(event) => event.stopPropagation()}>
             <div className="region-lock-icon"><LockKeyhole size={20} /></div>
             <div className="region-lock-title" id="kpi-admin-lock-title">Quản trị KPI</div>
-            <div className="region-lock-note">Nhập mã quản trị để cài đặt ảnh đại diện nhóm.</div>
+            <div className="region-lock-note">Đăng nhập một lần để mở toàn bộ chức năng quản trị KPI, lịch và tiến độ khu vực.</div>
             <input
               className="region-lock-input"
               type="password"
-              inputMode="numeric"
-              maxLength={10}
               autoFocus
               value={kpiAdminPass}
-              onChange={(event) => { setKpiAdminPass(event.target.value.replace(/\D/g, '')); setKpiAdminError(false); }}
-              onKeyDown={(event) => { if (event.key === 'Enter') unlockKpiAdmin(); }}
-              aria-label="Mã quản trị KPI"
+              onChange={(event) => { setKpiAdminPass(event.target.value); setKpiAdminError(false); }}
+              onKeyDown={(event) => { if (event.key === 'Enter') void unlockKpiAdmin(); }}
+              aria-label="Mật khẩu quản trị"
             />
             <div className="region-lock-error">{kpiAdminError ? 'Mã quản trị chưa đúng. Vui lòng thử lại.' : ''}</div>
             <div className="region-lock-actions">
               <button type="button" className="region-lock-cancel" onClick={() => setKpiAdminPromptOpen(false)}>Hủy</button>
-              <button type="button" className="region-lock-submit" onClick={unlockKpiAdmin}>Mở quản trị</button>
+              <button type="button" className="region-lock-submit" onClick={() => void unlockKpiAdmin()}>Mở quản trị</button>
             </div>
           </div>
         </div>
@@ -8299,32 +8193,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
           if (file && target) void uploadAdAvatar(target, file);
         }}
       />
-
-      {regionLockOpen && (
-        <div className="region-lock-modal" role="dialog" aria-modal="true" aria-labelledby="region-lock-title" onMouseDown={() => setRegionLockOpen(false)}>
-          <div className="region-lock-card" onMouseDown={(event) => event.stopPropagation()}>
-            <div className="region-lock-icon"><LockKeyhole size={20} /></div>
-            <div className="region-lock-title" id="region-lock-title">Mở tiến độ khu vực</div>
-            <div className="region-lock-note">Nhập mã khóa để xem số liệu chi tiết.</div>
-            <input
-              className="region-lock-input"
-              type="password"
-              inputMode="numeric"
-              maxLength={4}
-              autoFocus
-              value={regionLockCode}
-              onChange={(event) => { setRegionLockCode(event.target.value.replace(/\D/g, '')); setRegionLockError(false); }}
-              onKeyDown={(event) => { if (event.key === 'Enter') unlockKhuVuc(); }}
-              aria-label="Mã khóa tiến độ khu vực"
-            />
-            <div className="region-lock-error">{regionLockError ? 'Mã khóa chưa đúng. Vui lòng thử lại.' : ''}</div>
-            <div className="region-lock-actions">
-              <button type="button" className="region-lock-cancel" onClick={() => setRegionLockOpen(false)}>Hủy</button>
-              <button type="button" className="region-lock-submit" onClick={unlockKhuVuc}>Mở xem</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ===== CHI TIẾT TẠM THU THÁNG HIỆN TẠI ===== */}
       <section className={`view ${view === 'tamthu-detail' ? 'active' : ''}`} id="view-tamthu-detail" role="region">

@@ -33,7 +33,7 @@ export interface AppLoaderProps {
   variant?: 'default' | 'kpi';
 }
 
-export function AppLoader({ show, error, onRetry, variant = 'default' }: AppLoaderProps) {
+export function AppLoader({ show, error, onRetry, variant = 'kpi' }: AppLoaderProps) {
   // 'loading' → 'complete' → 'zooming' → unmount
   const [phase, setPhase] = useState<'loading' | 'complete' | 'zooming' | 'done'>('loading');
   const [progress, setProgress] = useState(0);
