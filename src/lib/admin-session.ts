@@ -33,7 +33,7 @@ export function isAdminRequest(request: NextRequest): boolean {
 }
 
 // Collect every host the proxy chain may report so a legitimate browser Origin
-// still matches behind Render/Cloudflare/other reverse proxies. The Origin value
+// still matches behind Render or other reverse proxies. The Origin value
 // itself always comes from the caller's browser, so CSRF protection is kept.
 function sameOriginCandidateHosts(request: NextRequest): Set<string> {
   const candidates = new Set<string>();
