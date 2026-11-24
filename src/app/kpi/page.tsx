@@ -5265,6 +5265,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   /* Fetch data — dùng dữ liệu đã preload từ AppDataContext (load 1 lần khi app mở).
      Trang KPI chỉ đọc context, không tự fetch lại khi mount. */
   const { data: appData, dataVersion, reload: reloadAppData, isReloading: appDataReloading, isLoading: appDataLoading, loadError, reload } = useAppData();
+  // Không được tắt splash khi context đã hết cờ loading nhưng dữ liệu KPI
+  // thực tế vẫn chưa hình thành. Nếu không, app chỉ còn header rỗng và người
+  // dùng tưởng ứng dụng bị treo, đồng thời không thể bấm Thi đua/Chính sách.
+  const kpiDataReady = Boolean(rawData);
 
   // Sync rawData từ context (quanLyAll ưu tiên, fallback về các mảng riêng)
   useEffect(() => {
@@ -6670,7 +6674,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
           Fullscreen splash gate — chờ tải xong toàn bộ dữ liệu (AppDataProvider)
           mới cho vào UI chính. Nếu load lỗi, hiện nút 'Thử lại'.
           Áp dụng cho cả main app (/kpi, /kpi-standalone) và kpi-app standalone (angiang2026-nhom.vercel.app). */}
-      <AppLoader variant="kpi" show={appDataLoading} error={loadError} onRetry={reload} />
+      <AppLoader variant="kpi" show={appDataLoading || !kpiDataReady} error={loadError} onRetry={reload} />
 
       {/* ===== KPI EMBEDDED SHEET OVERLAY =====
           Khi user bấm 1 trong 3 nút (Thi đua / Chính sách / CLB Sao Việt),
