@@ -25,11 +25,10 @@
 - Mật khẩu production được cấu hình bằng biến môi trường Render, không ghi vào Git.
 - Không hard-code mật khẩu trong source.
 
-## Vercel redirect được giữ lại
+## Nền tảng duy nhất
 
-- Project/alias Vercel chỉ dùng cho chuyển hướng domain cũ theo yêu cầu vận hành.
-- Không dùng Vercel để chạy thêm một bản ứng dụng, KPI tách hoặc database.
-- Không xóa project/alias redirect khi dọn repository.
+- Không có Vercel redirect, Cloudflare Worker hoặc Netlify trong kiến trúc production.
+- Không tạo bản ứng dụng hoặc KPI standalone.
 
 ## Quy tắc triển khai
 
