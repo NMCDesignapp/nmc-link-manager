@@ -17,7 +17,7 @@ import { RegisteredTargetSetup, RegisteredTargetResults, exportRegisteredTargets
 import { defaultRegisteredProgram, decodeRegisteredProgram, type RegisteredProgram } from '@/lib/contest-registered-targets';
 import { computeRegisteredResults, registeredExportRows } from '@/lib/contest-registered-results';
 import { findContestDataWarnings, type ContestDataWarning } from '@/lib/contest-data-warnings';
-import React, { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, useTransition, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 // useSettings removed — no CSV sync, data from Quản lý page
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -810,6 +810,10 @@ function ThiDuaPageInner() {
   const [phase2StartDate, setPhase2StartDate] = useState('');
   const [phase2EndDate, setPhase2EndDate] = useState('');
   const [bonusTiers2, setBonusTiers2] = useState<BonusTier[]>([]);
+  // Keep numeric input responsive while the large result table recalculates.
+  // The calculation rules remain unchanged; only the non-urgent render work
+  // is scheduled behind the keystroke.
+  const [, startTierUpdate] = useTransition();
   // Secondary Condition
   const [useSecondaryCondition, setUseSecondaryCondition] = useState(false);
   const [secondaryAFYPMin, setSecondaryAFYPMin] = useState(0);
@@ -2164,9 +2168,9 @@ function ThiDuaPageInner() {
       return next;
     });
   }, []);
-  const updateBonusTier = (id: string, field: keyof BonusTier, value: string | number | null) => setBonusTiers(previous => previous.map((tier) => (tier.id === id ? { ...tier, [field]: value } : tier)));
+  const updateBonusTier = (id: string, field: keyof BonusTier, value: string | number | null) => startTierUpdate(() => setBonusTiers(previous => previous.map((tier) => (tier.id === id ? { ...tier, [field]: value } : tier))));
 
-  const updateBonusTier2 = (id: string, field: keyof BonusTier, value: string | number | null) => setBonusTiers2(previous => previous.map((tier) => (tier.id === id ? { ...tier, [field]: value } : tier)));
+  const updateBonusTier2 = (id: string, field: keyof BonusTier, value: string | number | null) => startTierUpdate(() => setBonusTiers2(previous => previous.map((tier) => (tier.id === id ? { ...tier, [field]: value } : tier))));
 
   const addDualPhaseTier = () => {
     setBonusTiers(previous => [...previous, createBlankBonusTier(crypto.randomUUID(), previous.at(-1)?.bonusType || 'money')]);
@@ -2177,8 +2181,10 @@ function ThiDuaPageInner() {
     setBonusTiers2(previous => previous.filter((_, tierIndex) => tierIndex !== index));
   };
   const updateDualPhaseMilestone = (index: number, field: 'minFYP' | 'maxFYP', value: number | null) => {
-    setBonusTiers(previous => previous.map((tier, tierIndex) => tierIndex === index ? { ...tier, [field]: value } : tier));
-    setBonusTiers2(previous => previous.map((tier, tierIndex) => tierIndex === index ? { ...tier, [field]: value } : tier));
+    startTierUpdate(() => {
+      setBonusTiers(previous => previous.map((tier, tierIndex) => tierIndex === index ? { ...tier, [field]: value } : tier));
+      setBonusTiers2(previous => previous.map((tier, tierIndex) => tierIndex === index ? { ...tier, [field]: value } : tier));
+    });
   };
 
   // Save contest with all new fields
