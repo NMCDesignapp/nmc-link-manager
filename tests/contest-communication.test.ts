@@ -33,7 +33,7 @@ test('communication keeps the progress essentials and omits contest mechanics', 
   assert.equal(result.lines.at(-1)?.text, '🔗 Xem chi tiết chương trình thi đua');
   assert.ok(result.text.includes(`🔗 Xem chi tiết chương trình thi đua: ${detailUrl}`));
   assert.equal(result.text, result.lines.map(line => line.url ? `${line.text}: ${line.url}` : line.text).join('\n\n'));
-  assert.equal(detailUrl, 'https://nc-link.onrender.com/thi-dua-chau?embed=1&contest=contest+42&autocalc=1&actions=1');
+  assert.equal(detailUrl, 'https://nc-link.onrender.com/c/contest%2042');
   assert.equal(result.lines.find(x=>x.tone==='urgent')?.emphasis,true);
   assert.equal(result.text.split('\n\n').length, result.lines.length);
 });
