@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
   Trophy, RotateCw, CalendarDays, BarChart3, Flag, BookOpen, Star, Home as HomeIcon,
-  ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check, X, Settings, LockKeyhole, Download
+  ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check, X, Settings, Plus, LockKeyhole, Download
 } from 'lucide-react';
 import { BackButton } from '@/components/back-button';
 import { AppLoader } from '@/components/app-loader';
@@ -1434,6 +1434,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .top3-grid { display: grid; grid-template-columns: 1fr 1.32fr 1fr; gap: 12px; align-items: end; max-width: 700px; margin: 0 auto; }
 .kpi-app .top3-card { border-radius: 12px; padding: 12px 8px 10px; text-align: center; animation: cardSlideIn .5s ease-out both; position: relative; overflow: hidden; box-shadow: 0 8px 20px #00000040; }
 .kpi-app .top3-rank { font-size: 13px; font-weight: 900; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+.kpi-app .top3-rank-label { font-size: 9px; font-weight: 950; letter-spacing: .08em; text-transform: uppercase; }
 .kpi-app .top3-rank-num { font-size: 10px; font-weight: 900; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
 .kpi-app .top3-name { font-size: 10px; font-weight: 900; color: #fff8ec; margin-bottom: 5px; line-height: 1.2; padding: 0 2px; text-shadow: 0 1px 1px rgba(0,0,0,.28); }
 .kpi-app .top3-val { font-size: 11px; font-weight: 900; color: #fff8ec; margin-bottom: 3px; text-shadow: 0 1px 1px rgba(0,0,0,.24); }
@@ -6110,7 +6111,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
           const tnLeader = rawData.leaders.find(l =>
             l.maNhom === bn.maBanNhom && isTBorTNPosition(l.position)
           );
-          const tnName = tnLeader?.agentName || '';
+          if (!tnLeader) continue;
+          const tnName = tnLeader.agentName;
 
           items.push({
             name: bn.tenBanNhom,
@@ -7740,6 +7742,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                         {isF && <div className="top3-crown">{crowns[i]}</div>}
                         {/* Ảnh tròn nhóm thay cho số hạng — khung vàng/bạc/đồng phân biệt hạng (yêu cầu 21/11/2026) */}
                         <div className="top3-rank">
+                          <span className="top3-rank-label">Top {i === 1 ? 1 : i === 0 ? 2 : 3}</span>
                           <span className={`top3-avatar-frame rank-${i === 1 ? '1' : i === 0 ? '2' : '3'}`}>
                             {groupAvatars[item.maBanNhom]
                               ? // eslint-disable-next-line @next/next/no-img-element
@@ -7894,7 +7897,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               }}
             >
               <Settings size={14} />
-              <span>Nhập kế hoạch</span>
+              <Plus size={18} />
             </button>
           </div>
           <div className="sub-line-wrap"><div className="sub-line" /></div>
