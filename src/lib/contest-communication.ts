@@ -2,7 +2,9 @@ import { type ContestConfig, type RecruitmentContestConfig } from './contest-cal
 
 export type CommunicationLine = { text: string; emphasis?: boolean; tone?: 'urgent' | 'title'; url?: string };
 export type ContestCommunication = { lines: CommunicationLine[]; text: string };
-export const MAIN_APP_ORIGIN = 'https://nc-link.onrender.com';
+// Public-facing brand URL. Keep the Render origin internal so generated
+// communication text never exposes the implementation hostname.
+export const MAIN_APP_ORIGIN = 'https://angiang.vercel.app';
 
 const day = (value: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).format(value);
 const date = (value: string) => {
@@ -36,6 +38,15 @@ export function contestProgramUrl(origin: string, contestId?: string): string {
   return new URL('/thi-dua-chau', base).toString();
 }
 
+function shortProgramUrl(programUrl: string): string {
+  try {
+    const url = new URL(programUrl);
+    return `${url.host}${url.pathname}${url.search}`;
+  } catch {
+    return programUrl.replace(/^https?:\/\//i, '');
+  }
+}
+
 export function buildContestCommunication(c: ContestConfig, settings: Record<string, string>, now = new Date(), _recruitment?: RecruitmentContestConfig, programUrl = contestProgramUrl(MAIN_APP_ORIGIN)): ContestCommunication {
   const registered = c.registeredProgram;
   const scope = registered?.scope || c.targetType;
@@ -51,5 +62,5 @@ export function buildContestCommunication(c: ContestConfig, settings: Record<str
   const sync = successfulSyncTime(settings, now);
   lines.push({ text: sync ? `📊 Dữ liệu thi đua được cập nhật đến: ${new Date(sync).toLocaleString('vi-VN', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}.` : '📊 Chưa xác định được thời điểm đồng bộ thành công từ máy lên app.', emphasis: true });
   lines.push({ text: '🔗 Xem chi tiết chương trình thi đua', url: programUrl });
-  return { lines, text: lines.map(line => line.url ? `${line.text}: ${line.url}` : line.text).join('\n\n') };
+  return { lines, text: lines.map(line => line.url ? `${line.text}: ${shortProgramUrl(line.url)}` : line.text).join('\n\n') };
 }
