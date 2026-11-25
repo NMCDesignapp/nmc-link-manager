@@ -651,6 +651,26 @@ function getBonusRewardLabel(type: BonusType): string {
   return '/TVV (nđ)';
 }
 
+// Keep the browser input responsive while the large contest result tree is
+// recalculated. The parent receives the normalized number only on blur/Enter.
+const ResponsiveTierNumberInput = React.memo(function ResponsiveTierNumberInput({
+  value,
+  displayValue,
+  onCommit,
+  ...props
+}: {
+  value: number | null;
+  displayValue: string;
+  onCommit: (raw: string) => void;
+} & Omit<React.ComponentProps<typeof Input>, 'value' | 'onChange' | 'onBlur'>) {
+  const [draft, setDraft] = useState(displayValue);
+  // The parent may normalize the value after blur or when loading a contest.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setDraft(displayValue), [value, displayValue]);
+  const commit = () => onCommit(draft);
+  return <Input {...props} type="number" value={draft} onChange={event => setDraft(event.target.value)} onBlur={commit} onKeyDown={event => { if (event.key === 'Enter') commit(); }} />;
+});
+
 function BonusRewardInput({ tier, rewardType, label, onUpdate }: {
   tier: BonusTier;
   rewardType: BonusType;
@@ -659,10 +679,10 @@ function BonusRewardInput({ tier, rewardType, label, onUpdate }: {
 }) {
   const inputClassName = 'h-9 min-w-0 px-2 border-emerald-500/30 bg-gray-900 text-xs text-white';
   if (rewardType === 'money' || rewardType === 'money_per_round' || rewardType === 'money_per_tvv') {
-    return <Input aria-label={label} type="number" inputMode="decimal" placeholder="0" value={vndToNgan(tier.bonusAmount) || ''} onChange={(event) => onUpdate('bonusAmount', event.target.value === '' ? 0 : nganToVnd(parseFloat(event.target.value) || 0))} className={inputClassName} />;
+    return <ResponsiveTierNumberInput aria-label={label} inputMode="decimal" placeholder="0" value={tier.bonusAmount} displayValue={String(vndToNgan(tier.bonusAmount) || '')} onCommit={raw => onUpdate('bonusAmount', raw === '' ? 0 : nganToVnd(parseFloat(raw) || 0))} className={inputClassName} />;
   }
   if (rewardType === 'percent' || rewardType === 'percent_total_ip' || rewardType === 'percent_fyc') {
-    return <Input aria-label={label} type="number" inputMode="decimal" placeholder="0" value={tier.bonusPercent || ''} onChange={(event) => onUpdate('bonusPercent', event.target.value === '' ? 0 : parseFloat(event.target.value) || 0)} className={inputClassName} />;
+    return <ResponsiveTierNumberInput aria-label={label} inputMode="decimal" placeholder="0" value={tier.bonusPercent} displayValue={String(tier.bonusPercent || '')} onCommit={raw => onUpdate('bonusPercent', raw === '' ? 0 : parseFloat(raw) || 0)} className={inputClassName} />;
   }
   return <Input aria-label={label} type="text" placeholder="Nhập quà tặng" value={tier.bonusText} onChange={(event) => onUpdate('bonusText', event.target.value)} className={inputClassName} />;
 }
@@ -715,8 +735,8 @@ const BonusTierEditor = React.memo(function BonusTierEditor({ tiers, conditionTy
         {tiers.map((tier, index) => (
           <div key={tier.id} className={gridClassName}>
             <span className="text-center text-xs font-semibold text-emerald-200/80">{index + 1}</span>
-            <Input aria-label={`${metricLabel} từ mức ${index + 1}`} type="number" inputMode="decimal" placeholder="Từ" value={isCountMetric ? (tier.minFYP || '') : (vndToTrieu(tier.minFYP) || '')} onChange={(event) => onUpdate(tier.id, 'minFYP', event.target.value === '' ? 0 : isCountMetric ? parseInt(event.target.value) || 0 : trieuToVnd(parseFloat(event.target.value) || 0))} className="h-9 min-w-0 px-2 border-emerald-500/30 bg-gray-900 text-xs text-white" />
-            <Input aria-label={`${metricLabel} đến mức ${index + 1}`} type="number" inputMode="decimal" placeholder="Đến ∞" value={tier.maxFYP ? (isCountMetric ? tier.maxFYP : vndToTrieu(tier.maxFYP)) : ''} onChange={(event) => onUpdate(tier.id, 'maxFYP', event.target.value === '' ? null : isCountMetric ? parseInt(event.target.value) || null : trieuToVnd(parseFloat(event.target.value) || 0))} className="h-9 min-w-0 px-2 border-emerald-500/30 bg-gray-900 text-xs text-white" />
+            <ResponsiveTierNumberInput aria-label={`${metricLabel} từ mức ${index + 1}`} inputMode="decimal" placeholder="Từ" value={tier.minFYP} displayValue={String(isCountMetric ? (tier.minFYP || '') : (vndToTrieu(tier.minFYP) || ''))} onCommit={raw => onUpdate(tier.id, 'minFYP', raw === '' ? 0 : isCountMetric ? parseInt(raw) || 0 : trieuToVnd(parseFloat(raw) || 0))} className="h-9 min-w-0 px-2 border-emerald-500/30 bg-gray-900 text-xs text-white" />
+            <ResponsiveTierNumberInput aria-label={`${metricLabel} đến mức ${index + 1}`} inputMode="decimal" placeholder="Đến ∞" value={tier.maxFYP} displayValue={String(tier.maxFYP ? (isCountMetric ? tier.maxFYP : vndToTrieu(tier.maxFYP)) : '')} onCommit={raw => onUpdate(tier.id, 'maxFYP', raw === '' ? null : isCountMetric ? parseInt(raw) || null : trieuToVnd(parseFloat(raw) || 0))} className="h-9 min-w-0 px-2 border-emerald-500/30 bg-gray-900 text-xs text-white" />
             <BonusRewardCell tier={tier} label={`mức ${index + 1}`} accent="emerald" onUpdate={(field, value) => onUpdate(tier.id, field, value)} />
             <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(tier.id)} className="h-8 w-8 p-0 text-red-400 hover:text-red-300" aria-label={`Xóa mức ${index + 1}`}><Trash2 className="h-3.5 w-3.5" /></Button>
           </div>
@@ -770,8 +790,8 @@ const DualPhaseBonusTierEditor = React.memo(function DualPhaseBonusTierEditor({
           return (
             <div key={`${phase1.id}-${phase2.id}`} className={gridClassName}>
               <span className="text-center text-xs font-semibold text-sky-200/80">{index + 1}</span>
-              <Input aria-label={`${metricLabel} từ mức ${index + 1}`} type="number" inputMode="decimal" placeholder="Từ" value={isCountMetric ? (phase1.minFYP || '') : (vndToTrieu(phase1.minFYP) || '')} onChange={(event) => onMilestoneUpdate(index, 'minFYP', event.target.value === '' ? 0 : isCountMetric ? parseInt(event.target.value) || 0 : trieuToVnd(parseFloat(event.target.value) || 0))} className="h-9 min-w-0 px-1.5 border-sky-500/30 bg-gray-900 text-xs text-white" />
-              <Input aria-label={`${metricLabel} đến mức ${index + 1}`} type="number" inputMode="decimal" placeholder="Đến ∞" value={phase1.maxFYP ? (isCountMetric ? phase1.maxFYP : vndToTrieu(phase1.maxFYP)) : ''} onChange={(event) => onMilestoneUpdate(index, 'maxFYP', event.target.value === '' ? null : isCountMetric ? parseInt(event.target.value) || null : trieuToVnd(parseFloat(event.target.value) || 0))} className="h-9 min-w-0 px-1.5 border-sky-500/30 bg-gray-900 text-xs text-white" />
+              <ResponsiveTierNumberInput aria-label={`${metricLabel} từ mức ${index + 1}`} inputMode="decimal" placeholder="Từ" value={phase1.minFYP} displayValue={String(isCountMetric ? (phase1.minFYP || '') : (vndToTrieu(phase1.minFYP) || ''))} onCommit={raw => onMilestoneUpdate(index, 'minFYP', raw === '' ? 0 : isCountMetric ? parseInt(raw) || 0 : trieuToVnd(parseFloat(raw) || 0))} className="h-9 min-w-0 px-1.5 border-sky-500/30 bg-gray-900 text-xs text-white" />
+              <ResponsiveTierNumberInput aria-label={`${metricLabel} đến mức ${index + 1}`} inputMode="decimal" placeholder="Đến ∞" value={phase1.maxFYP} displayValue={String(phase1.maxFYP ? (isCountMetric ? phase1.maxFYP : vndToTrieu(phase1.maxFYP)) : '')} onCommit={raw => onMilestoneUpdate(index, 'maxFYP', raw === '' ? null : isCountMetric ? parseInt(raw) || null : trieuToVnd(parseFloat(raw) || 0))} className="h-9 min-w-0 px-1.5 border-sky-500/30 bg-gray-900 text-xs text-white" />
               <BonusRewardCell tier={phase1} label={`GĐ1 mức ${index + 1}`} accent="sky" onUpdate={(field, value) => onPhase1Update(phase1.id, field, value)} />
               <BonusRewardCell tier={phase2} label={`GĐ2 mức ${index + 1}`} accent="sky" onUpdate={(field, value) => onPhase2Update(phase2.id, field, value)} />
               <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(index)} className="h-8 w-8 p-0 text-red-400 hover:text-red-300" aria-label={`Xóa mức ${index + 1}`}><Trash2 className="h-3.5 w-3.5" /></Button>
