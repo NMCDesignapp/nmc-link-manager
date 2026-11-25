@@ -31,14 +31,9 @@ export function successfulSyncTime(settings: Record<string, string>, now = new D
 }
 
 export function contestProgramUrl(origin: string, contestId?: string): string {
-  const url = new URL('/thi-dua-chau', origin || MAIN_APP_ORIGIN);
-  if (contestId) {
-    url.searchParams.set('embed', '1');
-    url.searchParams.set('contest', contestId);
-    url.searchParams.set('autocalc', '1');
-    url.searchParams.set('actions', '1');
-  }
-  return url.toString();
+  const base = origin || MAIN_APP_ORIGIN;
+  if (contestId) return new URL(`/c/${encodeURIComponent(contestId)}`, base).toString();
+  return new URL('/thi-dua-chau', base).toString();
 }
 
 export function buildContestCommunication(c: ContestConfig, settings: Record<string, string>, now = new Date(), _recruitment?: RecruitmentContestConfig, programUrl = contestProgramUrl(MAIN_APP_ORIGIN)): ContestCommunication {
