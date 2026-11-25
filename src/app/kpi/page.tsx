@@ -8963,9 +8963,9 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
 
       {adminAuthed && !standalone && (
         <nav className="kpi-admin-bottom-nav" aria-label="Điều hướng quản trị">
-          <a href="/quan-ly?admin=1&from=kpi" title="Quản lý"><BarChart3 size={16} /><span>Quản lý</span></a>
+          <a href="/quan-ly?admin=1" title="Quản lý"><BarChart3 size={16} /><span>Quản lý</span></a>
           <a href="/nc-link" title="Trang chính NC Link"><HomeIcon size={16} /><span>NC Link</span></a>
-          <a href="/thi-dua-chau?from=kpi" title="Thi đua"><Trophy size={16} /><span>Thi đua</span></a>
+          <a href="/thi-dua-chau" title="Thi đua"><Trophy size={16} /><span>Thi đua</span></a>
           <a href="/" title="KPI"><Flag size={16} /><span>KPI</span></a>
         </nav>
       )}

@@ -9,7 +9,7 @@ type MainAppBottomNavProps = {
 
 const ITEMS = [
   { key: 'home', label: 'NC Link', href: '/nc-link', icon: Home },
-  { key: 'management', label: 'Quản lý', href: '/quan-ly', icon: Database },
+  { key: 'management', label: 'Quản lý', href: '/quan-ly?admin=1', icon: Database },
   { key: 'contest', label: 'Thi đua', href: '/thi-dua-chau', icon: Trophy },
   { key: 'kpi', label: 'KPI', href: '/kpi', icon: BarChart3 },
 ] as const
