@@ -2,7 +2,7 @@ import { type ContestConfig, type RecruitmentContestConfig } from './contest-cal
 
 export type CommunicationLine = { text: string; emphasis?: boolean; tone?: 'urgent' | 'title'; url?: string };
 export type ContestCommunication = { lines: CommunicationLine[]; text: string };
-export const MAIN_APP_ORIGIN = (process.env.NEXT_PUBLIC_MAIN_APP_URL || 'https://nc-link.onrender.com').replace(/\/+$/, '');
+export const MAIN_APP_ORIGIN = 'https://nc-link.onrender.com';
 
 const day = (value: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).format(value);
 const date = (value: string) => {
