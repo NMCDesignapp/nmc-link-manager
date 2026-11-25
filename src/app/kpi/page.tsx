@@ -1457,7 +1457,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .t3-bronze .top3-bar { background: linear-gradient(90deg, transparent, rgba(112,55,23,.82), transparent); }
 .kpi-app .t3-bronze .top3-name, .kpi-app .t3-bronze .top3-val, .kpi-app .t3-bronze .top3-pct { color: #3d1f10; text-shadow: none; }
 
-/* Podium 1/2/3: ảnh tròn nhóm + khung hạng vàng/bạc/đồng (yêu cầu 21/11/2026) */
+/* Podium: ảnh tròn nhóm + khung vàng/bạc/đồng; cấp độ thể hiện bằng chất liệu, không dùng chữ TOP. */
 .kpi-app .top3-avatar-frame {
   width: 52px; height: 52px; border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;
@@ -1483,6 +1483,9 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .top3-avatar-frame.rank-1 .top3-avatar-ph { color: #4a3005; }
 .kpi-app .top3-avatar-frame.rank-2 .top3-avatar-ph { color: #23303e; }
 .kpi-app .top3-avatar-frame.rank-3 .top3-avatar-ph { color: #3d1f10; }
+.kpi-app .top3-avatar-frame.rank-1 { width: 60px; height: 60px; border-width: 4px; box-shadow: 0 0 0 2px rgba(255,226,125,.28), 0 0 20px rgba(230,190,70,.72); }
+.kpi-app .top3-avatar-frame.rank-2 { border-width: 3px; box-shadow: 0 0 0 1px rgba(235,243,252,.24), 0 0 14px rgba(200,215,230,.62); }
+.kpi-app .top3-avatar-frame.rank-3 { border-width: 3px; box-shadow: 0 0 0 1px rgba(244,205,169,.2), 0 0 14px rgba(220,150,90,.58); }
 
 /* Calendar View */
 .kpi-app .sub-header { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0; position: sticky; top: 0; z-index: 50; }
@@ -5251,6 +5254,26 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   // dùng tưởng ứng dụng bị treo, đồng thời không thể bấm Thi đua/Chính sách.
   const kpiDataReady = Boolean(rawData);
 
+  // Warm the three linked sections in product order after the KPI first paint.
+  // This only prefetches route code; each section still loads its own data when
+  // opened, so the initial dashboard does not compete with these requests.
+  useEffect(() => {
+    if (!kpiDataReady || typeof router.prefetch !== 'function') return;
+    const routes = [
+      '/quan-ly?sheet=clb-saoviet&from=kpi',
+      '/thi-dua-chau?embed=1',
+      '/quan-ly?sheet=report&from=kpi',
+    ];
+    let cancelled = false;
+    const warm = (index: number) => {
+      if (cancelled || index >= routes.length) return;
+      router.prefetch(routes[index]);
+      window.setTimeout(() => warm(index + 1), 700);
+    };
+    const startId = window.setTimeout(() => warm(0), 900);
+    return () => { cancelled = true; window.clearTimeout(startId); };
+  }, [kpiDataReady, router]);
+
   // Sync rawData từ context (quanLyAll ưu tiên, fallback về các mảng riêng)
   useEffect(() => {
     if (appData.quanLyAll) {
@@ -7743,8 +7766,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                       <div className={`top3-card ${isF ? 'top3-first ' : ''}${cls3[i]}`} key={i} style={{ animationDelay: `${i * 80}ms` }}>
                         {isF && <div className="top3-crown">{crowns[i]}</div>}
                         {/* Ảnh tròn nhóm thay cho số hạng — khung vàng/bạc/đồng phân biệt hạng (yêu cầu 21/11/2026) */}
-                        <div className="top3-rank">
-                          <span className="top3-rank-label">Top {i === 1 ? 1 : i === 0 ? 2 : 3}</span>
+                        <div className="top3-rank" aria-label={`Vị trí ${i === 1 ? 1 : i === 0 ? 2 : 3}`}>
                           <span className={`top3-avatar-frame rank-${i === 1 ? '1' : i === 0 ? '2' : '3'}`}>
                             {groupAvatars[item.maBanNhom]
                               ? // eslint-disable-next-line @next/next/no-img-element
