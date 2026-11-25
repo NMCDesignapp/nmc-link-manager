@@ -2,8 +2,8 @@ import { type ContestConfig, type RecruitmentContestConfig } from './contest-cal
 
 export type CommunicationLine = { text: string; emphasis?: boolean; tone?: 'urgent' | 'title'; url?: string };
 export type ContestCommunication = { lines: CommunicationLine[]; text: string };
-const MAIN_APP_ORIGIN = (process.env.NEXT_PUBLIC_MAIN_APP_URL || 'https://nc-link.onrender.com').replace(/\/+$/, '');
-export const KPI_APP_ORIGIN = (process.env.NEXT_PUBLIC_KPI_APP_URL || 'https://kpi-nc-link.chaunm2312.workers.dev').replace(/\/+$/, '');
+export const MAIN_APP_ORIGIN = 'https://nc-link.onrender.com';
+
 const day = (value: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).format(value);
 const date = (value: string) => {
   const d = new Date(value);
@@ -31,14 +31,9 @@ export function successfulSyncTime(settings: Record<string, string>, now = new D
 }
 
 export function contestProgramUrl(origin: string, contestId?: string): string {
-  const url = new URL('/thi-dua-chau', origin || MAIN_APP_ORIGIN);
-  if (contestId) {
-    url.searchParams.set('embed', '1');
-    url.searchParams.set('contest', contestId);
-    url.searchParams.set('autocalc', '1');
-    url.searchParams.set('actions', '1');
-  }
-  return url.toString();
+  const base = origin || MAIN_APP_ORIGIN;
+  if (contestId) return new URL(`/c/${encodeURIComponent(contestId)}`, base).toString();
+  return new URL('/thi-dua-chau', base).toString();
 }
 
 export function buildContestCommunication(c: ContestConfig, settings: Record<string, string>, now = new Date(), _recruitment?: RecruitmentContestConfig, programUrl = contestProgramUrl(MAIN_APP_ORIGIN)): ContestCommunication {
@@ -55,6 +50,6 @@ export function buildContestCommunication(c: ContestConfig, settings: Record<str
   ];
   const sync = successfulSyncTime(settings, now);
   lines.push({ text: sync ? `📊 Dữ liệu thi đua được cập nhật đến: ${new Date(sync).toLocaleString('vi-VN', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}.` : '📊 Chưa xác định được thời điểm đồng bộ thành công từ máy lên app.', emphasis: true });
-  lines.push({ text: `Xem chi tiết tại -> ${programUrl}`, url: programUrl });
-  return { lines, text: lines.map(line => line.text).join('\n') };
+  lines.push({ text: '🔗 Xem chi tiết chương trình thi đua', url: programUrl });
+  return { lines, text: lines.map(line => line.url ? `${line.text}: ${line.url}` : line.text).join('\n\n') };
 }
