@@ -8,6 +8,7 @@ import { ProgramTableNativeSticky } from '@/components/program-table-native-stic
 import { ProgramTableViewportHeader } from '@/components/program-table-viewport-header'
 import { KpiEmbeddedFilterBar } from '@/components/kpi-embedded-filter-bar'
 import { KpiEmbeddedSyncBridge } from '@/components/kpi-embedded-sync-bridge'
+import { AdminBottomNav } from '@/components/admin-bottom-nav'
 import { HonourSpacingFix } from '@/components/honour-spacing-fix'
 import { MaintenanceGate } from '@/components/maintenance-gate'
 import { AppDataProvider } from '@/lib/app-data-context'
@@ -114,6 +115,7 @@ export default function RootLayout({
         <ErrorBoundary>
           <AppDataProvider>
             {children}
+            <AdminBottomNav />
             <MaintenanceGate />
             <HonourSpacingFix />
             <EmbeddedProgramDataLoader />

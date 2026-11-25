@@ -13641,7 +13641,6 @@ export default function QuanLyPage() {
 
       {/* Policy Image settings đã được gộp vào dialog Cài đặt hệ thống ở trên */}
 
-      {!isEmbedded && !isInIframe && <MainAppBottomNav active="management" />}
 
     </div>
   );

@@ -61,10 +61,6 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .hero-sub { font-size: 11px; font-weight: 800; color: #e0c060; text-transform: uppercase; letter-spacing: .18em; margin-top: 4px; }
 .kpi-app .main-header { display: flex; align-items: center; gap: 6px; position: relative; }
 .kpi-app .main-header > div { flex: 1; text-align: center; }
-.kpi-app .kpi-admin-bottom-nav { position: fixed; z-index: 80; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; align-items: stretch; gap: 4px; padding: 7px; width: min(620px, calc(100vw - 24px)); border: 1px solid rgba(108,199,138,.32); border-radius: 18px; background: rgba(6, 20, 34, .94); box-shadow: 0 12px 34px rgba(0,0,0,.45), 0 0 24px rgba(63,190,139,.12); backdrop-filter: blur(16px); }
-.kpi-app .kpi-admin-bottom-nav a, .kpi-app .kpi-admin-bottom-nav button { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 42px; border: 0; border-radius: 12px; background: transparent; color: #b8cfdf; font: inherit; font-size: 9px; font-weight: 800; text-decoration: none; cursor: pointer; }
-.kpi-app .kpi-admin-bottom-nav a:hover, .kpi-app .kpi-admin-bottom-nav button:hover { color: #8ee0a8; background: rgba(108,199,138,.14); }
-.kpi-app .kpi-admin-bottom-nav svg { color: #6cc78a; }
 .kpi-app #view-tamthu-detail { padding-bottom: 84px; }
 
 /* Thông báo trạng thái đăng ký — gọn, luôn ở trung tâm màn hình. */
@@ -8959,15 +8955,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             </div>
           </div>
         </div>
-      )}
-
-      {adminAuthed && !standalone && (
-        <nav className="kpi-admin-bottom-nav" aria-label="Điều hướng quản trị">
-          <a href="/quan-ly?admin=1" title="Quản lý"><BarChart3 size={16} /><span>Quản lý</span></a>
-          <a href="/nc-link" title="Trang chính NC Link"><HomeIcon size={16} /><span>NC Link</span></a>
-          <a href="/thi-dua-chau" title="Thi đua"><Trophy size={16} /><span>Thi đua</span></a>
-          <a href="/" title="KPI"><Flag size={16} /><span>KPI</span></a>
-        </nav>
       )}
 
       {/* ===== ADMIN LOGIN POPUP — đã chuyển sang giao diện chính ứng dụng (/src/app/page.tsx) ===== */}

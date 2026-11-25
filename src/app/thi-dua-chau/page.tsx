@@ -5130,7 +5130,6 @@ function ThiDuaPageInner() {
       </main>
       )}
 
-      {!isEmbedMode && <MainAppBottomNav active="contest" />}
 
       <ContestCommunicationDialog message={communication} onClose={() => setCommunication(null)} />
 
