@@ -32,10 +32,10 @@ test('communication keeps the progress essentials and omits contest mechanics', 
   assert.doesNotMatch(result.text,/Cảm ơn Anh\/Chị/);
   assert.equal(result.lines.at(-1)?.text, '🔗 Xem chi tiết chương trình thi đua');
   assert.ok(result.text.includes(`🔗 Xem chi tiết chương trình thi đua: ${detailUrl}`));
-  assert.equal(result.text, result.lines.map(line => line.url ? `${line.text}: ${line.url}` : line.text).join('\\n\\n'));
+  assert.equal(result.text, result.lines.map(line => line.url ? `${line.text}: ${line.url}` : line.text).join('\n\n'));
   assert.equal(detailUrl, 'https://nc-link.onrender.com/thi-dua-chau?embed=1&contest=contest+42&autocalc=1&actions=1');
   assert.equal(result.lines.find(x=>x.tone==='urgent')?.emphasis,true);
-  assert.equal(result.text, result.lines.map(line => line.text).join('\n'));
+  assert.equal(result.text.split('\n\n').length, result.lines.length);
 });
 test('TOP configuration is not included in the communication copy', () => {
   const c = {...config(),conditionType:'top_n_ip' as const,topN:2,topNValueType:'afyp' as const,bonusTiers:[{...tier,bonusType:'money' as const,bonusAmount:1000000,minFYP:50000000},{...tier,bonusType:'money' as const,bonusAmount:500000,minFYP:0}]};
