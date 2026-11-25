@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { Analytics } from '@vercel/analytics/next'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { PwaInstallPrompt } from '@/components/pwa-install-prompt'
 import { Toaster } from '@/components/ui/toaster'
@@ -17,24 +18,24 @@ import '@fontsource/roboto-condensed/latin-ext-900.css'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'KPI AN GIANG - Design bg Chau',
-  description: 'Ung dung theo doi so lieu kinh doanh',
+  title: 'KPI AN GIANG - Design by NC',
+  description: 'KPI AN GIANG - Design by NC',
   generator: 'v0.app',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'KPI AN GIANG',
+    title: 'KPI AN GIANG - Design by NC',
   },
   formatDetection: {
     telephone: false,
   },
   icons: {
     icon: [
-      { url: '/icon/nc-link-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon/nc-link-512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/icon/kpi-an-giang-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon/kpi-an-giang-512.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: [{ url: '/icon/nc-link-180.png', sizes: '180x180', type: 'image/png' }],
+    apple: [{ url: '/icon/kpi-an-giang-512.png', sizes: '512x512', type: 'image/png' }],
   },
 }
 
@@ -55,7 +56,7 @@ export default function RootLayout({
   return (
     <html lang="vi" className="dark h-full">
       <head>
-        <link rel="apple-touch-icon" href="/icon/nc-link-180.png" />
+        <link rel="apple-touch-icon" href="/icon/kpi-an-giang-512.png" />
         <link rel="stylesheet" href="/main-management-soft-ui-v1.css?v=20260827-2" />
         <link rel="stylesheet" href="/main-management-metal-v2.css?v=20260831-2" />
         <link rel="stylesheet" href="/main-home-panels-soft-ui-v1.css?v=20260827-1" />
@@ -121,6 +122,7 @@ export default function RootLayout({
             <Toaster />
           </AppDataProvider>
         </ErrorBoundary>
+        {process.env.NODE_ENV === 'production' && <Analytics />}
         <script
           dangerouslySetInnerHTML={{
             __html: `

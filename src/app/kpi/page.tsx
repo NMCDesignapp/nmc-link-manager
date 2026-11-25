@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo, useCallback, useRef, Fragment } from 'rea
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
-  Trophy, RotateCw, CalendarDays, BarChart3, Flag, BookOpen, Star,
+  Trophy, RotateCw, CalendarDays, BarChart3, Flag, BookOpen, Star, Home as HomeIcon,
   ArrowLeft, ChevronDown, Clipboard, Award, Crown, Medal, Check, X, Settings, LockKeyhole, Download
 } from 'lucide-react';
 import { BackButton } from '@/components/back-button';
@@ -63,13 +63,18 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .main-header .btn-back-u { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.06); color: #9a9184; display: flex; align-items: center; justify-content: center; border: 1px solid #ffffff14; transition: all .2s; }
 .kpi-app .main-header .btn-back-u:hover { color: #6cc78a; background: rgba(108,199,138,.12); border-color: #6cc78a44; }
 /* Admin button (lock icon) — replaces BackButton on KPI main header */
-.kpi-app .main-header .btn-admin-u { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.06); color: #c0a060; display: flex; align-items: center; justify-content: center; border: 1px solid #ffffff14; transition: all .2s; cursor: pointer; }
+.kpi-app .main-header .btn-admin-u { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,.06); color: #c0a060; display: flex; align-items: center; justify-content: center; border: 1px solid #ffffff14; transition: all .2s; cursor: pointer; }
 .kpi-app .main-header .btn-admin-u:hover { color: #ffd040; background: rgba(255,208,64,.12); border-color: #ffd04044; }
 .kpi-app .main-header .btn-admin-u.authed { color: #6cc78a; border-color: #6cc78a44; background: rgba(108,199,138,.10); }
 .kpi-app .main-header .btn-admin-u.authed:hover { color: #8ee0a8; background: rgba(108,199,138,.18); }
 .kpi-app .main-header > div { flex: 1; text-align: center; }
 .kpi-app .main-header > .btn-back-u + div { margin-right: 46px; }
 .kpi-app .main-header > .btn-admin-u + div { margin-right: 46px; }
+.kpi-app .kpi-admin-bottom-nav { position: fixed; z-index: 80; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; align-items: stretch; gap: 4px; padding: 7px; width: min(620px, calc(100vw - 24px)); border: 1px solid rgba(108,199,138,.32); border-radius: 18px; background: rgba(6, 20, 34, .94); box-shadow: 0 12px 34px rgba(0,0,0,.45), 0 0 24px rgba(63,190,139,.12); backdrop-filter: blur(16px); }
+.kpi-app .kpi-admin-bottom-nav a, .kpi-app .kpi-admin-bottom-nav button { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 42px; border: 0; border-radius: 12px; background: transparent; color: #b8cfdf; font: inherit; font-size: 9px; font-weight: 800; text-decoration: none; cursor: pointer; }
+.kpi-app .kpi-admin-bottom-nav a:hover, .kpi-app .kpi-admin-bottom-nav button:hover { color: #8ee0a8; background: rgba(108,199,138,.14); }
+.kpi-app .kpi-admin-bottom-nav svg { color: #6cc78a; }
+.kpi-app #view-tamthu-detail { padding-bottom: 84px; }
 
 /* Thông báo trạng thái đăng ký — gọn, luôn ở trung tâm màn hình. */
 .kpi-app .target-registration-lock-notice {
@@ -3465,7 +3470,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 .kpi-app .tamthu-detail-filters input { width: 210px; }
 .kpi-app .tamthu-detail-filters select:focus, .kpi-app .tamthu-detail-filters input:focus { border-color: #239a69; }
-.kpi-app .tamthu-table-wrap { overflow: auto; max-height: min(68vh, 720px); background: #fff; border: 1px solid #c9dfd4; box-shadow: 0 10px 22px #00000052; }
+.kpi-app .tamthu-table-wrap { overflow: auto; height: calc(100vh - 250px); min-height: 420px; max-height: none; background: #fff; border: 1px solid #c9dfd4; box-shadow: 0 10px 22px #00000052; }
 .kpi-app .tamthu-table { width: 100%; min-width: 920px; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 11px; background: #fff; }
 .kpi-app .tamthu-table th { position: sticky; top: 0; z-index: 2; background: linear-gradient(180deg, #239a69, #16845a); color: #fff; padding: 8px 5px; text-align: center; white-space: normal; text-transform: uppercase; font-size: 9px; font-weight: 900; letter-spacing: .04em; line-height: 1.12; border-right: 1px solid #ffffff30; border-bottom: 2px solid #117049; }
 .kpi-app .tamthu-table td { padding: 8px 6px; border-right: 1px solid #e0ebe5; border-bottom: 1px solid #d8e7df; color: #183548; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #fff; line-height: 1.2; }
@@ -3491,7 +3496,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .tamthu-detail-filters { width: 100%; }
   .kpi-app .tamthu-detail-filters select { min-width: 0; width: 43%; }
   .kpi-app .tamthu-detail-filters input { min-width: 0; width: 57%; }
-  .kpi-app .tamthu-table-wrap { max-height: calc(100vh - 286px); }
+  .kpi-app .tamthu-table-wrap { height: calc(100vh - 286px); min-height: 300px; max-height: none; }
   .kpi-app .tamthu-table { min-width: 920px; font-size: 10px; }
   .kpi-app .tamthu-table th { padding: 7px 4px; font-size: 8px; }
   .kpi-app .tamthu-table td { padding: 7px 5px; }
@@ -6747,20 +6752,11 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         <section className={`view ${view === 'main' ? 'active' : ''}`} id="view-main" role="main">
           <header>
             <div className="main-header">
-              {/* Chỉ Admin đã xác thực mới có lối vào giao diện NC-Link cũ.
-                  Trang /nc-link tự kiểm tra cookie HttpOnly ở server; người dùng thường
-                  không thể mở trực tiếp URL này. KPI vẫn là trang mặc định tại /. */}
-              {!standalone && kpiAdminAuthed && (
-                <button
-                  type="button"
-                  className="btn-back-u"
-                  onClick={() => router.push('/nc-link')}
-                  title="Quay lại giao diện NC-Link cũ"
-                  aria-label="Quay lại giao diện NC-Link cũ"
-                >
-                  <ArrowLeft size={18} />
-                </button>
-              )}
+              {/* Nút back:
+                  - KPI0 (standalone=false): LUÔN hiển thị, bấm về `/` (main app)
+                    (trước đây chỉ hiện khi adminAuthed → sai, vì admin vào từ main app
+                     nhưng chưa login admin trên /kpi sẽ mất nút back)
+                  - KPI tách (standalone=true): KHÔNG hiển thị (user không được về main app) */}
               <div>
                 <h1 className="hero-title">Tiến Độ Kinh Doanh</h1>
                 <p className="hero-sub">Bảo Việt Nhân Thọ An Giang</p>
@@ -8975,6 +8971,15 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
             </div>
           </div>
         </div>
+      )}
+
+      {adminAuthed && !standalone && (
+        <nav className="kpi-admin-bottom-nav" aria-label="Điều hướng quản trị">
+          <a href="/quan-ly?admin=1" title="Quản lý"><BarChart3 size={16} /><span>Quản lý</span></a>
+          <a href="/" title="Trang chính NC Link"><HomeIcon size={16} /><span>NC Link</span></a>
+          <a href="/thi-dua-chau" title="Thi đua"><Trophy size={16} /><span>Thi đua</span></a>
+          <a href="/kpi" title="KPI"><Flag size={16} /><span>KPI</span></a>
+        </nav>
       )}
 
       {/* ===== ADMIN LOGIN POPUP — đã chuyển sang giao diện chính ứng dụng (/src/app/page.tsx) ===== */}

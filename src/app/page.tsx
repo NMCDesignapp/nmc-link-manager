@@ -1,9 +1,8 @@
 'use client'
 
-import { KPIDashboard } from '@/app/kpi/page'
+import HomeCommandCenter from '@/components/home-command-center'
 
-// NC Link opens directly into the KPI experience. Management navigation is exposed
-// from the KPI admin unlock flow, rather than as the ordinary landing screen.
+// NC Link's original home screen. KPI remains available at /kpi.
 export default function Home() {
-  return <KPIDashboard standalone={false} />
+  return <HomeCommandCenter />
 }
