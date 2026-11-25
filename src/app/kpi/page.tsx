@@ -60,16 +60,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .hero-title { font-family: Tahoma, Arial, Helvetica, sans-serif; font-size: clamp(1.4rem, 5.5vw, 3rem); font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: 0; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; background: linear-gradient(135deg, #ffffff 0%, #c0e8ff 28%, #60b8ff 54%, #40e898 82%, #c0fff0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .kpi-app .hero-sub { font-size: 11px; font-weight: 800; color: #e0c060; text-transform: uppercase; letter-spacing: .18em; margin-top: 4px; }
 .kpi-app .main-header { display: flex; align-items: center; gap: 6px; position: relative; }
-.kpi-app .main-header .btn-back-u { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.06); color: #9a9184; display: flex; align-items: center; justify-content: center; border: 1px solid #ffffff14; transition: all .2s; }
-.kpi-app .main-header .btn-back-u:hover { color: #6cc78a; background: rgba(108,199,138,.12); border-color: #6cc78a44; }
-/* Admin button (lock icon) — replaces BackButton on KPI main header */
-.kpi-app .main-header .btn-admin-u { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,.06); color: #c0a060; display: flex; align-items: center; justify-content: center; border: 1px solid #ffffff14; transition: all .2s; cursor: pointer; }
-.kpi-app .main-header .btn-admin-u:hover { color: #ffd040; background: rgba(255,208,64,.12); border-color: #ffd04044; }
-.kpi-app .main-header .btn-admin-u.authed { color: #6cc78a; border-color: #6cc78a44; background: rgba(108,199,138,.10); }
-.kpi-app .main-header .btn-admin-u.authed:hover { color: #8ee0a8; background: rgba(108,199,138,.18); }
 .kpi-app .main-header > div { flex: 1; text-align: center; }
-.kpi-app .main-header > .btn-back-u + div { margin-right: 46px; }
-.kpi-app .main-header > .btn-admin-u + div { margin-right: 46px; }
 .kpi-app .kpi-admin-bottom-nav { position: fixed; z-index: 80; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; align-items: stretch; gap: 4px; padding: 7px; width: min(620px, calc(100vw - 24px)); border: 1px solid rgba(108,199,138,.32); border-radius: 18px; background: rgba(6, 20, 34, .94); box-shadow: 0 12px 34px rgba(0,0,0,.45), 0 0 24px rgba(63,190,139,.12); backdrop-filter: blur(16px); }
 .kpi-app .kpi-admin-bottom-nav a, .kpi-app .kpi-admin-bottom-nav button { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 42px; border: 0; border-radius: 12px; background: transparent; color: #b8cfdf; font: inherit; font-size: 9px; font-weight: 800; text-decoration: none; cursor: pointer; }
 .kpi-app .kpi-admin-bottom-nav a:hover, .kpi-app .kpi-admin-bottom-nav button:hover { color: #8ee0a8; background: rgba(108,199,138,.14); }
@@ -1708,8 +1699,6 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .ctrl-select-wrap { position: static; }
   .kpi-app .ctrl-select-popup { left: auto; right: 0; width: 380px; max-width: calc(100vw - 64px); grid-template-columns: repeat(4, minmax(0,1fr)); }
   .kpi-app .main-header { display: flex; align-items: center; gap: 14px; }
-  .kpi-app .main-header > .btn-back-u + div { margin-right: 0; }
-  .kpi-app .main-header .btn-back-u { width: 36px; height: 36px; border-radius: 9px; }
   .kpi-app .hero-title { font-size: clamp(1.8rem, 2.4vw, 2.2rem) !important; margin: 0 !important; }
   .kpi-app .hero-sub { display: block; font-size: 11px !important; }
   .kpi-app .ctrl-bar { margin-top: 12px !important; gap: 14px; }
@@ -2051,7 +2040,6 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .month-grid { grid-template-columns: repeat(9, 1fr); gap: 3px; margin-top: 10px; }
   .kpi-app .month-cell { padding: 5px 1px; border-radius: 6px; min-height: 28px; }
   .kpi-app .month-cell .mc-label { font-size: 8px; }
-  .kpi-app .main-header .btn-back-u { width: 34px; height: 34px; }
 }
 
 /* ============= BANCA YELLOW SEPARATOR ============= */
