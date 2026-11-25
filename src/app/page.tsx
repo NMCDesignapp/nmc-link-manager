@@ -1,8 +1,8 @@
 'use client'
 
-import HomeCommandCenter from '@/components/home-command-center'
+import { KPIDashboard } from '@/app/kpi/page'
 
-// NC Link's original home screen. KPI remains available at /kpi.
+// KPI is the landing page for the single Render application.
 export default function Home() {
-  return <HomeCommandCenter />
+  return <KPIDashboard standalone={false} />
 }
