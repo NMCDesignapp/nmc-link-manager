@@ -185,17 +185,6 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
             // Đồng bộ Google là tác vụ nền; lỗi không được chặn dữ liệu DB hiện có.
           })
 
-        const secondaryDataPromise = Promise.all([
-          fetchJson('/api/recruiters'),
-          fetchJson('/api/tuyen-ngang'),
-          fetchJson('/api/structure/phong'),
-          fetchJson('/api/structure/ad'),
-          fetchJson('/api/structure/bannhom'),
-          fetchJson('/api/structure/tvv'),
-          fetchJson('/api/clb-members'),
-          fetchJson('/api/pending-members'),
-          fetchJson('/api/contests?summary=1&scope=active'),
-        ])
         const quanLyAll = await fetchJson('/api/quan-ly/all')
 
         // Lần mở app đầu tiên: bỏ loader ngay khi bốn bảng dữ liệu lớn đã có.
@@ -217,6 +206,21 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           setIsLoading(false)
         }
 
+        // Allow the first KPI frame to settle before requesting secondary
+        // screens. Calendar and temporary-receipt data have focused requests
+        // on KPI mount; the remaining datasets are not needed for first paint.
+        await new Promise<void>(resolve => window.setTimeout(resolve, 250))
+        const secondaryDataPromise = Promise.all([
+          fetchJson('/api/recruiters'),
+          fetchJson('/api/tuyen-ngang'),
+          fetchJson('/api/structure/phong'),
+          fetchJson('/api/structure/ad'),
+          fetchJson('/api/structure/bannhom'),
+          fetchJson('/api/structure/tvv'),
+          fetchJson('/api/clb-members'),
+          fetchJson('/api/pending-members'),
+          fetchJson('/api/contests?summary=1&scope=active'),
+        ])
         const settings = await settingsPromise
         const [
           recruiters, tuyenNgang, structurePhong, structureAd, structureBanNhom,

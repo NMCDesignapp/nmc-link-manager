@@ -257,6 +257,7 @@ export default function HomeCommandCenter() {
       })
       if (!response.ok) throw new Error('Authentication failed')
       setAdminAuthed(true)
+      window.dispatchEvent(new Event('nmc-admin-session-changed'))
       try { sessionStorage.setItem('kpi_admin_authed', '1') } catch {}
       setAdminPwdOpen(false)
       setAdminPwdInput('')
@@ -273,6 +274,7 @@ export default function HomeCommandCenter() {
   const logoutAdmin = () => {
     void fetch('/api/admin/session', { method: 'DELETE', credentials: 'same-origin' })
     setAdminAuthed(false)
+    window.dispatchEvent(new Event('nmc-admin-session-changed'))
     try { sessionStorage.removeItem('kpi_admin_authed') } catch {}
   }
 

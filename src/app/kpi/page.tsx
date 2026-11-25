@@ -4773,6 +4773,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       const result = await response.json().catch(() => null);
       if (response.ok && result?.authenticated) {
         setAdminAuthed(true);
+        window.dispatchEvent(new Event('nmc-admin-session-changed'));
         setKpiAdminAuthed(true);
         try { sessionStorage.setItem('kpi_admin_authed', '1'); } catch {}
         setKpiAdminPromptOpen(false);
@@ -4791,6 +4792,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       await fetch('/api/admin/session', { method: 'DELETE', credentials: 'same-origin' });
     } catch {}
     setAdminAuthed(false);
+    window.dispatchEvent(new Event('nmc-admin-session-changed'));
     setKpiAdminAuthed(false);
     try {
       sessionStorage.removeItem('kpi_admin_authed');

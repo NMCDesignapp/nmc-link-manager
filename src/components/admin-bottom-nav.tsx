@@ -22,8 +22,14 @@ export function AdminBottomNav() {
         .catch(() => {})
     }
     refresh()
-    const interval = window.setInterval(refresh, 2500)
-    return () => { cancelled = true; window.clearInterval(interval) }
+    const onSessionChanged = () => refresh()
+    window.addEventListener('nmc-admin-session-changed', onSessionChanged)
+    const interval = window.setInterval(refresh, 30_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+      window.removeEventListener('nmc-admin-session-changed', onSessionChanged)
+    }
   }, [])
 
   if (!authenticated) return null
