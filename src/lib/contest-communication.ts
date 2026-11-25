@@ -2,8 +2,8 @@ import { type ContestConfig, type RecruitmentContestConfig } from './contest-cal
 
 export type CommunicationLine = { text: string; emphasis?: boolean; tone?: 'urgent' | 'title'; url?: string };
 export type ContestCommunication = { lines: CommunicationLine[]; text: string };
-const MAIN_APP_ORIGIN = (process.env.NEXT_PUBLIC_MAIN_APP_URL || 'https://nc-link.onrender.com').replace(/\/+$/, '');
-export const KPI_APP_ORIGIN = (process.env.NEXT_PUBLIC_KPI_APP_URL || 'https://kpi-nc-link.chaunm2312.workers.dev').replace(/\/+$/, '');
+export const MAIN_APP_ORIGIN = (process.env.NEXT_PUBLIC_MAIN_APP_URL || 'https://nc-link.onrender.com').replace(/\/+$/, '');
+
 const day = (value: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).format(value);
 const date = (value: string) => {
   const d = new Date(value);
