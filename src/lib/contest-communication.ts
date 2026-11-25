@@ -61,6 +61,6 @@ export function buildContestCommunication(c: ContestConfig, settings: Record<str
   ];
   const sync = successfulSyncTime(settings, now);
   lines.push({ text: sync ? `📊 Dữ liệu thi đua được cập nhật đến: ${new Date(sync).toLocaleString('vi-VN', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}.` : '📊 Chưa xác định được thời điểm đồng bộ thành công từ máy lên app.', emphasis: true });
-  lines.push({ text: '🔗 Xem chi tiết chương trình thi đua', url: programUrl });
-  return { lines, text: lines.map(line => line.url ? `${line.text}: ${shortProgramUrl(line.url)}` : line.text).join('\n\n') };
+  lines.push({ text: `🔗 Xem chi tiết: ${shortProgramUrl(programUrl)}`, url: programUrl });
+  return { lines, text: lines.map(line => line.text).join('\n\n') };
 }

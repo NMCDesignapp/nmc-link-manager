@@ -30,9 +30,9 @@ test('communication keeps the progress essentials and omits contest mechanics', 
   assert.doesNotMatch(result.text,/NỘI DUNG VÀ CƠ CHẾ THƯỞNG/);
   assert.doesNotMatch(result.text,/5% × IP|AFYP\/HĐ|Xét thưởng theo/);
   assert.doesNotMatch(result.text,/Cảm ơn Anh\/Chị/);
-  assert.equal(result.lines.at(-1)?.text, '🔗 Xem chi tiết chương trình thi đua');
-  assert.ok(result.text.includes('🔗 Xem chi tiết chương trình thi đua: nc-link.onrender.com/c/contest%2042'));
-  assert.equal(result.text, result.lines.map(line => line.url ? `${line.text}: ${new URL(line.url).host}${new URL(line.url).pathname}${new URL(line.url).search}` : line.text).join('\n\n'));
+  assert.equal(result.lines.at(-1)?.text, '🔗 Xem chi tiết: nc-link.onrender.com/c/contest%2042');
+  assert.ok(result.text.includes('🔗 Xem chi tiết: nc-link.onrender.com/c/contest%2042'));
+  assert.equal(result.text, result.lines.map(line => line.text).join('\n\n'));
   assert.equal(detailUrl, 'https://nc-link.onrender.com/c/contest%2042');
   assert.equal(result.lines.find(x=>x.tone==='urgent')?.emphasis,true);
   assert.equal(result.text.split('\n\n').length, result.lines.length);
