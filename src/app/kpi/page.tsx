@@ -1418,7 +1418,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 .kpi-app .kpi-admin-btn {
   margin-left: auto; width: 30px; height: 30px; flex: 0 0 auto;
   display: grid; place-items: center; cursor: pointer;
-  border-radius: 8px; padding: 0;
+  border-radius: 50%; padding: 0;
   background: rgba(20, 34, 54, .55); color: #7a92b4;
   border: 1px solid rgba(122, 146, 180, .35);
   transition: all .2s;
