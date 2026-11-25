@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { BackButton } from '@/components/back-button';
 import { SavedContestInline } from '@/components/saved-contest-inline';
-import { MainAppBottomNav } from '@/components/main-app-bottom-nav';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';

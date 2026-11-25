@@ -23,7 +23,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BackButton } from '@/components/back-button';
-import { MainAppBottomNav } from '@/components/main-app-bottom-nav';
 import { AppLoader } from '@/components/app-loader';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
