@@ -22,7 +22,7 @@ test('only acknowledged sync, never heartbeat/export time; missing, invalid and 
   assert.match(buildContestCommunication(config(),{},now).text,/Chưa xác định/);
 });
 test('communication keeps the progress essentials and omits contest mechanics', () => {
-  const detailUrl = contestProgramUrl('https://nc-link.vercel.app', 'contest 42');
+  const detailUrl = contestProgramUrl('https://nc-link.onrender.com', 'contest 42');
   const result = buildContestCommunication(config(),settings,now,undefined,detailUrl);
   assert.match(result.text,/27\/10\/2026/);
   assert.match(result.text,/HÔM NAY VÀ NGÀY MAI/);
@@ -30,8 +30,10 @@ test('communication keeps the progress essentials and omits contest mechanics', 
   assert.doesNotMatch(result.text,/NỘI DUNG VÀ CƠ CHẾ THƯỞNG/);
   assert.doesNotMatch(result.text,/5% × IP|AFYP\/HĐ|Xét thưởng theo/);
   assert.doesNotMatch(result.text,/Cảm ơn Anh\/Chị/);
-  assert.equal(result.lines.at(-1)?.text, `Xem chi tiết tại -> ${detailUrl}`);
-  assert.equal(detailUrl, 'https://nc-link.vercel.app/thi-dua-chau?embed=1&contest=contest+42&autocalc=1&actions=1');
+  assert.equal(result.lines.at(-1)?.text, '🔗 Xem chi tiết chương trình thi đua');
+  assert.match(result.text, new RegExp(`🔗 Xem chi tiết chương trình thi đua: ${detailUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\assert.equal(result.lines.at(-1)?.text, `Xem chi tiết tại -> ${detailUrl}`);')}`));
+  assert.equal(result.text, result.lines.map(line => line.url ? `${line.text}: ${line.url}` : line.text).join('\\n\\n'));
+  assert.equal(detailUrl, 'https://nc-link.onrender.com/thi-dua-chau?embed=1&contest=contest+42&autocalc=1&actions=1');
   assert.equal(result.lines.find(x=>x.tone==='urgent')?.emphasis,true);
   assert.equal(result.text, result.lines.map(line => line.text).join('\n'));
 });
