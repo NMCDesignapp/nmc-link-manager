@@ -4,7 +4,7 @@ export type CommunicationLine = { text: string; emphasis?: boolean; tone?: 'urge
 export type ContestCommunication = { lines: CommunicationLine[]; text: string };
 // Verified live KPI origin. The angiang.vercel.app domain currently serves a
 // different An Giang travel site, so it must not be used for KPI deep links.
-export const MAIN_APP_ORIGIN = 'https://nc-link.onrender.com';
+export const MAIN_APP_ORIGIN = 'https://nmc-link-manager.onrender.com';
 
 const day = (value: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).format(value);
 const date = (value: string) => {
