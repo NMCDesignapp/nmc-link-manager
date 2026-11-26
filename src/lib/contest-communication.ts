@@ -52,8 +52,8 @@ export function buildContestCommunication(c: ContestConfig, settings: Record<str
   ];
   const sync = successfulSyncTime(settings, now);
   lines.push({ text: sync ? `📊 Dữ liệu thi đua được cập nhật đến: ${new Date(sync).toLocaleString('vi-VN', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}.` : '📊 Chưa xác định được thời điểm đồng bộ thành công từ máy lên app.', emphasis: true });
-  // Keep the real destination in the anchor, but show a clean branded label
-  // in the poster and copied message instead of exposing the host.
-  lines.push({ text: '🔗 Mở chi tiết chương trình thi đua', url: programUrl });
+  // Include the URL in the visible text too: downloaded/copy-only formats do
+  // not preserve the HTML anchor target.
+  lines.push({ text: `🔗 Địa chỉ chương trình: ${programUrl}`, url: programUrl });
   return { lines, text: lines.map(line => line.text).join('\n\n') };
 }

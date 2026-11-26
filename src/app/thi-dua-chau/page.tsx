@@ -4044,7 +4044,7 @@ function ThiDuaPageInner() {
       try { decodeRegisteredProgram(registeredProgram); } catch(e) {toast({title:'Cấu hình không hợp lệ',description:String(e)});return;}
       const warnings = findContestDataWarnings(registeredContracts, { requireGroupCode: registeredProgram.scope === 'nhom' });
       setContestWarnings(warnings);
-      if (warnings.length > 0) setWarningDialogOpen(true);
+      if (warnings.length > 0 && !isEmbedMode) setWarningDialogOpen(true);
       else setIsResultDialogOpen(true);
       return;
     }
@@ -4058,7 +4058,7 @@ function ThiDuaPageInner() {
     setFilteredContracts(results);
     const warnings = findContestDataWarnings(results, { requireGroupCode: targetType === 'nhom' });
     setContestWarnings(warnings);
-    if (warnings.length > 0) setWarningDialogOpen(true);
+    if (warnings.length > 0 && !isEmbedMode) setWarningDialogOpen(true);
     else setIsResultDialogOpen(true);
   };
 
