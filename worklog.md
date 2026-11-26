@@ -1387,3 +1387,24 @@ Task: Quy ước Worklog chỉ có NC Link; retire KPI standalone entry/deploy; 
 - Giữ app KPI là ứng dụng duy nhất: root `/` là KPI; `/quan-ly` là nội bộ Admin; icon Trang chủ trỏ root.
 - Vercel aliases `angiang2026*` đã gắn deployment redirect nhưng chưa kiểm tra HTTP từng host.
 - Các script poster backup hiện còn đường dẫn cũ `/home/z/my-project/...`; chưa chuyển vì cần xác định môi trường backup thực tế trước khi thay/di chuyển dữ liệu.
+
+
+---
+Task ID: update-vercel-redirect-aliases-to-render-2026-11-26
+Agent: ChatGPT
+Task: Chuyển hai domain An Giang cũ sang NC Link mới và ghi lại quy trình triển khai
+
+Work Log:
+- Đọc worklog.md và kiểm tra Vercel project cũ: team slug `domain8-87a6`, project `angiang2026` (project ID `prj_P9hFCbctoh1Jkbc1tt5Vtpc1AVXA`).
+- Kiểm tra deployment production đang gắn với các alias. Deployment redirect cũ dùng cấu hình `src/vercel.json` catch-all tới `https://nc-link.onrender.com/$1`; không có GitHub source metadata trong deployment này.
+- Không sửa source app hoặc tạo deployment mới. Dùng Vercel API thao tác alias trực tiếp bằng `assign_alias`, giữ nguyên deployment và gán thuộc tính redirect cho đúng hai host:
+  + `angiang2026.vercel.app` → `nmc-link-manager.onrender.com`
+  + `angiang2026-nhom.vercel.app` → `nmc-link-manager.onrender.com`
+- Kiểm tra lại từng alias bằng `get_alias`: cả hai đều trỏ tới deployment `dpl_ECGsh9SSciuL7WV4rcrohndMmgei`, trường `redirect` là `nmc-link-manager.onrender.com`.
+- Kiểm thử trình duyệt với URL `/redirect-check?source=old&test=1` trên cả hai host: nhận HTTP 307 và chuyển tới host Render mới; path và query string được giữ nguyên. Route kiểm thử tại đích trả HTTP 404, nên kết quả này xác nhận redirect/path/query, không xác nhận route thử nghiệm tồn tại trong app.
+- Không thay đổi các alias khác của project: `angiang2026-kpi.vercel.app` và `angiang2026-mu.vercel.app`.
+
+Stage Summary:
+- Hai domain được yêu cầu đã redirect sang `https://nmc-link-manager.onrender.com`; path và query string được bảo toàn.
+- Cách làm: mở Vercel project đúng team/project → lấy deployment hiện hành → gọi Vercel API `assign_alias` cho từng alias, truyền `requestBody: { alias: "<domain-cũ>", redirect: "nmc-link-manager.onrender.com" }` → gọi `get_alias` xác nhận thuộc tính redirect → kiểm tra URL thật có path/query bằng trình duyệt.
+- Đây là redirect ở cấp alias/domain trên Vercel, không phải sửa `vercel.json`, không cần redeploy app và không cần Bulk Redirects.
