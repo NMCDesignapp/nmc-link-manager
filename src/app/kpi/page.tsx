@@ -3429,7 +3429,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   background: linear-gradient(135deg, #147296, #10506f) !important;
   border-color: #8ae8ff !important;
 }
-.kpi-app .tamthu-detail-shell { width: 100%; max-width: none; margin: 0 auto; }
+.kpi-app .tamthu-detail-shell { max-width: 1380px; margin: 0 auto; }
 /* nmc-kpi-table-surface-v1: giữ nền công nghệ ở dưới, bảng luôn ở lớp nội dung. */
 .kpi-app #view-tamthu-detail,
 .kpi-app #view-target-reg-list { position: relative; z-index: 6; isolation: isolate; }
@@ -3458,7 +3458,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
 }
 .kpi-app .tamthu-detail-filters input { width: 210px; }
 .kpi-app .tamthu-detail-filters select:focus, .kpi-app .tamthu-detail-filters input:focus { border-color: #239a69; }
-.kpi-app .tamthu-table-wrap { overflow: auto; height: calc(100vh - 250px); min-height: 420px; max-height: none; background: #fff; border: 1px solid #c9dfd4; box-shadow: 0 10px 22px #00000052; }
+.kpi-app .tamthu-table-wrap { overflow: auto; height: calc(100vh - 190px); min-height: 420px; max-height: none; background: #fff; border: 1px solid #c9dfd4; box-shadow: 0 10px 22px #00000052; }
 .kpi-app .tamthu-table { width: 100%; min-width: 920px; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 11px; background: #fff; }
 .kpi-app .tamthu-table th { position: sticky; top: 0; z-index: 2; background: linear-gradient(180deg, #239a69, #16845a); color: #fff; padding: 8px 5px; text-align: center; white-space: normal; text-transform: uppercase; font-size: 9px; font-weight: 900; letter-spacing: .04em; line-height: 1.12; border-right: 1px solid #ffffff30; border-bottom: 2px solid #117049; }
 .kpi-app .tamthu-table td { padding: 8px 6px; border-right: 1px solid #e0ebe5; border-bottom: 1px solid #d8e7df; color: #183548; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #fff; line-height: 1.2; }
@@ -3484,7 +3484,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .tamthu-detail-filters { width: 100%; }
   .kpi-app .tamthu-detail-filters select { min-width: 0; width: 43%; }
   .kpi-app .tamthu-detail-filters input { min-width: 0; width: 57%; }
-  .kpi-app .tamthu-table-wrap { height: calc(100vh - 286px); min-height: 300px; max-height: none; }
+  .kpi-app .tamthu-table-wrap { height: calc(100vh - 230px); min-height: 300px; max-height: none; }
   .kpi-app .tamthu-table { min-width: 920px; font-size: 10px; }
   .kpi-app .tamthu-table th { padding: 7px 4px; font-size: 8px; }
   .kpi-app .tamthu-table td { padding: 7px 5px; }
@@ -5357,8 +5357,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   }, [tamthuMonthKey]);
 
   useEffect(() => {
-    if (view === 'tamthu-detail') void fetchTamthuDetail(false);
-  }, [view, tamthuMonthKey, fetchTamthuDetail]);
+    if (view === 'tamthu-detail' && tamthuMonthKey === `${CUR_YEAR}-${CUR_MONTH}`) void fetchTamthuDetail(false);
+  }, [view, tamthuMonthKey, fetchTamthuDetail, CUR_YEAR, CUR_MONTH]);
 
   // Prefetch sau khi dữ liệu KPI chính hoàn tất để người dùng mở Chi tiết tạm thu không phải chờ.
   useEffect(() => {
@@ -6549,6 +6549,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const pct = dashboard ? (dashboard.total.kh ? (dashboard.total.afyp / dashboard.total.kh * 100) : 0) : 0;
   const cp = Math.min(pct, 100);
   const currentMonthKey = `${CUR_YEAR}-${CUR_MONTH}`;
+  const kpiContracts = rawData?.contracts || [];
   const tamthuMonthLabel = `Tháng ${Number(tamthuMonthKey.slice(5))}/${tamthuMonthKey.slice(0, 4)}`;
   const tamthuIsCurrentMonth = tamthuMonthKey === currentMonthKey;
   const tamthuRowsWithResolvedGroup = useMemo(() => {
@@ -6590,9 +6591,21 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       return { ...contract, resolvedNhom };
     });
   }, [tamthuDetailRows, banNhomStructList, tvvStructList]);
+  const tamthuHistoricalRows = useMemo(() => {
+    if (tamthuMonthKey === currentMonthKey) return [] as Array<TamthuDetailRow & { resolvedNhom: string }>;
+    const targetMonth = new Date(CUR_YEAR, Number(tamthuMonthKey.slice(5)) - 1, 1);
+    const dateText = (value: string | null | undefined) => value ? new Date(value).toLocaleDateString('vi-VN') : '';
+    return kpiContracts
+      .filter((contract) => { const month = getDoanhSoMonth(contract); return month.getFullYear() === targetMonth.getFullYear() && month.getMonth() === targetMonth.getMonth(); })
+      .map((contract, index) => ({
+        rowNo: index + 1, nhom: contract.nhom || '', maNhom: contract.maNhom || contract.maBanNhom || '',
+        agentCode: contract.agentCode || '', agentName: contract.agentName || '', effectiveDate: dateText(contract.effectiveDate), issueDate: dateText(contract.issueDate),
+        pdt: Number(contract.pdt10DT || 0), afyp: Number(contract.afyp || 0), contractStatus: contract.contractStatus || '', resolvedNhom: contract.nhom || 'Chưa phân nhóm',
+      }));
+  }, [kpiContracts, tamthuMonthKey, currentMonthKey, CUR_YEAR]);
   const tamthuContracts = useMemo(() => {
-    // Chỉ dùng snapshot Sheet2 (bảng xem), tuyệt đối không dùng dữ liệu tính KPI Sheet4.
-    const records = tamthuRowsWithResolvedGroup;
+    // Tháng hiện tại dùng snapshot Tạm thu; tháng lịch sử lấy đúng kỳ từ mục Doanh số.
+    const records = tamthuMonthKey === currentMonthKey ? tamthuRowsWithResolvedGroup : tamthuHistoricalRows;
     const query = tamthuNameFilter.trim().toLocaleLowerCase('vi-VN');
     return records.filter((contract) => {
       const nhom = contract.resolvedNhom;
@@ -6601,14 +6614,14 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
       return [contract.agentName, contract.agentCode]
         .some((value) => String(value || '').toLocaleLowerCase('vi-VN').includes(query));
     });
-  }, [tamthuRowsWithResolvedGroup, tamthuNhomFilter, tamthuNameFilter]);
+  }, [tamthuRowsWithResolvedGroup, tamthuHistoricalRows, tamthuMonthKey, currentMonthKey, tamthuNhomFilter, tamthuNameFilter]);
   const tamthuSortedContracts = useMemo(() => [...tamthuContracts].sort((a, b) => {
     const parse = (value: string) => { const m = String(value || '').match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/); return m ? new Date(Number(m[3].length === 2 ? `20${m[3]}` : m[3]), Number(m[2]) - 1, Number(m[1])).getTime() : Number.MAX_SAFE_INTEGER; };
     return parse(a.effectiveDate) - parse(b.effectiveDate);
   }), [tamthuContracts]);
   const tamthuNhomOptions = useMemo(() => Array.from(new Set(
-    tamthuRowsWithResolvedGroup.map((contract) => contract.resolvedNhom)
-  )).sort((a, b) => a.localeCompare(b, 'vi')), [tamthuRowsWithResolvedGroup]);
+    tamthuContracts.map((contract) => contract.resolvedNhom)
+  )).sort((a, b) => a.localeCompare(b, 'vi')), [tamthuContracts]);
   const tamthuAfypTotal = useMemo(() => tamthuContracts.reduce((sum, contract) => sum + num(contract.afyp), 0), [tamthuContracts]);
 
   /* Detail top 3 */
@@ -8393,8 +8406,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
               </div>
               <div className="tamthu-detail-filters">
                 <select value={tamthuMonthKey} onChange={(event) => { setTamthuMonthKey(event.target.value); setTamthuNhomFilter(''); setTamthuNameFilter(''); }} aria-label="Chọn tháng dữ liệu">
-                  <option value={currentMonthKey}>{`Tháng hiện tại (${tamthuMonthLabel})`}</option>
-                  {tamthuAvailableMonths.filter((month) => month !== currentMonthKey).map((month) => <option key={month} value={month}>{`Phát hành tháng ${Number(month.slice(5))}/${month.slice(0, 4)}`}</option>)}
+                  {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => {
+                    const monthKey = `${CUR_YEAR}-${String(month).padStart(2, '0')}`;
+                    return <option key={monthKey} value={monthKey}>{monthKey === currentMonthKey ? `Tháng ${month} (hiện tại)` : `Phát hành tháng ${month}/${CUR_YEAR}`}</option>;
+                  })}
                 </select>
                 <select value={tamthuNhomFilter} onChange={(event) => setTamthuNhomFilter(event.target.value)} aria-label="Lọc theo nhóm">
                   <option value="">Tất cả nhóm</option>
