@@ -9178,7 +9178,7 @@ export default function QuanLyPage() {
           </div>
 
           {/* Compact filter row — 2 cols, mỏng (chỉ TVV policy có filter) */}
-          {isTvvPolicy && (
+          {true && (
             <div className="flex flex-shrink-0 items-center gap-1 px-1 py-1 border-b -mt-3 relative z-[250]" style={{ backgroundColor: '#D1FAE5', borderColor: '#10B981' }}>
               {renderPolicyMonthPicker()}
               {/* Nhóm dropdown */}
@@ -9379,7 +9379,7 @@ export default function QuanLyPage() {
                 )}
               </div>
               {/* TVV policies: bộ lọc nhóm + tìm tên */}
-              {isTvvPolicy && (
+              {true && (
                 <div className="flex items-center gap-1 -mt-2">
                   <div className="relative flex-1 min-h-0 z-[200] flex items-center gap-1">
                     {renderPolicyMonthPicker(true)}
