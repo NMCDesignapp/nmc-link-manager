@@ -5597,6 +5597,7 @@ export default function QuanLyPage() {
   // Tháng báo cáo chính sách: dữ liệu vẫn dùng cùng nguồn contracts, chỉ thay đổi kỳ tính.
   const [policyMonth, setPolicyMonth] = useState(() => new Date().getMonth() + 1);
   const [policyMonthLoading, setPolicyMonthLoading] = useState(false);
+  const [policyMonthPopupOpen, setPolicyMonthPopupOpen] = useState(false);
   const policyYear = new Date().getFullYear();
   const handlePolicyMonthChange = useCallback((month: number) => {
     setPolicyMonthLoading(true);
@@ -5607,6 +5608,16 @@ export default function QuanLyPage() {
     const frame = window.requestAnimationFrame(() => setPolicyMonthLoading(false));
     return () => window.cancelAnimationFrame(frame);
   }, [policyMonth, policyMonthLoading]);
+  const renderPolicyMonthPicker = (compact = false) => (
+    <div className={`policy-month-popup ${compact ? 'compact' : ''}`}>
+      <button type="button" className="policy-month-trigger" onClick={() => setPolicyMonthPopupOpen((open) => !open)} aria-haspopup="listbox" aria-expanded={policyMonthPopupOpen}>
+        T{policyMonth}/{policyYear} <span>▾</span>
+      </button>
+      {policyMonthPopupOpen && <div className="policy-month-menu" role="listbox">
+        {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => <button type="button" key={month} className={month === policyMonth ? 'is-selected' : ''} onClick={() => { handlePolicyMonthChange(month); setPolicyMonthPopupOpen(false); }}>{`Tháng ${month}/${policyYear}`}</button>)}
+      </div>}
+    </div>
+  );
   // Policy image link — per policy item, persisted via Settings API
   const [policyImageLinks, setPolicyImageLinks] = useState<Record<string, string>>({});
   const [policyImageInput, setPolicyImageInput] = useState('');
@@ -9169,9 +9180,7 @@ export default function QuanLyPage() {
           {/* Compact filter row — 2 cols, mỏng (chỉ TVV policy có filter) */}
           {isTvvPolicy && (
             <div className="flex flex-shrink-0 items-center gap-1 px-1 py-1 border-b -mt-3 relative z-[250]" style={{ backgroundColor: '#D1FAE5', borderColor: '#10B981' }}>
-              <select value={policyMonth} onChange={(e) => handlePolicyMonthChange(Number(e.target.value))} aria-label="Chọn tháng chính sách" className="flex-1 min-w-0 px-1 py-1 text-[10px] font-bold" style={{ backgroundColor: '#FFFFFF', border: '1px solid #065F46', color: '#374151' }}>
-                {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => <option key={month} value={month}>{`T${month}/${policyYear}`}</option>)}
-              </select>
+              {renderPolicyMonthPicker()}
               {/* Nhóm dropdown */}
               <div className="relative z-[200] flex-1 min-w-0">
                 <button
@@ -9373,9 +9382,7 @@ export default function QuanLyPage() {
               {isTvvPolicy && (
                 <div className="flex items-center gap-1 -mt-2">
                   <div className="relative flex-1 min-h-0 z-[200] flex items-center gap-1">
-                    <select value={policyMonth} onChange={(e) => handlePolicyMonthChange(Number(e.target.value))} aria-label="Chọn tháng chính sách" className="flex-1 min-w-0 px-1.5 py-1 text-[9px] font-bold" style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
-                      {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => <option key={month} value={month}>{`T${month}/${policyYear}`}</option>)}
-                    </select>
+                    {renderPolicyMonthPicker(true)}
                     <button
                       onClick={(e) => {
                         const dd = e.currentTarget.nextElementSibling as HTMLElement;

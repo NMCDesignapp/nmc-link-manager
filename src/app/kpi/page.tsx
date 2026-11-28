@@ -3457,6 +3457,13 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   background: #ffffff; color: #183548; padding: 0 10px; font: inherit; font-size: 11px; outline: none;
 }
 .kpi-app .tamthu-detail-filters input { width: 210px; }
+.kpi-app .tamthu-month-popup { position: relative; width: 31%; min-width: 0; }
+.kpi-app .tamthu-month-trigger { width: 100%; height: 32px; border: 1px solid #83c9a8; border-radius: 6px; background: #fff; color: #183548; padding: 0 8px; font: inherit; font-size: 11px; font-weight: 800; text-align: left; }
+.kpi-app .tamthu-month-trigger.is-current, .kpi-app .tamthu-month-menu button.is-current { color: #dc2626; }
+.kpi-app .tamthu-month-trigger span { float: right; }
+.kpi-app .tamthu-month-menu { position: absolute; top: calc(100% + 3px); left: 0; z-index: 1000; min-width: 150px; max-height: 220px; overflow: auto; padding: 3px; border: 1px solid #83c9a8; border-radius: 6px; background: #0f2830; box-shadow: 0 10px 22px #0008; }
+.kpi-app .tamthu-month-menu button { display: block; width: 100%; padding: 7px 9px; border: 0; background: transparent; color: #d9fff0; font-size: 11px; font-weight: 800; text-align: left; white-space: nowrap; }
+.kpi-app .tamthu-month-menu button:hover { background: #166b50; }
 .kpi-app .tamthu-detail-filters select:focus, .kpi-app .tamthu-detail-filters input:focus { border-color: #239a69; }
 .kpi-app .tamthu-table-wrap { overflow: auto; height: calc(100vh - 190px); min-height: 420px; max-height: none; background: #fff; border: 1px solid #c9dfd4; box-shadow: 0 10px 22px #00000052; }
 .kpi-app .tamthu-table { width: 100%; min-width: 920px; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 11px; background: #fff; }
@@ -3483,7 +3490,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   .kpi-app .tamthu-detail-toolbar { align-items: stretch; flex-direction: column; padding: 12px; }
   .kpi-app .tamthu-detail-filters { width: 100%; }
   .kpi-app .tamthu-detail-filters { gap: 4px; flex-wrap: nowrap; }
-  .kpi-app .tamthu-detail-filters select { min-width: 0; width: 31%; padding-left: 5px; padding-right: 5px; }
+  .kpi-app .tamthu-month-popup { width: 31%; }
   .kpi-app .tamthu-detail-filters input { min-width: 0; width: 38%; padding-left: 5px; padding-right: 5px; }
   .kpi-app .tamthu-table-wrap { height: calc(100vh - 230px); min-height: 300px; max-height: none; }
   .kpi-app .tamthu-table { min-width: 920px; font-size: 10px; }
@@ -4373,6 +4380,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const [tamthuNhomFilter, setTamthuNhomFilter] = useState('');
   const [tamthuNameFilter, setTamthuNameFilter] = useState('');
   const [tamthuMonthKey, setTamthuMonthKey] = useState(() => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`; });
+  const [tamthuMonthPopupOpen, setTamthuMonthPopupOpen] = useState(false);
   const [tamthuAvailableMonths, setTamthuAvailableMonths] = useState<string[]>([]);
   const [tamthuDetailRows, setTamthuDetailRows] = useState<TamthuDetailRow[]>([]);
   const [tamthuDetailLoading, setTamthuDetailLoading] = useState(false);
@@ -6606,11 +6614,13 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         pdt: Number(contract.pdt10DT || 0), afyp: Number(contract.afyp || 0), contractStatus: contract.contractStatus || '', nguonDuLieu: contract.nguonDuLieu || '', resolvedNhom: contract.nhom || 'Chưa phân nhóm',
       }));
   }, [kpiContracts, tamthuMonthKey, currentMonthKey, CUR_YEAR, tamthuIsCarryover]);
-  const tamthuCarryoverRows = useMemo(() => kpiContracts.filter((contract) => String(contract.nguonDuLieu || '').includes('SO_HD_GOC:')).map((contract, index) => ({
+  const tamthuCarryoverRows = useMemo(() => (appData?.carryoverContracts || [])
+    .filter((contract: any) => String(contract.carryoverMonth || '') === currentMonthKey)
+    .map((contract: any, index: number) => ({
     rowNo: index + 1, nhom: contract.nhom || '', maNhom: contract.maNhom || contract.maBanNhom || '', agentCode: contract.agentCode || '', agentName: contract.agentName || '',
     effectiveDate: contract.effectiveDate ? new Date(contract.effectiveDate).toLocaleDateString('vi-VN') : '', issueDate: contract.issueDate ? new Date(contract.issueDate).toLocaleDateString('vi-VN') : '',
     pdt: Number(contract.pdt10DT || 0), afyp: Number(contract.afyp || 0), contractStatus: contract.contractStatus || '', nguonDuLieu: contract.nguonDuLieu || '', resolvedNhom: contract.nhom || 'Chưa phân nhóm',
-  })), [kpiContracts]);
+  })), [appData?.carryoverContracts, currentMonthKey]);
   const tamthuContracts = useMemo(() => {
     // Tháng hiện tại dùng snapshot Tạm thu; tháng lịch sử lấy đúng kỳ từ mục Doanh số.
     const records = tamthuIsCarryover ? tamthuCarryoverRows : tamthuMonthKey === currentMonthKey ? tamthuRowsWithResolvedGroup : tamthuHistoricalRows;
@@ -8405,13 +8415,13 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <strong>{tamthuContracts.length}</strong> hợp đồng &nbsp;•&nbsp; AFYP: <strong>{fmt(tamthuAfypTotal)}đ</strong>
               </div>
               <div className="tamthu-detail-filters">
-                <select value={tamthuMonthKey} onChange={(event) => { setTamthuMonthKey(event.target.value); setTamthuNhomFilter(''); setTamthuNameFilter(''); }} aria-label="Chọn tháng dữ liệu">
-                  <option value="carryover">{`HĐ tồn tháng ${carryoverMonthNumber}`}</option>
-                  {Array.from({ length: Number(CUR_MONTH) }, (_, index) => index + 1).map((month) => {
-                    const monthKey = `${CUR_YEAR}-${String(month).padStart(2, '0')}`;
-                    return <option key={monthKey} value={monthKey} style={monthKey === currentMonthKey ? { color: '#dc2626', fontWeight: 800 } : undefined}>{monthKey === currentMonthKey ? `TT ${month}` : `PH ${month}`}</option>;
-                  })}
-                </select>
+                <div className="tamthu-month-popup">
+                  <button type="button" className={`tamthu-month-trigger ${tamthuIsCurrentMonth ? 'is-current' : ''}`} onClick={() => setTamthuMonthPopupOpen((open) => !open)} aria-haspopup="listbox" aria-expanded={tamthuMonthPopupOpen}>{tamthuIsCarryover ? `HĐ tồn tháng ${carryoverMonthNumber}` : tamthuIsCurrentMonth ? `TT ${Number(CUR_MONTH)}` : `PH ${Number(tamthuMonthKey.slice(5))}`} <span>▾</span></button>
+                  {tamthuMonthPopupOpen && <div className="tamthu-month-menu" role="listbox">
+                    <button type="button" onClick={() => { setTamthuMonthKey('carryover'); setTamthuMonthPopupOpen(false); setTamthuNhomFilter(''); setTamthuNameFilter(''); }}>HĐ tồn tháng {carryoverMonthNumber}</button>
+                    {Array.from({ length: Number(CUR_MONTH) }, (_, index) => index + 1).map((month) => { const monthKey = `${CUR_YEAR}-${String(month).padStart(2, '0')}`; return <button type="button" key={monthKey} className={monthKey === currentMonthKey ? 'is-current' : ''} onClick={() => { setTamthuMonthKey(monthKey); setTamthuMonthPopupOpen(false); setTamthuNhomFilter(''); setTamthuNameFilter(''); }}>{monthKey === currentMonthKey ? `TT ${month}` : `PH ${month}`}</button>; })}
+                  </div>}
+                </div>
                 <select value={tamthuNhomFilter} onChange={(event) => setTamthuNhomFilter(event.target.value)} aria-label="Lọc theo nhóm">
                   <option value="">Tất cả nhóm</option>
                   {tamthuNhomOptions.map((nhom) => <option key={nhom} value={nhom}>{nhom}</option>)}
