@@ -5596,7 +5596,17 @@ export default function QuanLyPage() {
   const [ptkdNameFilter, setPtkdNameFilter] = useState<string>('');
   // Tháng báo cáo chính sách: dữ liệu vẫn dùng cùng nguồn contracts, chỉ thay đổi kỳ tính.
   const [policyMonth, setPolicyMonth] = useState(() => new Date().getMonth() + 1);
+  const [policyMonthLoading, setPolicyMonthLoading] = useState(false);
   const policyYear = new Date().getFullYear();
+  const handlePolicyMonthChange = useCallback((month: number) => {
+    setPolicyMonthLoading(true);
+    setPolicyMonth(month);
+  }, []);
+  useEffect(() => {
+    if (!policyMonthLoading) return;
+    const frame = window.requestAnimationFrame(() => setPolicyMonthLoading(false));
+    return () => window.cancelAnimationFrame(frame);
+  }, [policyMonth, policyMonthLoading]);
   // Policy image link — per policy item, persisted via Settings API
   const [policyImageLinks, setPolicyImageLinks] = useState<Record<string, string>>({});
   const [policyImageInput, setPolicyImageInput] = useState('');
@@ -9121,6 +9131,11 @@ export default function QuanLyPage() {
 
     return (
       <div className="flex flex-col h-full p-2 relative" data-nmc-kpi-detail-shell="policy" style={{ backgroundColor: '#0F172A', boxShadow: '0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,255,136,0.10)' }}>
+        {policyMonthLoading && (
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 rounded-lg border border-emerald-300/60 bg-slate-900/95 px-3 py-2 text-[11px] font-bold text-emerald-100 shadow-2xl" role="status" aria-live="polite">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-300" /> Đang tải dữ liệu doanh số…
+          </div>
+        )}
         {/* ====== MOBILE LAYOUT: poster -> compact filters -> table -> footer ====== */}
         <div className="md:hidden flex flex-col flex-1 min-h-0 relative" data-nmc-kpi-detail-stack data-nmc-kpi-detail-mobile style={{ backgroundColor: '#0F172A' }}>
           {/* Poster — full width 16:9 + program name overlay + Excel download button */}
@@ -9154,7 +9169,7 @@ export default function QuanLyPage() {
           {/* Compact filter row — 2 cols, mỏng (chỉ TVV policy có filter) */}
           {isTvvPolicy && (
             <div className="flex flex-shrink-0 items-center gap-1 px-1 py-1 border-b -mt-3 relative z-[250]" style={{ backgroundColor: '#D1FAE5', borderColor: '#10B981' }}>
-              <select value={policyMonth} onChange={(e) => setPolicyMonth(Number(e.target.value))} aria-label="Chọn tháng chính sách" className="flex-1 min-w-0 px-1 py-1 text-[10px] font-bold" style={{ backgroundColor: '#FFFFFF', border: '1px solid #065F46', color: '#374151' }}>
+              <select value={policyMonth} onChange={(e) => handlePolicyMonthChange(Number(e.target.value))} aria-label="Chọn tháng chính sách" className="flex-1 min-w-0 px-1 py-1 text-[10px] font-bold" style={{ backgroundColor: '#FFFFFF', border: '1px solid #065F46', color: '#374151' }}>
                 {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => <option key={month} value={month}>{`T${month}/${policyYear}`}</option>)}
               </select>
               {/* Nhóm dropdown */}
@@ -9358,7 +9373,7 @@ export default function QuanLyPage() {
               {isTvvPolicy && (
                 <div className="flex items-center gap-1 -mt-2">
                   <div className="relative flex-1 min-h-0 z-[200] flex items-center gap-1">
-                    <select value={policyMonth} onChange={(e) => setPolicyMonth(Number(e.target.value))} aria-label="Chọn tháng chính sách" className="flex-1 min-w-0 px-1.5 py-1 text-[9px] font-bold" style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
+                    <select value={policyMonth} onChange={(e) => handlePolicyMonthChange(Number(e.target.value))} aria-label="Chọn tháng chính sách" className="flex-1 min-w-0 px-1.5 py-1 text-[9px] font-bold" style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
                       {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => <option key={month} value={month}>{`T${month}/${policyYear}`}</option>)}
                     </select>
                     <button
