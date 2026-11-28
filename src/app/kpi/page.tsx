@@ -6561,7 +6561,6 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const kpiContracts = rawData?.contracts || [];
   const tamthuIsCarryover = tamthuMonthKey === 'carryover';
   const carryoverMonthNumber = Number(CUR_MONTH) === 1 ? 12 : Number(CUR_MONTH) - 1;
-  const tamthuMonthLabel = tamthuIsCarryover ? `HĐ tồn tháng ${carryoverMonthNumber}` : `Tháng ${Number(tamthuMonthKey.slice(5))}/${tamthuMonthKey.slice(0, 4)}`;
   const tamthuIsCurrentMonth = tamthuMonthKey === currentMonthKey;
   const tamthuRowsWithResolvedGroup = useMemo(() => {
     const codeKey = (value: string | null | undefined) => String(value || '').trim().toUpperCase();
@@ -8406,7 +8405,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         <div className="tamthu-detail-shell">
           <div className="sub-header">
             <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
-            <span className="sub-title tamthu-detail-title"><span>{tamthuIsCurrentMonth ? 'Chi Tiết Tạm Thu' : tamthuIsCarryover ? `HĐ tồn tháng ${carryoverMonthNumber}` : `Phát hành tháng ${Number(tamthuMonthKey.slice(5))}/${tamthuMonthKey.slice(0, 4)}`}</span><em>{tamthuMonthLabel}</em></span>
+            <span className="sub-title tamthu-detail-title">
+              <span>{tamthuIsCarryover ? `HỢP ĐỒNG HL THÁNG T${carryoverMonthNumber} PH SANG T${Number(CUR_MONTH)}` : tamthuIsCurrentMonth ? 'CHI TIẾT TẠM THU' : 'CHI TIẾT PHÁT HÀNH'}</span>
+              <em>{tamthuIsCarryover ? 'Chưa được ghi nhận trên KPI' : `Tháng ${Number(tamthuMonthKey.slice(5))}/${tamthuMonthKey.slice(0, 4)}`}</em>
+            </span>
           </div>
           <div className="sub-line-wrap"><div className="sub-line" /></div>
           <div className="tamthu-detail-card">
