@@ -6214,8 +6214,8 @@ export default function QuanLyPage() {
   // Sheet 2 "Hợp đồng chi tiết": danh sách HĐ được dùng để tính toán
   // ========================================================================
   const buildContractDetailRows = useCallback((policyKey: string): ContractDetailRow[] => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = policyYear;
+    const currentMonth = policyMonth;
     const currentQuarter = Math.ceil(currentMonth / 3);
     const quarterStartMonth = (currentQuarter - 1) * 3 + 1;
     const quarterEndMonth = currentQuarter * 3;
@@ -6534,7 +6534,7 @@ export default function QuanLyPage() {
     }
 
     return Array.from(seen.values());
-  }, [contracts, tvvStructList, leaders, recruiters, tuyenNgangList, banNhomList, adList]);
+  }, [contracts, tvvStructList, leaders, recruiters, tuyenNgangList, banNhomList, adList, policyMonth, policyYear]);
 
   const handleDownloadPolicyExcel = useCallback(() => {
     if (!policyOpen) {
@@ -6560,8 +6560,7 @@ export default function QuanLyPage() {
       const contractRows = buildContractDetailRows(policyOpen);
 
       // Trigger download
-      const now = new Date();
-      const monthLabel = `T${now.getMonth() + 1}-${now.getFullYear()}`;
+      const monthLabel = `T${policyMonth}-${policyYear}`;
       downloadPolicyExcel(item.label, scrape, contractRows, { monthLabel, policyKey: policyOpen });
 
       toast({
@@ -6572,7 +6571,7 @@ export default function QuanLyPage() {
       console.error('[Excel Export] Error:', err);
       toast({ title: 'Lỗi tạo file Excel', description: String(err), variant: 'destructive' });
     }
-  }, [policyOpen, buildContractDetailRows]);
+  }, [policyOpen, buildContractDetailRows, policyMonth, policyYear]);
 
   // ===== Tôn vinh Excel export: tải 4 bảng Top 5 (H1) về 1 file Excel 4 sheet =====
   const handleDownloadVinhDanhExcel = useCallback(() => {
@@ -9154,7 +9153,10 @@ export default function QuanLyPage() {
 
           {/* Compact filter row — 2 cols, mỏng (chỉ TVV policy có filter) */}
           {isTvvPolicy && (
-            <div className="flex flex-shrink-0 items-center gap-1 px-1 py-1 border-b" style={{ backgroundColor: '#D1FAE5', borderColor: '#10B981' }}>
+            <div className="flex flex-shrink-0 items-center gap-1 px-1 py-1 border-b -mt-3 relative z-[250]" style={{ backgroundColor: '#D1FAE5', borderColor: '#10B981' }}>
+              <select value={policyMonth} onChange={(e) => setPolicyMonth(Number(e.target.value))} aria-label="Chọn tháng chính sách" className="flex-1 min-w-0 px-1 py-1 text-[10px] font-bold" style={{ backgroundColor: '#FFFFFF', border: '1px solid #065F46', color: '#374151' }}>
+                {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => <option key={month} value={month}>{`T${month}/${policyYear}`}</option>)}
+              </select>
               {/* Nhóm dropdown */}
               <div className="relative z-[200] flex-1 min-w-0">
                 <button
@@ -9254,12 +9256,6 @@ export default function QuanLyPage() {
                 font-weight: 700 !important;
               }
             `}} />
-            <div className="flex items-center justify-between gap-2 mb-2 px-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-200/70">Kỳ tính chính sách</span>
-              <select value={policyMonth} onChange={(e) => setPolicyMonth(Number(e.target.value))} className="h-7 rounded border border-emerald-500/40 bg-slate-900 px-2 text-[11px] font-bold text-emerald-200">
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => <option key={month} value={month}>{`Tháng ${month}/${policyYear}`}</option>)}
-              </select>
-            </div>
             {renderPolicyContent(policyOpen)}
           </div>
 
@@ -9360,14 +9356,17 @@ export default function QuanLyPage() {
               </div>
               {/* TVV policies: bộ lọc nhóm + tìm tên */}
               {isTvvPolicy && (
-                <>
-                  <div className="relative flex-1 min-h-0 z-[200]">
+                <div className="flex items-center gap-1 -mt-2">
+                  <div className="relative flex-1 min-h-0 z-[200] flex items-center gap-1">
+                    <select value={policyMonth} onChange={(e) => setPolicyMonth(Number(e.target.value))} aria-label="Chọn tháng chính sách" className="flex-1 min-w-0 px-1.5 py-1 text-[9px] font-bold" style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
+                      {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => <option key={month} value={month}>{`T${month}/${policyYear}`}</option>)}
+                    </select>
                     <button
                       onClick={(e) => {
                         const dd = e.currentTarget.nextElementSibling as HTMLElement;
                         if (dd) dd.classList.toggle('hidden');
                       }}
-                      className="w-full flex items-center justify-between px-1.5 py-1 text-[9px] font-bold"
+                      className="flex-1 min-w-0 flex items-center justify-between px-1.5 py-1 text-[9px] font-bold"
                       style={{ backgroundColor: '#F9FAFB', border: '1px solid #6B7280', color: '#374151', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
                     >
                       <span className="truncate">{nhomFilter.length === 0 ? 'Tất cả nhóm' : nhomFilter.length === 1 ? nhomFilter[0] : `${nhomFilter.length} nhóm`}</span>
@@ -9391,7 +9390,7 @@ export default function QuanLyPage() {
                     />
                     {nameFilter && <button onClick={() => setNameFilter('')} className="text-gray-500 hover:text-red-600 flex-shrink-0"><X className="w-2.5 h-2.5" /></button>}
                   </div>
-                </>
+                </div>
               )}
             </div>
           </div>
@@ -9448,12 +9447,6 @@ export default function QuanLyPage() {
                 font-weight: 700 !important;
               }
             `}} />
-            <div className="flex items-center justify-between gap-2 mb-2 px-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-200/70">Kỳ tính chính sách</span>
-              <select value={policyMonth} onChange={(e) => setPolicyMonth(Number(e.target.value))} className="h-7 rounded border border-emerald-500/40 bg-slate-900 px-2 text-[11px] font-bold text-emerald-200">
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => <option key={month} value={month}>{`Tháng ${month}/${policyYear}`}</option>)}
-              </select>
-            </div>
             {renderPolicyContent(policyOpen)}
           </div>
 
