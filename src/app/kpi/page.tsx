@@ -3429,7 +3429,7 @@ button { border: none; background: none; padding: 0; margin: 0; font: inherit; c
   background: linear-gradient(135deg, #147296, #10506f) !important;
   border-color: #8ae8ff !important;
 }
-.kpi-app .tamthu-detail-shell { max-width: 1380px; margin: 0 auto; }
+.kpi-app .tamthu-detail-shell { width: 100%; max-width: none; margin: 0 auto; }
 /* nmc-kpi-table-surface-v1: giữ nền công nghệ ở dưới, bảng luôn ở lớp nội dung. */
 .kpi-app #view-tamthu-detail,
 .kpi-app #view-target-reg-list { position: relative; z-index: 6; isolation: isolate; }
@@ -3855,7 +3855,7 @@ interface Contract {
   nguonDuLieu?: string | null;
 }
 interface TamthuDetailRow {
-  rowNo: number; nhom: string; maNhom: string; agentCode: string; agentName: string;
+  rowNo: number; monthKey?: string; nhom: string; maNhom: string; agentCode: string; agentName: string;
   effectiveDate: string; issueDate: string; pdt: number; afyp: number; contractStatus: string;
 }
 interface Staff { id: string; agentCode: string; agentName: string; nhom: string; maNhom: string; position: string; startDate: string | null; }
@@ -4371,6 +4371,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const [view, setView] = useState<'main' | 'detail' | 'calendar' | 'target-reg-list' | 'tamthu-detail'>('main');
   const [tamthuNhomFilter, setTamthuNhomFilter] = useState('');
   const [tamthuNameFilter, setTamthuNameFilter] = useState('');
+  const [tamthuMonthKey, setTamthuMonthKey] = useState(() => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`; });
+  const [tamthuAvailableMonths, setTamthuAvailableMonths] = useState<string[]>([]);
   const [tamthuDetailRows, setTamthuDetailRows] = useState<TamthuDetailRow[]>([]);
   const [tamthuDetailLoading, setTamthuDetailLoading] = useState(false);
   const tamthuDetailRowsRef = useRef<TamthuDetailRow[]>([]);
@@ -5328,10 +5330,11 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     if (force || tamthuDetailRowsRef.current.length === 0) setTamthuDetailLoading(true);
     const request = (async () => {
       try {
-        const response = await fetch('/api/tamthu-detail', { cache: 'no-store' });
+        const response = await fetch(`/api/tamthu-detail?month=${encodeURIComponent(tamthuMonthKey)}`, { cache: 'no-store' });
         const data = await response.json();
         if (!response.ok || !Array.isArray(data?.rows)) throw new Error('load failed');
         const rows = data.rows as TamthuDetailRow[];
+        setTamthuAvailableMonths(Array.isArray(data?.months) ? data.months : []);
         tamthuDetailRowsRef.current = rows;
         tamthuDetailFetchedAtRef.current = Date.now();
         setTamthuDetailRows(rows);
@@ -5351,11 +5354,11 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
     } finally {
       if (tamthuDetailRequestRef.current === request) tamthuDetailRequestRef.current = null;
     }
-  }, []);
+  }, [tamthuMonthKey]);
 
   useEffect(() => {
     if (view === 'tamthu-detail') void fetchTamthuDetail(false);
-  }, [view, fetchTamthuDetail]);
+  }, [view, tamthuMonthKey, fetchTamthuDetail]);
 
   // Prefetch sau khi dữ liệu KPI chính hoàn tất để người dùng mở Chi tiết tạm thu không phải chờ.
   useEffect(() => {
@@ -6546,7 +6549,8 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
   const pct = dashboard ? (dashboard.total.kh ? (dashboard.total.afyp / dashboard.total.kh * 100) : 0) : 0;
   const cp = Math.min(pct, 100);
   const currentMonthKey = `${CUR_YEAR}-${CUR_MONTH}`;
-  const tamthuMonthLabel = `Tháng ${Number(CUR_MONTH)}/${CUR_YEAR}`;
+  const tamthuMonthLabel = `Tháng ${Number(tamthuMonthKey.slice(5))}/${tamthuMonthKey.slice(0, 4)}`;
+  const tamthuIsCurrentMonth = tamthuMonthKey === currentMonthKey;
   const tamthuRowsWithResolvedGroup = useMemo(() => {
     const codeKey = (value: string | null | undefined) => String(value || '').trim().toUpperCase();
     const groupNameByCode = new Map<string, string>();
@@ -6598,6 +6602,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         .some((value) => String(value || '').toLocaleLowerCase('vi-VN').includes(query));
     });
   }, [tamthuRowsWithResolvedGroup, tamthuNhomFilter, tamthuNameFilter]);
+  const tamthuSortedContracts = useMemo(() => [...tamthuContracts].sort((a, b) => {
+    const parse = (value: string) => { const m = String(value || '').match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/); return m ? new Date(Number(m[3].length === 2 ? `20${m[3]}` : m[3]), Number(m[2]) - 1, Number(m[1])).getTime() : Number.MAX_SAFE_INTEGER; };
+    return parse(a.effectiveDate) - parse(b.effectiveDate);
+  }), [tamthuContracts]);
   const tamthuNhomOptions = useMemo(() => Array.from(new Set(
     tamthuRowsWithResolvedGroup.map((contract) => contract.resolvedNhom)
   )).sort((a, b) => a.localeCompare(b, 'vi')), [tamthuRowsWithResolvedGroup]);
@@ -8367,7 +8375,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
         <div className="tamthu-detail-shell">
           <div className="sub-header">
             <BackButton onClick={() => setView('main')} size={20} title="Quay lại" />
-            <span className="sub-title tamthu-detail-title"><span>Chi Tiết Tạm Thu</span><em>{tamthuMonthLabel}</em></span>
+            <span className="sub-title tamthu-detail-title"><span>{tamthuIsCurrentMonth ? 'Chi Tiết Tạm Thu' : `Phát hành tháng ${Number(tamthuMonthKey.slice(5))}/${tamthuMonthKey.slice(0, 4)}`}</span><em>{tamthuMonthLabel}</em></span>
             <button
               type="button"
               onClick={() => { void fetchTamthuDetail(true); }}
@@ -8384,6 +8392,10 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                 <strong>{tamthuContracts.length}</strong> hợp đồng &nbsp;•&nbsp; AFYP: <strong>{fmt(tamthuAfypTotal)}đ</strong>
               </div>
               <div className="tamthu-detail-filters">
+                <select value={tamthuMonthKey} onChange={(event) => { setTamthuMonthKey(event.target.value); setTamthuNhomFilter(''); setTamthuNameFilter(''); }} aria-label="Chọn tháng dữ liệu">
+                  <option value={currentMonthKey}>{`Tháng hiện tại (${tamthuMonthLabel})`}</option>
+                  {tamthuAvailableMonths.filter((month) => month !== currentMonthKey).map((month) => <option key={month} value={month}>{`Phát hành tháng ${Number(month.slice(5))}/${month.slice(0, 4)}`}</option>)}
+                </select>
                 <select value={tamthuNhomFilter} onChange={(event) => setTamthuNhomFilter(event.target.value)} aria-label="Lọc theo nhóm">
                   <option value="">Tất cả nhóm</option>
                   {tamthuNhomOptions.map((nhom) => <option key={nhom} value={nhom}>{nhom}</option>)}
@@ -8421,7 +8433,7 @@ export function KPIDashboard({ standalone = false }: { standalone?: boolean } = 
                     </tr>
                   </thead>
                   <tbody>
-                    {tamthuContracts.map((contract, index) => (
+                    {tamthuSortedContracts.map((contract, index) => (
                       <tr key={`${contract.rowNo}-${contract.agentCode}-${index}`}>
                         <td className="stt">{contract.rowNo || index + 1}</td>
                         <td className="text-left" title={contract.resolvedNhom}>{contract.resolvedNhom}</td>

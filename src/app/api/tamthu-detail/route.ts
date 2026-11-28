@@ -19,13 +19,24 @@ function numberValue(v: string) {
   return Number.isFinite(n) ? n : 0;
 }
 
-export async function GET() {
+async function ensureMonthColumn() {
+  // Giúp các Render instance đã chạy schema cũ tự nâng cấp an toàn khi mở màn hình.
+  await db.$executeRawUnsafe('ALTER TABLE "TamthuDetail" ADD COLUMN IF NOT EXISTS "monthKey" TEXT NOT NULL DEFAULT \'\'');
+  await db.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS "TamthuDetail_monthKey_idx" ON "TamthuDetail"("monthKey")');
+  await db.$executeRawUnsafe(`UPDATE "TamthuDetail" SET "monthKey" = to_char(CURRENT_DATE, 'YYYY-MM') WHERE "monthKey" = ''`);
+}
+
+export async function GET(request: NextRequest) {
   try {
+    await ensureMonthColumn();
+    const monthKey = request.nextUrl.searchParams.get('month') || '';
     const rows = await withRetry(() => db.tamthuDetail.findMany({
+      where: monthKey ? { monthKey } : undefined,
       orderBy: { rowNo: 'asc' },
-      select: { rowNo: true, nhom: true, maNhom: true, agentCode: true, agentName: true, effectiveDate: true, issueDate: true, pdt: true, afyp: true, contractStatus: true },
+      select: { rowNo: true, monthKey: true, nhom: true, maNhom: true, agentCode: true, agentName: true, effectiveDate: true, issueDate: true, pdt: true, afyp: true, contractStatus: true },
     }));
-    return NextResponse.json({ rows, count: rows.length }, { headers: { 'Cache-Control': 'no-store' } });
+    const months = await db.tamthuDetail.findMany({ distinct: ['monthKey'], orderBy: { monthKey: 'desc' }, select: { monthKey: true } });
+    return NextResponse.json({ rows, count: rows.length, months: months.map((row) => row.monthKey).filter(Boolean) }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     const prismaError = error as { code?: string; meta?: { modelName?: string; table?: string } };
     if (
@@ -46,14 +57,17 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    await ensureMonthColumn();
     const body = await request.json();
     if (!isDataHubImport(body) || !isAuthorizedDataHubRequest(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!Array.isArray(body.rows)) return NextResponse.json({ error: 'Thiếu dữ liệu Sheet2.' }, { status: 400 });
 
+    const monthKey = value(body, 'monthKey', 'month') || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
     const rows = (body.rows as DetailRow[])
       .map((row, index) => ({
+        monthKey,
         rowNo: Number(value(row, 'STT')) || index + 1,
         nhom: value(row, 'Nhóm', 'Nhom'),
         maNhom: value(row, 'Mã Ban/Nhóm', 'Mã nhóm', 'MaNhom'),
@@ -71,7 +85,7 @@ export async function POST(request: NextRequest) {
     // không tác động bảng Contract/KPI.
     await withRetry(async () => {
       await db.$transaction(async (tx) => {
-        await tx.tamthuDetail.deleteMany();
+        await tx.tamthuDetail.deleteMany({ where: { monthKey } });
         for (let i = 0; i < rows.length; i += 400) {
           await tx.tamthuDetail.createMany({ data: rows.slice(i, i + 400) });
         }

@@ -102,6 +102,7 @@ model Contract {
 // không được dùng cho KPI, doanh số hay các phép tính thi đua.
 model TamthuDetail {
   id              String   @id @default(uuid())
+  monthKey        String   @default("")
   rowNo           Int      @default(0)
   nhom            String   @default("")
   maNhom          String   @default("")
@@ -117,6 +118,7 @@ model TamthuDetail {
 
   @@index([nhom])
   @@index([agentCode])
+  @@index([monthKey])
 }
 
 model Staff {

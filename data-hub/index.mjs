@@ -340,7 +340,8 @@ async function importOne(config, rawSource, state, forceImport) {
   } else if (source.kind === 'structure') {
     payload = await postJson(config, '/api/structure/sync', { source: 'nmc-data-hub', collection: source.collection, rows: input });
   } else if (source.kind === 'tamthu-detail') {
-    payload = await postJson(config, '/api/tamthu-detail', { source: 'nmc-data-hub', rows: input });
+    const monthKey = new Date().toISOString().slice(0, 7);
+    payload = await postJson(config, '/api/tamthu-detail', { source: 'nmc-data-hub', monthKey, rows: input });
   } else {
     throw new Error(`Nguồn "${source.id}" có kind không hợp lệ: ${source.kind}`);
   }

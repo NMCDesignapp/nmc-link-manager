@@ -5594,6 +5594,9 @@ export default function QuanLyPage() {
   // Thưởng PTKD TN filters
   const [ptkdNhomFilter, setPtkdNhomFilter] = useState<string[]>([]);
   const [ptkdNameFilter, setPtkdNameFilter] = useState<string>('');
+  // Tháng báo cáo chính sách: dữ liệu vẫn dùng cùng nguồn contracts, chỉ thay đổi kỳ tính.
+  const [policyMonth, setPolicyMonth] = useState(() => new Date().getMonth() + 1);
+  const policyYear = new Date().getFullYear();
   // Policy image link — per policy item, persisted via Settings API
   const [policyImageLinks, setPolicyImageLinks] = useState<Record<string, string>>({});
   const [policyImageInput, setPolicyImageInput] = useState('');
@@ -6657,7 +6660,7 @@ export default function QuanLyPage() {
   const isTVVm = (startDate: string | null, maxMonths: number = 12): boolean => {
     if (!startDate) return false;
     const start = new Date(startDate);
-    const now = new Date();
+    const now = new Date(policyYear, policyMonth - 1, 1);
     // Tháng bắt đầu = tháng 1, nên relativeMonth = diffMonths + 1
     // TVVm khi relativeMonth ≤ 12, tức là diffMonths < 12
     const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
@@ -6669,7 +6672,7 @@ export default function QuanLyPage() {
   const getChangInfo = (startDate: string | null): { chang: number; label: string; monthRange: string; relativeMonth: number; rangeStart: Date; rangeEnd: Date } => {
     if (!startDate) return { chang: 0, label: '—', monthRange: '', relativeMonth: 0, rangeStart: new Date(), rangeEnd: new Date() };
     const start = new Date(startDate);
-    const now = new Date();
+    const now = new Date(policyYear, policyMonth - 1, 1);
     // Tháng tương đối: tháng bắt đầu = 1
     const relativeMonth = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()) + 1;
     const chang = Math.min(Math.ceil(relativeMonth / 3), 4);
@@ -6686,8 +6689,8 @@ export default function QuanLyPage() {
   };
 
   const renderTvvMTable = () => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = policyYear;
+    const currentMonth = policyMonth;
 
     // Filter chỉ TVVm (≤ 12 tháng theo định nghĩa trang thi đua)
     // Bỏ Ban Ca và TVV không có nhóm
@@ -6966,8 +6969,8 @@ export default function QuanLyPage() {
 
   // ========== THƯỞNG QUÝ TVV ==========
   const renderThuongQuyTVV = () => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1; // 1-12
+    const currentYear = policyYear;
+    const currentMonth = policyMonth; // 1-12
     const currentQuarter = Math.ceil(currentMonth / 3); // 1-4
 
     // Determine quarter month range
@@ -7486,8 +7489,8 @@ export default function QuanLyPage() {
   //   2   TVVm HĐC → 125%
   //   ≥3  TVVm HĐC → 150%
   const renderThuongTuyenLuyen = () => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = policyYear;
+    const currentMonth = policyMonth;
     // Theo ảnh chính sách: Thưởng Tuyển Luyện = Tỷ lệ × Tổng thưởng TVVm tại tháng
     // ≥3 TVVm HĐC: 150% | 2: 125% | 1: 100%
 
@@ -7748,8 +7751,8 @@ export default function QuanLyPage() {
   // THƯỞNG ĐỒNG HÀNH = SL TVVm HĐC × 500.000đ (placeholder, user can adjust)
   // THƯỞNG VƯỢT TRỘI = if FYP TVVm ≥ 100tr → 2tr bonus (placeholder)
   const renderThuongDongHanh = () => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = policyYear;
+    const currentMonth = policyMonth;
     // Theo ảnh chính sách Thưởng Đồng Hành:
     // (1) Thưởng ĐỒNG HÀNH = % × Tổng thưởng TVVm tại tháng
     //     ≥3 TVVm HĐC: 200% | 2 TVVm HĐC: 100% | 1: 0%
@@ -8039,8 +8042,8 @@ export default function QuanLyPage() {
   //   FYP ≥ 150tr + TVVm HĐC ≥ 1 → 9%
   //   FYP ≥ 150tr (no TVVm)      → 4%
   const renderThuongQuyTN = () => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = policyYear;
+    const currentMonth = policyMonth;
     const currentQuarter = Math.ceil(currentMonth / 3);
     const quarterStartMonth = (currentQuarter - 1) * 3 + 1;
     const quarterEndMonth = currentQuarter * 3;
@@ -8333,8 +8336,8 @@ export default function QuanLyPage() {
   // FYC = FYP × 25% (giả định TLHH)
   // TIỀN THƯỞNG = FYC × TL%
   const renderThuongPTKD = () => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = policyYear;
+    const currentMonth = policyMonth;
 
     // Ma trận tỷ lệ: [FYP_threshold_index][LuotHĐ_bucket_index]
     // Bucket: 0=≥5, 1=3-4, 2=2, 3=<2
@@ -9251,6 +9254,12 @@ export default function QuanLyPage() {
                 font-weight: 700 !important;
               }
             `}} />
+            <div className="flex items-center justify-between gap-2 mb-2 px-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-200/70">Kỳ tính chính sách</span>
+              <select value={policyMonth} onChange={(e) => setPolicyMonth(Number(e.target.value))} className="h-7 rounded border border-emerald-500/40 bg-slate-900 px-2 text-[11px] font-bold text-emerald-200">
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => <option key={month} value={month}>{`Tháng ${month}/${policyYear}`}</option>)}
+              </select>
+            </div>
             {renderPolicyContent(policyOpen)}
           </div>
 
@@ -9439,6 +9448,12 @@ export default function QuanLyPage() {
                 font-weight: 700 !important;
               }
             `}} />
+            <div className="flex items-center justify-between gap-2 mb-2 px-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-200/70">Kỳ tính chính sách</span>
+              <select value={policyMonth} onChange={(e) => setPolicyMonth(Number(e.target.value))} className="h-7 rounded border border-emerald-500/40 bg-slate-900 px-2 text-[11px] font-bold text-emerald-200">
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => <option key={month} value={month}>{`Tháng ${month}/${policyYear}`}</option>)}
+              </select>
+            </div>
             {renderPolicyContent(policyOpen)}
           </div>
 
